@@ -2,6 +2,7 @@ import type {
   AuthStatus, Capabilities, ModelInfo, ProviderView, SessionDetail, SessionEntity, SessionSummary, Settings, SlackStatus,
 } from '../protocol';
 import { demoFixtures, playerFor } from '../demo/registry';
+import { demoKnowledge } from '../demo/knowledge';
 import type { api as realApi } from './rest';
 
 // phase 24: fixture-backed stand-in for api/rest.ts, swapped in by `vite build --mode demo` (vite.config.ts).
@@ -125,11 +126,23 @@ const implemented: Partial<Api> = {
   ticketImportEnabled: () => ok({ enabled: false, warm: false, busy: false }),
   usage: () => ok([]),
   staleSessions: () => ok([]),
-  memoryPendingCount: () => Promise.resolve(0),
-  memoryProposals: () => ok([]),
-  memoryDocs: () => ok([]),
-  libraryAssets: () => ok([]),
-  librarySources: () => ok([]),
+  // phase 24 / website W0.2: a small hand-made vault and library (src/demo/knowledge.ts); reads only, every write is a 501
+  memoryPendingCount: () => Promise.resolve(demoKnowledge().memoryProposals().length),
+  memoryProposals: (status = 'PENDING') => ok(status === 'PENDING' ? demoKnowledge().memoryProposals() : []),
+  memoryDocs: (f) => ok(demoKnowledge().memoryDocs(f)),
+  memoryDoc: (id) => {
+    const d = demoKnowledge().memoryDoc(id);
+    return d ? ok(d) : Promise.reject(new ApiError(404, 'unknown memory', null));
+  },
+  memoryEpisodes: (servicePath) => ok(demoKnowledge().memoryEpisodes(servicePath)),
+  memorySearch: (q, opts) => ok(demoKnowledge().memorySearch(q, opts)),
+  libraryAssets: (f) => ok(demoKnowledge().libraryAssets(f)),
+  libraryAssetContent: (id) => {
+    const c = demoKnowledge().libraryAssetContent(id);
+    return c ? ok(c) : Promise.reject(new ApiError(404, 'unknown asset', null));
+  },
+  librarySearch: (q, k) => ok(demoKnowledge().librarySearch(q, k)),
+  librarySources: () => ok(demoKnowledge().librarySources()),
   serviceDiscoveryServices: () => ok([]),
 };
 

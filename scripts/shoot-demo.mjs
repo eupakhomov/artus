@@ -1,17 +1,21 @@
 #!/usr/bin/env node
 /**
- * Phase 24 step 6 — screenshots and screencast of the demo build (dark theme).
+ * Phase 24 step 6 — screenshots and screencast of the demo build. Screenshots are shot in both themes (dark keeps the
+ * plain file names, light adds a `-light` suffix); the screencast is dark only.
  *
  *   cd frontend && npm run build:demo && npx vite preview --mode demo --port 4173 &
  *   npx -y -p playwright node scripts/shoot-demo.mjs            # screenshots -> docs/images/
  *   npx -y -p playwright node scripts/shoot-demo.mjs --video    # + screencast -> <video-dir>/artus-demo.{webm,mp4}
  *
  * Playwright is deliberately not a project dependency. If `import('playwright')` does not resolve (npx -p does not
- * put it on the ESM resolution path), set PLAYWRIGHT_DIR to a `node_modules/playwright` directory. The screencast
+ * put it on the ESM resolution path), set PLAYWRIGHT_DIR to a `node_modules/playwright` directory. If the installed browser build
+ * does not match that Playwright, set CHROMIUM_PATH to an existing chrome binary instead of downloading another. The screencast
  * needs `ffmpeg` on PATH (webm -> mp4); the poster is dashboard.png. The demo is deterministic, so everything is re-shootable.
  *
  * Options: --base <url> (default http://localhost:4173/)  --out <dir> (default docs/images)
  *          --video-dir <dir> (default ./demo-media, outside git — upload as a release asset)  --only <name,name>
+ *          --themes <dark,light> (default both)
+ * Names for --only: dashboard, permission-card, git-panel, history, review-card, changes, visualize, memory, memory-pending, library.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, renameSync, readdirSync, rmSync } from 'node:fs';
@@ -28,6 +32,7 @@ const OUT = resolve(opt('out', 'docs/images'));
 const VIDEO_DIR = resolve(opt('video-dir', 'demo-media'));
 const ONLY = opt('only', '') ? opt('only', '').split(',') : null;
 const WANT_VIDEO = args.includes('--video');
+const THEMES = opt('themes', 'dark,light').split(',').filter((t) => t === 'dark' || t === 'light');
 const VIEWPORT = { width: 1600, height: 1000 };
 
 async function loadPlaywright() {
@@ -40,30 +45,39 @@ async function loadPlaywright() {
   }
 }
 
-const url = (speed) => `${BASE}?theme=dark&speed=${speed}`;
+const url = (speed, theme = 'dark') => `${BASE}?theme=${theme}&speed=${speed}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const want = (name) => !ONLY || ONLY.includes(name);
 
-async function open(browser, speed, extra = {}) {
-  const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, colorScheme: 'dark', ...extra });
+/** Escape closes most dialogs; the rest only dismiss on a backdrop click. */
+async function closeDialog(page) {
+  await page.keyboard.press('Escape');
+  await sleep(300);
+  if (await page.locator('.modal-backdrop').count()) await page.locator('.modal-backdrop').click({ position: { x: 5, y: 5 } });
+  await sleep(300);
+}
+
+async function open(browser, speed, theme, extra = {}) {
+  const ctx = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, colorScheme: theme, ...extra });
   const page = await ctx.newPage();
-  await page.goto(url(speed));
+  await page.goto(url(speed, theme));
   return { ctx, page };
 }
 
-async function shots(browser) {
+async function shots(browser, theme) {
   mkdirSync(OUT, { recursive: true });
+  const file = (name) => join(OUT, `${name}${theme === 'light' ? '-light' : ''}.png`);
+  // Element shots must not include the demo strip that overlaps the widgets' bottom edge.
+  const hideBar = (page) => page.addStyleTag({ content: '.demo-bar{display:none!important}' });
 
-  // Full dashboard + permission card + History/sidebar: 4x playback until prompts are waiting in the grid.
-  const { ctx, page } = await open(browser, 4);
+  // Full dashboard + permission card + panels: 4x playback until prompts are waiting in the grid.
+  const { ctx, page } = await open(browser, 4, theme);
   await page.locator('.perm-card:not(.resolved)').first().waitFor({ timeout: 60_000 });
   await sleep(2500);
-  if (want('dashboard')) await page.screenshot({ path: join(OUT, 'dashboard.png') });
-  // Element shots must not include the demo strip that overlaps the widgets' bottom edge.
-  const hideBar = () => page.addStyleTag({ content: '.demo-bar{display:none!important}' });
+  if (want('dashboard')) await page.screenshot({ path: file('dashboard') });
   if (want('permission-card')) {
-    await hideBar();
-    await page.locator('.widget:has(.perm-card:not(.resolved))').first().screenshot({ path: join(OUT, 'demo-permission-card.png') });
+    await hideBar(page);
+    await page.locator('.widget:has(.perm-card:not(.resolved))').first().screenshot({ path: file('demo-permission-card') });
   }
 
   // Git panel: any widget's git button (g).
@@ -71,29 +85,83 @@ async function shots(browser) {
     const widget = page.locator('.widget:has(button[title^="git panel"])').first();
     await widget.locator('button[title^="git panel"]').click();
     await sleep(1500);
-    await page.screenshot({ path: join(OUT, 'demo-git-panel.png') });
+    await page.screenshot({ path: file('demo-git-panel') });
+    await closeDialog(page);
+  }
+
+  // Visualize, then Changes: the development session that fixed the date parser (the only one with a diagram). Approve its
+  // pending prompt first so the turn can finish (Visualize is disabled while it runs).
+  const dev = page.locator('.widget:has-text("Fix flaky date parsing")').first();
+  if (want('changes') || want('visualize')) {
+    const approve = dev.locator('.perm-card:not(.resolved) .actions .primary').first();
+    if (await approve.count()) await approve.click();
+  }
+  if (want('visualize')) {
+    const viz = dev.locator('button[title^="Visualize"]:not([disabled])');
+    await viz.waitFor({ timeout: 120_000 });
+    await viz.click();
+    await page.locator('.diagram-modal').waitFor({ timeout: 15_000 });
+    await sleep(2500); // Mermaid renders asynchronously
+    await page.screenshot({ path: file('demo-visualize') });
+    await closeDialog(page);
+  }
+  if (want('changes')) {
+    await dev.locator('button[title^="maximize"]').click(); // give the panel room
+    await sleep(800);
+    await dev.locator('button[title^="changes"]').click();
+    await sleep(1500);
+    await hideBar(page);
+    await dev.screenshot({ path: file('demo-changes') });
+    await dev.locator('button[title^="changes"]').click();
+    await dev.locator('button[title^="restore"]').click(); // the maximized widget would cover the top-bar buttons
+    await sleep(500);
+  }
+
+  // Memory (browse a note, then the pending reflection proposals) and the skill library.
+  if (want('memory')) {
+    await page.locator('button[title^="Memory"]').click();
+    await page.locator('.modal .stale-row').first().waitFor({ timeout: 15_000 });
+    await page.locator('.modal .stale-row:has-text("dates-and-timezones")').first().click();
+    await sleep(800);
+    await page.screenshot({ path: file('demo-memory') });
+    await closeDialog(page);
+  }
+  if (want('memory-pending')) {
+    await page.locator('button[title^="Memory"]').click();
+    await page.locator('.modal').getByRole('button', { name: /^Pending/ }).click();
+    await page.locator('.modal .stale-row').first().waitFor({ timeout: 15_000 });
+    await sleep(800);
+    await page.screenshot({ path: file('demo-memory-pending') });
+    await closeDialog(page);
+  }
+  if (want('library')) {
+    await page.locator('button[title^="Skill library"]').click();
+    await page.locator('.modal .stale-row').first().waitFor({ timeout: 15_000 });
+    await sleep(800);
+    await page.screenshot({ path: file('demo-library') });
+    await closeDialog(page);
   }
   await ctx.close();
 
   // History + sidebar: a short viewport keeps the sidebar compact (History sits at its bottom edge).
   if (want('history')) {
-    const h = await open(browser, 4, { viewport: { width: 1600, height: 620 } });
+    const h = await open(browser, 4, theme, { viewport: { width: 1600, height: 620 } });
     await h.page.locator('.perm-card:not(.resolved)').first().waitFor({ timeout: 60_000 });
     await sleep(2500);
-    await h.page.locator('aside.sidebar').screenshot({ path: join(OUT, 'demo-history-sidebar.png') });
+    await h.page.locator('aside.sidebar').screenshot({ path: file('demo-history-sidebar') });
     await h.ctx.close();
   }
 
   // Review approval card: the review session's submit_pr_review prompt (pause point p8) — wait for it.
   if (want('review-card')) {
-    const r = await open(browser, 4);
+    const r = await open(browser, 4, theme);
     const card = r.page.locator('.perm-card:not(.resolved):has-text("submit_pr_review")').first();
     await card.waitFor({ timeout: 120_000 });
     await sleep(800);
     await card.scrollIntoViewIfNeeded();
-    await r.page.addStyleTag({ content: '.demo-bar{display:none!important}' });
+    await hideBar(r.page);
     await r.page.locator('.widget:has(.perm-card:not(.resolved):has-text("submit_pr_review"))').first()
-      .screenshot({ path: join(OUT, 'demo-review-card.png') });
+      .screenshot({ path: file('demo-review-card') });
     await r.ctx.close();
   }
 }
@@ -139,9 +207,9 @@ async function screencast(browser) {
 }
 
 const { chromium } = await loadPlaywright();
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 try {
-  await shots(browser);
+  for (const theme of THEMES) await shots(browser, theme);
   if (WANT_VIDEO) await screencast(browser);
 } finally {
   await browser.close();

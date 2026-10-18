@@ -1,0 +1,144 @@
+{
+  "docs": [
+    {
+      "id": "00000000-0000-4000-8000-00000000a001",
+      "scope": "ecosystem",
+      "servicePath": null,
+      "name": "git-workflow",
+      "description": "How branches, commits and PRs are done across every repo here.",
+      "tags": ["git", "conventions"],
+      "status": "ACTIVE",
+      "ageDays": 21,
+      "content": "# Git workflow\n\n- One branch per task, named `type/short-topic` (`fix/date-parsing`, `chore/changelog-1.2.0`).\n- Commit subjects are imperative and under 72 characters; the body says *why*, not *what*.\n- Open a PR as soon as the branch builds; review sessions comment, they never push.\n- Never force-push a branch somebody else has a review open on.\n\nSee [[testing-conventions]] for what must be green before a PR is opened."
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000a002",
+      "scope": "ecosystem",
+      "servicePath": null,
+      "name": "testing-conventions",
+      "description": "What \"tests pass\" means before a change is handed back.",
+      "tags": ["testing", "conventions"],
+      "status": "ACTIVE",
+      "ageDays": 19,
+      "content": "# Testing conventions\n\n- `npm test` runs the whole suite in a few seconds; run it before every handoff.\n- A bug fix ships with a test that fails without the fix.\n- Tests never read the wall clock or the machine's timezone: pass the date or the offset in.\n- Don't edit a failing test to make it green; say why the expectation changed.\n\nRelated: [[git-workflow]], [[dates-and-timezones]]."
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000b001",
+      "scope": "service",
+      "servicePath": "/home/demo/projects/artus-demo-repo",
+      "name": "dates-and-timezones",
+      "description": "Why src/dates.js parses ISO strings the way it does, and the bug that taught us.",
+      "tags": ["dates", "bugfix", "gotcha"],
+      "status": "ACTIVE",
+      "ageDays": 6,
+      "content": "# Dates and timezones\n\n`parseDate()` must treat an ISO string with an offset (`2026-03-01T23:30:00-05:00`) as the instant it names, then read the calendar day in UTC.\n\nThe old version built a local `Date` and called `getDate()`, so the result changed with the timezone of the machine running the tests. That is the flaky-test bug fixed on `fix/date-parsing`.\n\n## Rules\n\n- Parse with `new Date(iso)`; read parts with the `getUTC*` methods.\n- A date without time (`2026-03-01`) is a calendar day, not an instant; keep it as a string until it is formatted.\n- Cover the offset edge cases in tests: just before and just after midnight, positive and negative offsets.\n\nSee [[testing-conventions]]."
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000b002",
+      "scope": "service",
+      "servicePath": "/home/demo/projects/artus-demo-repo",
+      "name": "http-service-layout",
+      "description": "Where the HTTP service keeps routing, middleware and limits.",
+      "tags": ["architecture", "http"],
+      "status": "ACTIVE",
+      "ageDays": 4,
+      "content": "# HTTP service layout\n\n- `src/server.js` creates the server and owns routing; handlers stay small and return plain objects.\n- Cross-cutting behaviour (logging, limits) is middleware wrapped around the handler, not code inside it.\n- Per-client limits are keyed by the client address plus the route, and every limited response carries `Retry-After`.\n\nWhen reviewing a limiter, check the window boundary, what happens to the counter after a rejection, and memory growth for one-off clients. Also see [[git-workflow]] and [[release-checklist]]."
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000b003",
+      "scope": "service",
+      "servicePath": "/home/demo/projects/artus-demo-repo",
+      "name": "old-release-notes",
+      "description": "Superseded: release notes were kept by hand before the changelog existed.",
+      "tags": ["release"],
+      "status": "ARCHIVED",
+      "ageDays": 40,
+      "content": "# Old release notes\n\nArchived. The changelog is generated from commit subjects now; see [[release-checklist]]."
+    }
+  ],
+  "proposals": [
+    {
+      "id": "00000000-0000-4000-8000-00000000c001",
+      "kind": "memory",
+      "sessionId": "00000000-0000-4000-8000-000000000003",
+      "sessionName": "Review PR #1: rate limiter",
+      "servicePath": "/home/demo/projects/artus-demo-repo",
+      "reflectedSeq": 40,
+      "episode": "Reviewed the rate limiter PR: found that the window counter is never reset after a rejection and that the per-client map grows without bound; submitted the findings as a review.",
+      "status": "PENDING",
+      "ageMinutes": 12,
+      "ops": [
+        {
+          "op": "update",
+          "scope": "service",
+          "name": "http-service-layout",
+          "description": "Where the HTTP service keeps routing, middleware and limits, and what to check in a limiter.",
+          "tags": ["architecture", "http", "review"],
+          "content": "Added a review checklist for limiters: window boundary, counter reset after a rejection, memory growth for one-off clients, and a `Retry-After` header on every limited response.",
+          "reason": "The review found two limiter bugs that this checklist would have caught.",
+          "evidence": [16, 24]
+        },
+        {
+          "op": "create",
+          "scope": "service",
+          "name": "release-checklist",
+          "description": "The steps for cutting a release of the demo service.",
+          "tags": ["release"],
+          "content": "1. Bump the version in `package.json`.\n2. Update `CHANGELOG.md` from the commits since the last tag.\n3. Run `npm test`.\n4. Tag and push.",
+          "reason": "The release came up twice in this session and was not written down anywhere.",
+          "evidence": [24]
+        }
+      ],
+      "evidence": {
+        "16": "I'll start by looking at the branch and its diff.",
+        "24": "Two problems: the counter is not reset after a rejected request, and the Map of clients is never pruned."
+      }
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000c002",
+      "kind": "skill",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "sessionName": "Fix flaky date parsing",
+      "servicePath": "/home/demo/projects/artus-demo-repo",
+      "reflectedSeq": null,
+      "episode": "---\nname: fix-timezone-dependent-test\ndescription: Use when a test passes on one machine and fails on another, or changes with the time of day. Finds and removes hidden dependence on the local timezone or clock.\n---\n\n# Fix a timezone-dependent test\n\n1. Reproduce with `TZ=Pacific/Kiritimati npm test` and `TZ=America/Los_Angeles npm test`.\n2. Find the code that builds a local `Date` or calls `getDate()`, `getHours()` or `Date.now()`.\n3. Replace it with an explicit instant: parse with `new Date(iso)`, read with the `getUTC*` methods, or pass the clock in as an argument.\n4. Add a test with an offset just before and just after midnight.\n5. Run the suite under at least two timezones before handing back.",
+      "status": "PENDING",
+      "ageMinutes": 30,
+      "ops": {
+        "name": "fix-timezone-dependent-test",
+        "description": "Use when a test passes on one machine and fails on another, or changes with the time of day.",
+        "tags": ["testing", "dates", "debugging"],
+        "evidence": [11]
+      },
+      "evidence": {
+        "11": "The failure depends on the machine's timezone, so I'll try the suite under a couple of different TZ values first."
+      }
+    }
+  ],
+  "episodes": [
+    {
+      "id": "00000000-0000-4000-8000-00000000d001",
+      "sessionId": "00000000-0000-4000-8000-000000000026",
+      "sessionName": "Add health endpoint",
+      "servicePath": "/home/demo/projects/artus-demo-repo",
+      "ageDays": 2,
+      "summary": "Added GET /health returning {\"status\":\"ok\"} with a test; opened the PR from the Git panel using the drafted description."
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000d002",
+      "sessionId": "00000000-0000-4000-8000-000000000028",
+      "sessionName": "Document the report helpers",
+      "servicePath": "/home/demo/projects/artus-demo-repo",
+      "ageDays": 3,
+      "summary": "Added JSDoc to the exported functions in src/report.js; no behaviour changes."
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000d003",
+      "sessionId": "00000000-0000-4000-8000-000000000001",
+      "sessionName": "Fix flaky date parsing",
+      "servicePath": "/home/demo/projects/artus-demo-repo",
+      "ageDays": 6,
+      "summary": "Fixed the timezone-dependent date parser by reading calendar days in UTC; added offset edge-case tests."
+    }
+  ]
+}

@@ -65,3 +65,10 @@ Per fixture (all keys optional):
 After a re-capture: check that the seqs referenced here still exist (`npm test` fails if a pause point is missing or has
 no deny tail), read every fixture end to end (`--check` is a net, not a proof; add new identifiers to `denylist.txt`), and
 run `npm run build:demo`.
+
+## memory.json and library.json
+
+Not recorded: hand-written data for the Memory and Skill-library dialogs (website W0.2), so their screenshots are
+reproducible. Ages are relative (`ageDays`, `ageMinutes`), memory links are `[[slug]]` in a note's content, and the
+service path is the scrubbed one the fixtures use (`/home/demo/projects/artus-demo-repo`). `node scripts/capture-demo.mjs --check`
+scans them with the same denylist. Session ids in proposals/episodes must match the fixtures' ids.

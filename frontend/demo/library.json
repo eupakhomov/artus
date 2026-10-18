@@ -1,0 +1,98 @@
+{
+  "sources": [
+    {
+      "id": "00000000-0000-4000-8000-00000000e001",
+      "type": "dir",
+      "ref": "/home/demo/projects/agent-skills",
+      "syncEnabled": true,
+      "syncedMinutesAgo": 25,
+      "lastSyncStatus": "OK",
+      "discoveries": [
+        { "path": "skills/changelog-from-commits/SKILL.md", "kind": "skill", "firstSeenMinutesAgo": 25 }
+      ]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000e002",
+      "type": "dir",
+      "ref": "/home/demo/projects/review-agents",
+      "syncEnabled": true,
+      "syncedMinutesAgo": 25,
+      "lastSyncStatus": "OK",
+      "discoveries": []
+    }
+  ],
+  "assets": [
+    {
+      "id": "00000000-0000-4000-8000-00000000f001",
+      "sourceId": "00000000-0000-4000-8000-00000000e001",
+      "kind": "skill",
+      "name": "fix-timezone-dependent-test",
+      "description": "Use when a test passes on one machine and fails on another, or changes with the time of day.",
+      "sourcePath": "skills/fix-timezone-dependent-test/SKILL.md",
+      "tags": ["testing", "debugging"],
+      "status": "ACTIVE",
+      "ageDays": 5,
+      "content": "---\nname: fix-timezone-dependent-test\ndescription: Use when a test passes on one machine and fails on another, or changes with the time of day.\n---\n\n# Fix a timezone-dependent test\n\n1. Reproduce with `TZ=Pacific/Kiritimati npm test` and `TZ=America/Los_Angeles npm test`.\n2. Find code that builds a local `Date` or reads the clock.\n3. Replace it with an explicit instant or pass the clock in.\n4. Add a test just before and just after midnight.\n"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000f002",
+      "sourceId": "00000000-0000-4000-8000-00000000e001",
+      "kind": "skill",
+      "name": "write-commit-message",
+      "description": "Draft an imperative, why-first commit message from the staged diff.",
+      "sourcePath": "skills/write-commit-message/SKILL.md",
+      "tags": ["git", "writing"],
+      "status": "ACTIVE",
+      "ageDays": 12,
+      "content": "---\nname: write-commit-message\ndescription: Draft an imperative, why-first commit message from the staged diff.\n---\n\n# Write a commit message\n\nRead `git diff --staged`. Subject: imperative, under 72 characters. Body: why the change is needed, not a list of edited files.\n"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000f003",
+      "sourceId": "00000000-0000-4000-8000-00000000e001",
+      "kind": "skill",
+      "name": "release-notes",
+      "description": "Turn the commits since the last tag into grouped release notes.",
+      "sourcePath": "skills/release-notes/SKILL.md",
+      "tags": ["release", "writing"],
+      "status": "ACTIVE",
+      "ageDays": 12,
+      "content": "---\nname: release-notes\ndescription: Turn the commits since the last tag into grouped release notes.\n---\n\n# Release notes\n\nList commits with `git log <last-tag>..HEAD --oneline`. Group them under Added, Fixed and Changed; drop merge commits and chores that users never see.\n"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000f004",
+      "sourceId": "00000000-0000-4000-8000-00000000e002",
+      "kind": "agent",
+      "name": "pr-reviewer",
+      "description": "Reviews a pull request for correctness and edge cases; reports findings, never edits code.",
+      "sourcePath": "agents/pr-reviewer.md",
+      "tags": ["review", "git"],
+      "status": "ACTIVE",
+      "ageDays": 9,
+      "content": "---\nname: pr-reviewer\ndescription: Reviews a pull request for correctness and edge cases; reports findings, never edits code.\ntools: Read, Grep, Glob, Bash\n---\n\nYou review pull requests. Read the diff, then the surrounding code it touches. Report only problems you can point to a line for, ordered by severity, each with the input that triggers it. Do not edit files.\n"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000f005",
+      "sourceId": "00000000-0000-4000-8000-00000000e002",
+      "kind": "agent",
+      "name": "test-writer",
+      "description": "Writes focused tests for one function at a time and runs them before reporting back.",
+      "sourcePath": "agents/test-writer.md",
+      "tags": ["testing"],
+      "status": "ACTIVE",
+      "ageDays": 9,
+      "content": "---\nname: test-writer\ndescription: Writes focused tests for one function at a time and runs them before reporting back.\ntools: Read, Edit, Write, Bash\n---\n\nYou write tests. Cover the normal case, the edges, and the failure that prompted the work. Run the suite before you report back and include the output.\n"
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000f006",
+      "sourceId": "00000000-0000-4000-8000-00000000e001",
+      "kind": "skill",
+      "name": "manual-changelog",
+      "description": "Superseded by release-notes: keeps CHANGELOG.md by hand.",
+      "sourcePath": "skills/manual-changelog/SKILL.md",
+      "tags": ["release"],
+      "status": "ARCHIVED",
+      "ageDays": 30,
+      "content": "---\nname: manual-changelog\ndescription: Superseded by release-notes: keeps CHANGELOG.md by hand.\n---\n\nArchived; use release-notes.\n"
+    }
+  ]
+}

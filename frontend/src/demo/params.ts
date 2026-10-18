@@ -15,3 +15,15 @@ export function parseDemoParams(search: string): DemoParams {
     autoplay: q.get('autoplay') !== '0',
   };
 }
+
+export type DemoTheme = 'dark' | 'light';
+
+/**
+ * The embedding page's theme message: `{type: 'artus-demo:theme', theme: 'dark'|'light'}`. Returns the theme, or null for
+ * anything else (other message types, bad values, non-objects) so a foreign `postMessage` can never do more than pick a theme.
+ */
+export function parseThemeMessage(data: unknown): DemoTheme | null {
+  if (typeof data !== 'object' || data === null) return null;
+  const m = data as { type?: unknown; theme?: unknown };
+  return m.type === 'artus-demo:theme' && (m.theme === 'dark' || m.theme === 'light') ? m.theme : null;
+}

@@ -7,7 +7,7 @@
 // Both modes also apply frontend/demo/denylist.txt and treat the Artus token (--token / $ARTUS_TOKEN) as a secret: it is
 // redacted on capture and its presence fails the check. Needs Node >= 22, no dependencies. Playback scripting
 // (seed point, pause points, deny tails, trims) lives in frontend/demo/scripts.json, which a capture never touches.
-import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findLeaks, scrubFixtures } from '../frontend/demo/scrub.mjs';
@@ -23,8 +23,14 @@ const denyRegexes = readFileSync(denylist, 'utf8').split(/\r?\n/).map((l) => l.t
 
 if (flag('check')) {
   let bad = 0;
-  for (const f of readdirSync(out).filter((x) => x.endsWith('.json'))) {
-    const leaks = findLeaks(JSON.parse(readFileSync(join(out, f), 'utf8')), deny, denyRegexes);
+  // the recorded fixtures, plus the hand-made memory/library data that sits next to them (website W0.2)
+  const files = readdirSync(out).filter((x) => x.endsWith('.json')).map((f) => join(out, f));
+  for (const f of ['memory.json', 'library.json']) {
+    const p = join(out, '..', f);
+    if (existsSync(p)) files.push(p);
+  }
+  for (const f of files) {
+    const leaks = findLeaks(JSON.parse(readFileSync(f, 'utf8')), deny, denyRegexes);
     for (const l of leaks) { bad++; console.error(`${f}: ${l.where}: ${l.match}`); }
   }
   console.log(bad ? `${bad} leak(s) found` : `fixtures clean (${out})`);

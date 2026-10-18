@@ -3,7 +3,7 @@
 Status: **implemented (2026-10-18)** — steps 1-7 done; **real fixtures recorded** on the public
 `eupakhomov/artus-demo-repo` (7 sessions: dev, review of PR #1, Codex, parent + child, two closed; 83 KB gzipped) and
 scrubbed, playback scripted in `frontend/demo/scripts.json` (workflow: `frontend/demo/SCENARIOS.md`). `vitest`, `tsc`,
-`npm run build`/`build:demo` pass and the demo build was driven in a browser. Step 6 media done (dark theme only): `docs/images/` screenshots + `scripts/shoot-demo.mjs`;
+`npm run build`/`build:demo` pass and the demo build was driven in a browser. Step 6 media done: `docs/images/` screenshots (both themes since the website's W0) + `scripts/shoot-demo.mjs`;
 the 75 s screencast (mp4+webm) is generated into gitignored `demo-media/` for upload as a release asset. Edit sites verified against the code as of commit `97832c3`.
 
 ### Deviations from the plan as written
@@ -34,6 +34,20 @@ the 75 s screencast (mp4+webm) is generated into gitignored `demo-media/` for up
   past its seq — previously a recorded event with the same seq was silently dropped by the WS dedupe (could hang a session).
 - The dashboard's `beforeunload` guard is skipped in demo mode.
 - Sidebar History needs no code: it reads `sessionHistory` (phase 23), which the fixtures answer.
+- **Website W0 (2026-10-18), after the first implementation:**
+  - *Memory vault and skill library in the demo.* `frontend/demo/memory.json` and `library.json` are hand-made (not recorded):
+    4 active + 1 archived memory notes (with `[[links]]`, one deliberately dangling), 2 pending proposals (a memory
+    reflection with two ops and a skill extraction, both with quoted evidence), 3 episodes, 2 local-folder sources, 5 active +
+    1 archived assets. `src/demo/knowledge.ts` serves them through `rest.demo.ts` (docs, doc detail with computed
+    links/backlinks, proposals, episodes, search, library list/search/content/sources); ages are relative to "now"; every write
+    stays a 501. `memoryPendingCount` is now 2, so the header shows the awaiting-approval badge. `capture-demo.mjs --check`
+    also scans these two files. Library sources are local folders, not a GitHub repo (no public repo with skills exists to point at).
+  - *Theme message.* The embedding page can change the theme without a reload (which would restart the replay):
+    `iframe.contentWindow.postMessage({type: 'artus-demo:theme', theme: 'dark'|'light'}, origin)`. Accepted only from
+    `window.parent`, parsed by `parseThemeMessage` (anything else is ignored), applied like `?theme=` (stored pref).
+  - *Shoot script.* `scripts/shoot-demo.mjs` shoots both themes (`--themes`; light files get a `-light` suffix) and the new
+    panels: `demo-visualize`, `demo-changes`, `demo-memory`, `demo-memory-pending`, `demo-library`. `CHROMIUM_PATH` points it at an
+    existing chrome when the Playwright build and the installed browser differ.
 
 Source: `artus-web/artus_website_plan.md` §4 and §8 steps 1–3. The website itself (Astro, Cloudflare Pages,
 copy) is a separate task in the `artus-web` repo; this phase only delivers what that site consumes.

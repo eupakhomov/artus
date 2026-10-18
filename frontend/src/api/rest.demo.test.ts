@@ -28,7 +28,7 @@ describe('rest.demo', () => {
     expect((await api.sessionChangedFile(withChanges.id, changes.files[0]!.path)).content).toContain('UTC');
     expect((await api.visualizeStatus(withChanges.id)).latest?.diagramType).toBe('flowchart');
     expect((await api.getSettings()).authTokenRequired).toBe(false);
-    expect(await api.memoryPendingCount()).toBe(0);
+    expect(await api.memoryPendingCount()).toBe(2);
   });
 
   it('rejects anything not implemented with a 501 ApiError', async () => {
@@ -47,6 +47,60 @@ describe('rest.demo', () => {
     expect(log.length).toBeGreaterThan(0);
     expect((await api.raw<{ diff: string }>('GET', `/api/sessions/${dev.id}/git/diff`)).diff).toContain('getUTCDate');
     await expect(api.raw('POST', `/api/sessions/${dev.id}/git/push`, {})).rejects.toMatchObject({ status: 501 });
+  });
+});
+
+describe('memory and library demo data', () => {
+  it('serves the vault with computed links, backlinks and a dangling reference', async () => {
+    const docs = await api.memoryDocs({ status: 'ACTIVE' });
+    expect(docs.length).toBe(4);
+    expect(docs.every((d) => d.status === 'ACTIVE')).toBe(true);
+    expect((await api.memoryDocs({ status: 'ARCHIVED' })).map((d) => d.name)).toEqual(['old-release-notes']);
+    const layout = docs.find((d) => d.name === 'http-service-layout')!;
+    const detail = await api.memoryDoc(layout.id);
+    expect(detail.outgoing.find((l) => l.slug === 'release-checklist')?.dangling).toBe(true);
+    expect(detail.outgoing.find((l) => l.slug === 'git-workflow')?.dangling).toBe(false);
+    const git = await api.memoryDoc(docs.find((d) => d.name === 'git-workflow')!.id);
+    expect(git.backlinks.map((l) => l.slug)).toContain('testing-conventions');
+    await expect(api.memoryDoc('nope')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('serves one memory proposal and one skill proposal, and searches notes and episodes', async () => {
+    const pending = await api.memoryProposals('PENDING');
+    expect(pending.map((p) => p.kind).sort()).toEqual(['memory', 'skill']);
+    expect(await api.memoryProposals('APPROVED')).toEqual([]);
+    const hits = await api.memorySearch('timezone', { kind: 'all' });
+    expect(hits.some((h) => h.kind === 'semantic' && h.name === 'dates-and-timezones')).toBe(true);
+    expect(hits.some((h) => h.kind === 'episodic')).toBe(true);
+    expect(await api.memorySearch('zzzz')).toEqual([]);
+  });
+
+  it('every evidence seq a proposal cites is quoted', async () => {
+    for (const p of await api.memoryProposals('PENDING')) {
+      const ops = Array.isArray(p.ops) ? p.ops : [p.ops];
+      for (const seq of ops.flatMap((o) => o.evidence ?? [])) expect(p.evidence[String(seq)], `${p.id} #${seq}`).toBeTruthy();
+    }
+  });
+
+  it('filters the library by kind and status, and serves content and sources', async () => {
+    const all = await api.libraryAssets({ status: 'ACTIVE' });
+    expect(all.filter((a) => a.kind === 'skill').length).toBe(3);
+    expect(all.filter((a) => a.kind === 'agent').length).toBe(2);
+    expect((await api.libraryAssets({ kind: 'agent', status: 'ACTIVE' })).every((a) => a.kind === 'agent')).toBe(true);
+    expect((await api.libraryAssets({ status: 'ARCHIVED' })).length).toBe(1);
+    expect((await api.libraryAssets({ status: 'ACTIVE', q: 'review' })).map((a) => a.name)).toContain('pr-reviewer');
+    const content = await api.libraryAssetContent(all[0]!.id);
+    expect(content.content).toContain(all[0]!.name);
+    const sources = await api.librarySources();
+    expect(sources.length).toBe(2);
+    expect(sources[0]!.assetCount).toBe(3);
+    expect(sources[0]!.discoveries.length).toBe(1);
+    expect((await api.librarySearch('commit')).map((h) => h.asset.name)).toContain('write-commit-message');
+  });
+
+  it('keeps every write a 501', async () => {
+    await expect(api.memoryDiscardProposal('x')).rejects.toMatchObject({ status: 501 });
+    await expect(api.libraryDeleteAsset('x')).rejects.toMatchObject({ status: 501 });
   });
 });
 

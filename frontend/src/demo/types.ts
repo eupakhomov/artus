@@ -1,4 +1,4 @@
-import type { ChangeList, ChangedFileView, DiagramView, Envelope, SessionDetail, SessionState, SessionSummary } from '../protocol';
+import type { ChangeList, ChangedFileView, DiagramView, Envelope, MemoryProposal, SessionDetail, SessionState, SessionSummary } from '../protocol';
 
 /** The Git panel's reads (`GET /api/sessions/{id}/git/status|log|diff`), recorded as the backend returned them. */
 export interface DemoGit {
@@ -46,4 +46,26 @@ export interface DemoFixture {
   diagram?: DiagramView;
   /** the diagram's current fingerprint (differs from diagram.fingerprint = outdated chip) */
   currentFingerprint?: string;
+}
+
+/** frontend/demo/memory.json: the hand-made memory vault (ages are relative to "now"; links are `[[slug]]` in the content). */
+export interface DemoMemoryFile {
+  docs: {
+    id: string; scope: 'ecosystem' | 'service'; servicePath: string | null; name: string; description: string; tags: string[];
+    status: 'ACTIVE' | 'ARCHIVED'; ageDays: number; content: string;
+  }[];
+  proposals: ({ ageMinutes: number } & Omit<MemoryProposal, 'createdAt' | 'decidedAt'>)[];
+  episodes: { id: string; sessionId: string; sessionName: string; servicePath: string; ageDays: number; summary: string }[];
+}
+
+/** frontend/demo/library.json: the hand-made skill & agent library. */
+export interface DemoLibraryFile {
+  sources: {
+    id: string; type: 'dir' | 'repo'; ref: string; syncEnabled: boolean; syncedMinutesAgo: number; lastSyncStatus: string | null;
+    discoveries: { path: string; kind: 'skill' | 'agent'; firstSeenMinutesAgo: number }[];
+  }[];
+  assets: {
+    id: string; sourceId: string | null; kind: 'skill' | 'agent'; name: string; description: string; sourcePath: string | null;
+    tags: string[]; status: 'ACTIVE' | 'ARCHIVED'; ageDays: number; content: string;
+  }[];
 }
