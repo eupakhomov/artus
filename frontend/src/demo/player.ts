@@ -17,15 +17,22 @@ export const realClock: Clock = {
 export const MAX_GAP_MS = 1500;
 export const DELTA_GAP_MS = 35;
 export const MIN_GAP_MS = 60;
-
-const DECISION_TOOLS = new Set(['permission_request']);
+/** a prompt that isn't a pause point gets its recorded answer this fast, so it only flashes in "Needs you" */
+export const PASS_THROUGH_ANSWER_MS = 400;
 
 export const RECORDING_NOTE = 'This is a recording — install Artus to talk to an agent.';
+
+const isResponseTo = (e: Envelope | undefined, requestId: string): boolean =>
+  e?.type === 'permission_response' && e.payload['requestId'] === requestId;
 
 /**
  * Replays one fixture's journal. Pure scheduling logic (clock injected) so ordering, the seeded/live split,
  * pause-on-decision and the deny branch are unit-testable. Emitted seqs are strictly monotonic: events keep
- * their recorded seq until a deny branch swaps the tail, after which an offset keeps them increasing.
+ * their recorded seq until something invented takes one, after which an offset keeps them increasing.
+ *
+ * A pause point (`script.pauseOn`, default every live `permission_request`) waits for the viewer: what was recorded while
+ * the real prompt was pending (WAITING_INPUT, a parallel tool call) still plays, then the player holds right before the
+ * recorded response. Prompts that aren't pause points play through with their recorded answer.
  */
 export class SessionPlayer {
   private readonly listeners = new Set<(e: Envelope) => void>();
@@ -39,6 +46,8 @@ export class SessionPlayer {
   private paused = false;
   private started = false;
   private waitingFor: string | null = null;
+  /** reached the recorded response of the pending pause point — nothing more plays until the viewer decides */
+  private held = false;
   private speed = 1;
 
   constructor(readonly fixture: DemoFixture, private readonly clock: Clock = realClock) {}
@@ -84,15 +93,20 @@ export class SessionPlayer {
   }
   private gapBefore(e: Envelope): number {
     if (e.type === 'stream_delta') return DELTA_GAP_MS;
+    if (e.type === 'permission_response') return PASS_THROUGH_ANSWER_MS;
     const prev = this.fixture.events[this.cursor - 1];
     const recorded = prev?.ts && e.ts ? Date.parse(e.ts) - Date.parse(prev.ts) : MAX_GAP_MS;
     return Math.max(MIN_GAP_MS, Math.min(Number.isFinite(recorded) ? recorded : MAX_GAP_MS, MAX_GAP_MS));
   }
 
   private schedule(): void {
-    if (this.paused || this.waitingFor !== null || this.timer !== null) return;
+    if (this.paused || this.held || this.timer !== null) return;
     const e = this.fixture.events[this.cursor];
     if (!e) return;
+    if (this.waitingFor !== null && isResponseTo(e, this.waitingFor)) {
+      this.held = true;
+      return;
+    }
     this.timer = this.clock.setTimeout(() => {
       this.timer = null;
       this.step();
@@ -104,11 +118,18 @@ export class SessionPlayer {
     if (!e) return;
     this.cursor++;
     this.emitRecorded(e, true);
-    if (DECISION_TOOLS.has(e.type)) {
-      this.waitingFor = e.payload['requestId'] as string;
-      return; // the viewer's decision resumes the script (respond())
+    const requestId = e.payload['requestId'] as string;
+    if (e.type === 'permission_request' && this.isPausePoint(requestId)) {
+      this.waitingFor = requestId; // the viewer's decision (respond()) releases it
+      // no recorded answer to play up to: hold right here
+      if (!this.fixture.events.some((x, i) => i >= this.cursor && isResponseTo(x, requestId))) this.held = true;
     }
     this.schedule();
+  }
+
+  private isPausePoint(requestId: string): boolean {
+    const pauseOn = this.fixture.script?.pauseOn;
+    return !pauseOn || pauseOn.includes(requestId);
   }
 
   private emitRecorded(e: Envelope, live: boolean): void {
@@ -132,30 +153,36 @@ export class SessionPlayer {
     for (const l of [...this.listeners]) l(e);
   }
 
-  /** The viewer's `permission_response`. Allow plays the recorded tail, deny swaps in the recorded denied tail. */
+  /**
+   * The viewer's `permission_response`. Allow plays the rest of the recording; deny ends it (the timeline diverged)
+   * with the fixture's denied tail, closed by an IDLE state.
+   */
   respond(cmd: Record<string, unknown>): void {
     const requestId = cmd['requestId'] as string;
     if (this.waitingFor === null || requestId !== this.waitingFor) return;
-    this.waitingFor = null;
     const behavior = cmd['behavior'] === 'deny' ? 'deny' : 'allow';
     const echo: Record<string, unknown> = { requestId, behavior };
     if (cmd['updatedInput']) echo['updatedInput'] = cmd['updatedInput'];
     if (cmd['message']) echo['message'] = cmd['message'];
 
+    if (this.timer !== null) { this.clock.clearTimeout(this.timer); this.timer = null; }
     const events = this.fixture.events;
-    // the recorded journal echoes the response right after the request — drop it, we emit the viewer's own
-    if (events[this.cursor]?.type === 'permission_response') this.cursor++;
+    // answered before the player got there: what was recorded during the wait still happened first
+    const recorded = events.findIndex((x, i) => i >= this.cursor && isResponseTo(x, requestId));
+    if (recorded !== -1) {
+      while (this.cursor < recorded) this.emitRecorded(events[this.cursor++]!, true);
+      this.cursor++; // the recorded answer is replaced by the viewer's
+    }
+    this.waitingFor = null;
+    this.held = false;
     this.emitNew('permission_response', echo);
 
-    const tail: TailEvent[] | undefined = behavior === 'deny' ? this.fixture.script?.deny?.[requestId] : undefined;
     if (behavior === 'deny') {
-      // skip the allowed tail up to and including this turn's turn_complete, then play the denied one
-      while (this.cursor < events.length) {
-        const skipped = events[this.cursor]!;
-        this.cursor++;
-        if (skipped.type === 'turn_complete') break;
-      }
-      for (const t of tail ?? DEFAULT_DENY_TAIL) this.emitNew(t.type, t.payload);
+      this.cursor = events.length;
+      const tail = this.fixture.script?.deny?.[requestId] ?? DEFAULT_DENY_TAIL;
+      for (const t of tail) this.emitNew(t.type, t.payload);
+      const last = tail[tail.length - 1];
+      if (!(last?.type === 'state_changed' && last.payload['state'] === 'IDLE')) this.emitNew('state_changed', { state: 'IDLE' });
     }
     this.schedule();
   }

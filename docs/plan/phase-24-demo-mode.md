@@ -1,10 +1,10 @@
 # Phase 24 — Demo mode (replay build of the dashboard)
 
-Status: **implemented (2026-10-18), sample fixtures only** — steps 1-5 and 7 done (demo build, REST/WS stand-ins, player, demo bar,
-capture + scrub scripts, docs, CI); `vitest` (135 tests), `tsc`, `npm run build` and `npm run build:demo` pass, and the demo build was
-driven in a browser (Allow/Deny from the sidebar, light theme, no network requests, no console errors). **Not done:** step 6 media
-(screenshots, screencast) and the real captured fixtures — `frontend/demo/fixtures/` holds a hand-scripted sample set
-(`build-sample-fixtures.mjs`); the user-run capture workflow is `frontend/demo/SCENARIOS.md`. Edit sites verified against the code as of commit `97832c3`.
+Status: **implemented (2026-10-18)** — steps 1-5 and 7 done; **real fixtures recorded** on the public
+`eupakhomov/artus-demo-repo` (7 sessions: dev, review of PR #1, Codex, parent + child, two closed; 83 KB gzipped) and
+scrubbed, playback scripted in `frontend/demo/scripts.json` (workflow: `frontend/demo/SCENARIOS.md`). `vitest`, `tsc`,
+`npm run build`/`build:demo` pass and the demo build was driven in a browser. **Not done:** step 6 media (screenshots,
+screencast). Edit sites verified against the code as of commit `97832c3`.
 
 ### Deviations from the plan as written
 - `rest.demo.ts` exposes the client through a `Proxy` whose default is the 501 `ApiError`, instead of `satisfies typeof api`: a new real
@@ -20,6 +20,16 @@ driven in a browser (Allow/Deny from the sidebar, light theme, no network reques
 - Leak check: `frontend/demo/denylist.txt` (regex per line; the maintainer handle is allowed only as a `github.com/` owner) is applied
   by capture and `--check` (incl. CI); the Artus token (`--token`/`$ARTUS_TOKEN`) is redacted on capture and denied on check;
   `git@host:` SSH remotes are not treated as emails.
+- Hand-made playback lives in `frontend/demo/scripts.json` (keyed by fixture file name), not in the fixtures, so a re-capture
+  is one command: `seedUntilSeq`, `pauseOn` (only these prompts wait; the rest play through answered as recorded, in 0.4 s),
+  `deny` tails, and trims (`endAtSeq`, `dropSeqs`, `state`). A Deny ends the recording (the timeline diverged) rather than
+  skipping one turn. While a pause point waits, what was recorded during the real wait (WAITING_INPUT, a parallel tool call)
+  still plays. Deny tails are hand-written — a recording can't contain both branches of one prompt.
+- The sample generator (`build-sample-fixtures.mjs`) is gone; the capture strips the machine's tool/MCP inventory and keeps
+  only the session fields the dashboard reads (`stripEnvironment`), and `lin_api_` keys are a redacted secret shape.
+- Found while recording, fixed in the backend: `GitOpsService.submitPrReview` dropped GitHub's error body (the agent only saw
+  "HTTP 422", not "Can not request changes on your own pull request") and sent a `start_line` equal to `line`, which GitHub
+  rejects; both fixed with tests.
 - Post-review fix: any event the player invents (viewer echo, deny tail, rename/mark, warning) now shifts the rest of the recording
   past its seq — previously a recorded event with the same seq was silently dropped by the WS dedupe (could hang a session).
 - The dashboard's `beforeunload` guard is skipped in demo mode.

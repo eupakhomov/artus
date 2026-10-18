@@ -1,4 +1,4 @@
-import type { DemoFixture } from './types';
+import type { DemoFixture, DemoScript } from './types';
 
 const ISO = /^\d{4}-\d{2}-\d{2}T/;
 
@@ -11,7 +11,7 @@ export function shiftFixture(f: DemoFixture, ms: number): DemoFixture {
   copy.summary.closedAt = shift(copy.summary.closedAt);
   copy.detail.session.prCheckedAt = shift(copy.detail.session.prCheckedAt);
   for (const e of copy.events) if (e.ts) e.ts = shift(e.ts) ?? e.ts;
-  for (const c of copy.git?.log ?? []) c.date = shift(c.date) ?? c.date;
+  // git log dates are relative ("2 weeks ago", `--date=relative`) and need no rebasing
   return copy;
 }
 
@@ -27,11 +27,27 @@ export function latestTimestamp(fixtures: DemoFixture[]): number {
   return max;
 }
 
-const modules = import.meta.glob('../../demo/fixtures/*.json', { eager: true, import: 'default' }) as Record<string, DemoFixture>;
+/** Applies a scripts.json entry: trims/drops events, overrides the state, attaches the playback script. Pure. */
+export function applyScript(f: DemoFixture, script: DemoScript | undefined): DemoFixture {
+  if (!script) return f;
+  const drop = new Set(script.dropSeqs ?? []);
+  const events = f.events.filter((e) => !drop.has(e.seq) && (script.endAtSeq === undefined || e.seq <= script.endAtSeq));
+  const last = events[events.length - 1];
+  const summary = { ...f.summary, ...(script.state ? { state: script.state } : {}), ...(last ? { lastSeq: last.seq } : {}) };
+  const session = script.state ? { ...f.detail.session, state: script.state } : f.detail.session;
+  return { ...f, summary, detail: { ...f.detail, session, ...(last ? { lastSeq: last.seq } : {}) }, events, script };
+}
 
-/** The bundled fixtures (files sorted by name, so `01-…` orders the sidebar), rebased to now. */
+/** `../../demo/fixtures/02-review.json` -> `02-review` (the scripts.json key) */
+export const fixtureName = (path: string): string => path.replace(/^.*\//, '').replace(/\.json$/, '');
+
+const modules = import.meta.glob('../../demo/fixtures/*.json', { eager: true, import: 'default' }) as Record<string, DemoFixture>;
+const scriptModules = import.meta.glob('../../demo/scripts.json', { eager: true, import: 'default' }) as Record<string, Record<string, DemoScript>>;
+const scripts: Record<string, DemoScript> = Object.values(scriptModules)[0] ?? {};
+
+/** The bundled fixtures (files sorted by name, so `01-…` orders the sidebar) with their scripts applied, rebased to now. */
 export function loadFixtures(now: number = Date.now()): DemoFixture[] {
-  const raw = Object.keys(modules).sort().map((k) => modules[k]!);
+  const raw = Object.keys(modules).sort().map((k) => applyScript(modules[k]!, scripts[fixtureName(k)]));
   const anchor = latestTimestamp(raw);
   const shift = anchor > 0 ? now - anchor - 5_000 : 0;
   return raw.map((f) => shiftFixture(f, shift));

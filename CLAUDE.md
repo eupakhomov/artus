@@ -275,10 +275,10 @@ backend, no network. The normal build never contains demo code (`main.tsx` lazy-
   add it there only if the demo should show real content for it.
 - A WS command or journal event type the player should honour goes in `demo/player.ts` / `ws.demo.ts`.
 - Absolute URLs break the relative demo base: use `import.meta.env.BASE_URL` (`./` in the demo build).
-- Fixtures: `node frontend/demo/build-sample-fixtures.mjs` regenerates the hand-scripted **sample** set; real ones come
-  from `scripts/capture-demo.mjs` (records journal, changes, diagram and the Git panel's status/log/diff; scrubs
+- Fixtures are real sessions recorded on the public `eupakhomov/artus-demo-repo`, captured by `scripts/capture-demo.mjs` (records journal, changes, diagram and the Git panel's status/log/diff; scrubs
   paths/secrets/emails/the Artus token; `--check` + `frontend/demo/denylist.txt` fail on leaks, CI runs it) — workflow in
-  `frontend/demo/SCENARIOS.md`. The demo bundle uses a relative base, so it works under any path. Embed params: `?theme=dark|light&speed=1|4&autoplay=0`.
+  `frontend/demo/SCENARIOS.md`. Hand-made playback (seed point, which prompts pause, Deny tails, trims) lives in
+  `frontend/demo/scripts.json`, never in the fixture files, so a re-capture is one command. The demo bundle uses a relative base, so it works under any path. Embed params: `?theme=dark|light&speed=1|4&autoplay=0`.
 
 ### Visual style (read before touching UI)
 

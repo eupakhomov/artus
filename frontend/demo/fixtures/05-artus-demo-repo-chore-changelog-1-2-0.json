@@ -1,0 +1,1201 @@
+{
+ "summary": {
+  "id": "00000000-0000-4000-8000-000000000024",
+  "name": "artus-demo-repo: chore/changelog-1.2.0",
+  "provider": "claude",
+  "repoPath": "/home/demo/projects/artus-demo-repo",
+  "servicePath": "/home/demo/projects/artus-demo-repo",
+  "branch": "chore/changelog-1.2.0",
+  "model": "claude-sonnet-5",
+  "permissionMode": "default",
+  "state": "IDLE",
+  "kind": "user",
+  "sessionType": "development",
+  "costToDate": 0.1378,
+  "updatedAt": "2026-10-18T09:19:46.381Z",
+  "lastSeq": 113,
+  "closedAt": null,
+  "prUrl": null
+ },
+ "detail": {
+  "parentName": "Release 1.2 prep",
+  "session": {
+   "id": "00000000-0000-4000-8000-000000000024",
+   "name": "artus-demo-repo: chore/changelog-1.2.0",
+   "provider": "claude",
+   "slackEnabled": false,
+   "repoPath": "/home/demo/projects/artus-demo-repo",
+   "servicePath": "/home/demo/projects/artus-demo-repo",
+   "cwdPath": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000024",
+   "branch": "chore/changelog-1.2.0",
+   "baseBranch": "main",
+   "worktreePath": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000024",
+   "providerSessionId": "00000000-0000-4000-8000-000000000025",
+   "capabilities": {
+    "mcp": true,
+    "agents": true,
+    "effort": true,
+    "models": [
+     {
+      "id": "haiku",
+      "tier": "cheap",
+      "label": "haiku"
+     },
+     {
+      "id": "sonnet",
+      "tier": "standard",
+      "label": "sonnet"
+     },
+     {
+      "id": "opus",
+      "tier": "premium",
+      "label": "opus"
+     }
+    ],
+    "resume": true,
+    "skills": true,
+    "compact": true,
+    "planMode": true,
+    "thinking": true,
+    "interrupt": true,
+    "contextDirs": true,
+    "modelSwitch": true,
+    "updatedInput": true,
+    "fallbackModel": true,
+    "serenaContext": "claude-code",
+    "reportsCostUsd": true,
+    "permissionModes": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "bypassPermissions"
+    ],
+    "unsupportedSessionFields": []
+   },
+   "model": "claude-sonnet-5",
+   "permissionMode": "default",
+   "ecosystemPath": "/home/demo/projects",
+   "contextDirs": [],
+   "thinking": null,
+   "effort": null,
+   "costBudgetUsd": null,
+   "state": "IDLE",
+   "kickoffPrompt": "We're preparing the 1.2.0 release of this repo. Update CHANGELOG.md (create it in Keep a Changelog style if it doesn't exist yet, otherwise add to it) with a new \"1.2.0\" section summarizing the commits made since the \"1.1.0\" git tag.\n\nRun `git log --oneline 1.1.0..HEAD` to see the commits since the 1.1.0 tag (as of now there are two: \"Document the CLI and the service in the README\" and \"Add date helpers for daily rollups\" — but re-check in case more have landed). Write concise, user-facing changelog entries (not raw commit messages) describing what changed, grouped under headings like Added/Changed/Docs as appropriate for Keep a Changelog format. Use today's date, 2026-10-18, for the release heading.\n\nCommit the CHANGELOG.md change on this branch with a clear commit message. Do not push, do not open a PR, do not touch package.json or any other files — just the changelog. Report back when done.\n\nYou are a child session of \"Release 1.2 prep\" working on this service as part of a larger cross-service task. When your task is done, call report_result (with your own sessionId, given in your system prompt) with a concise summary of what you did.",
+   "kind": "user",
+   "sessionType": "development",
+   "ticketRef": null,
+   "continuedFromId": null,
+   "parentSessionId": "00000000-0000-4000-8000-000000000022",
+   "prUrl": null,
+   "prCheckStatus": null,
+   "prCheckedAt": null,
+   "reflectionEnabled": false,
+   "codeIntel": null,
+   "contextTokens": 34713,
+   "contextWindow": 967000
+  },
+  "costToDate": 0.1378,
+  "queued": [],
+  "lastSeq": 113
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": "2026-10-18T09:18:46.276Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "CREATING"
+   }
+  },
+  {
+   "seq": 2,
+   "ts": "2026-10-18T09:18:46.279Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "PROVISIONING"
+   }
+  },
+  {
+   "seq": 3,
+   "ts": "2026-10-18T09:18:46.324Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "STARTING"
+   }
+  },
+  {
+   "seq": 4,
+   "ts": "2026-10-18T09:18:46.334Z",
+   "type": "queue_updated",
+   "payload": {
+    "queued": [
+     {
+      "pos": 24,
+      "text": "We're preparing the 1.2.0 release of this repo. Update CHANGELOG.md (create it in Keep a Changelog style if it doesn't exist yet, otherwise add to it) with a new \"1.2.0\" section summarizing the commits made since the \"1.1.0\" git tag.\n\nRun `git log --oneline 1.1.0..HEAD` to see the commits since the 1.1.0 tag (as of now there are two: \"Document the CLI and the service in the README\" and \"Add date helpers for daily rollups\" — but re-check in case more have landed). Write concise, user-facing changelog entries (not raw commit messages) describing what changed, grouped under headings like Added/Changed/Docs as appropriate for Keep a Changelog format. Use today's date, 2026-10-18, for the release heading.\n\nCommit the CHANGELOG.md change on this branch with a clear commit message. Do not push, do not open a PR, do not touch package.json or any other files — just the changelog. Report back when done.\n\nYou are a child session of \"Release 1.2 prep\" working on this service as part of a larger cross-service task. When your task is done, call report_result (with your own sessionId, given in your system prompt) with a concise summary of what you did."
+     }
+    ]
+   }
+  },
+  {
+   "seq": 5,
+   "ts": "2026-10-18T09:18:46.478Z",
+   "type": "ready",
+   "payload": {
+    "pid": 58107,
+    "type": "ready",
+    "provider": "claude",
+    "capabilities": {
+     "mcp": true,
+     "agents": true,
+     "effort": true,
+     "models": [
+      {
+       "id": "haiku",
+       "tier": "cheap",
+       "label": "haiku"
+      },
+      {
+       "id": "sonnet",
+       "tier": "standard",
+       "label": "sonnet"
+      },
+      {
+       "id": "opus",
+       "tier": "premium",
+       "label": "opus"
+      }
+     ],
+     "resume": true,
+     "skills": true,
+     "compact": true,
+     "planMode": true,
+     "thinking": true,
+     "interrupt": true,
+     "contextDirs": true,
+     "modelSwitch": true,
+     "updatedInput": true,
+     "fallbackModel": true,
+     "serenaContext": "claude-code",
+     "reportsCostUsd": true,
+     "permissionModes": [
+      "default",
+      "acceptEdits",
+      "plan",
+      "bypassPermissions"
+     ],
+     "unsupportedSessionFields": []
+    },
+    "protocolVersion": 1
+   }
+  },
+  {
+   "seq": 6,
+   "ts": "2026-10-18T09:18:46.485Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  },
+  {
+   "seq": 7,
+   "ts": "2026-10-18T09:18:46.487Z",
+   "type": "user_message",
+   "payload": {
+    "text": "We're preparing the 1.2.0 release of this repo. Update CHANGELOG.md (create it in Keep a Changelog style if it doesn't exist yet, otherwise add to it) with a new \"1.2.0\" section summarizing the commits made since the \"1.1.0\" git tag.\n\nRun `git log --oneline 1.1.0..HEAD` to see the commits since the 1.1.0 tag (as of now there are two: \"Document the CLI and the service in the README\" and \"Add date helpers for daily rollups\" — but re-check in case more have landed). Write concise, user-facing changelog entries (not raw commit messages) describing what changed, grouped under headings like Added/Changed/Docs as appropriate for Keep a Changelog format. Use today's date, 2026-10-18, for the release heading.\n\nCommit the CHANGELOG.md change on this branch with a clear commit message. Do not push, do not open a PR, do not touch package.json or any other files — just the changelog. Report back when done.\n\nYou are a child session of \"Release 1.2 prep\" working on this service as part of a larger cross-service task. When your task is done, call report_result (with your own sessionId, given in your system prompt) with a concise summary of what you did."
+   }
+  },
+  {
+   "seq": 8,
+   "ts": "2026-10-18T09:18:46.489Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 9,
+   "ts": "2026-10-18T09:18:46.492Z",
+   "type": "queue_updated",
+   "payload": {
+    "queued": []
+   }
+  },
+  {
+   "seq": 10,
+   "ts": "2026-10-18T09:18:49.295Z",
+   "type": "system_init",
+   "payload": {
+    "cwd": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000024",
+    "type": "system_init",
+    "model": "claude-sonnet-5",
+    "tools": [],
+    "mcpServers": [
+     {
+      "name": "memory",
+      "status": "connected"
+     }
+    ],
+    "permissionMode": "default",
+    "providerSessionId": "00000000-0000-4000-8000-000000000025"
+   }
+  },
+  {
+   "seq": 11,
+   "ts": "2026-10-18T09:18:51.282Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "EqAECusCCBIYAipAZVEsMuNTBiizfIfMifzCqorJlR9wRB6hLaGL2KGsyMvp7fXZ97WRFY2y4W04wgtSC+iByVXSVnOVf+ZULYjZQDIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiRlNTZmMzk1ZC1iMmU0LTQ5MTktOWYyZC02MTQ4MDU0MzkyNmFyEFaBVpC3ODNhVFOzEzYp31yIAQGaAREKD2NsYXVkZS1zb25uZXQtNagBvNbU1gawAQLCAUkICRAAGhsBeb8B+J8BiBUCxDUDTzcFJdsFvL4R3OUEJq0gBDIEEnHPJToEx/EdtEIESz+Y7koEgCVNqVAOWgTZBeFWYAJoAXAD2gFgChZwcmVmaXhfYmVmb3JlX2Jsb2NrX3YxEiB/T3mq0i8ltW8itLkW2V+0AblNCPPHx9xk49nYQuFiKyIAMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgze80omWKCijx9g56gaDFECrYZxHj6wRVio0SIwUl7MDcovlbiEEidvYy6iBhhriuz1+4WKLMDcHALGr6kNXBDmTeT4vB5+85FyMPfAKmKryHXG3yXRuSnHrBTakckUSo9AMnUU4W7KYC5WuoQ7HWkqlhwixrVVMFang8z3mvTdnd1I4ldBDD+SDwDC+kCiqFO0pEOvvjNcD/fk3pUPblQqCUfBRkU/xesRux5sFMR1ZRgB"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 12,
+   "ts": "2026-10-18T09:18:53.393Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01QwzouDxTAQ4PYoct3xWCeX",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "git log --oneline 1.1.0..HEAD && echo \"---\" && ls CHANGELOG.md 2>&1 && echo \"---\" && git tag -l",
+       "description": "List commits since 1.1.0 tag and check for existing changelog"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 13,
+   "ts": "2026-10-18T09:18:53.396Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "git log --oneline 1.1.0..HEAD && echo \"---\" && ls CHANGELOG.md 2>&1 && echo \"---\" && git tag -l",
+     "description": "List commits since 1.1.0 tag and check for existing changelog"
+    },
+    "toolUseId": "toolu_01QwzouDxTAQ4PYoct3xWCeX"
+   }
+  },
+  {
+   "seq": 14,
+   "ts": "2026-10-18T09:18:53.578Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "2e08226 Document the CLI and the service in the README\n544640c Add date helpers for daily rollups\n---\nCHANGELOG.md\n---\n1.0.0\n1.1.0",
+    "isError": false,
+    "toolUseId": "toolu_01QwzouDxTAQ4PYoct3xWCeX",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 15,
+   "ts": "2026-10-18T09:18:55.894Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "EoEFCrsDCBIYAipA42OeOa8pTANemdrtKVQwaDEdfSh0j1tHwMmx91SFA367fieUakARKjzTizLxpqSI3c6zo0CQ0MKIKoCmRMLphzIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiRlNTZmMzk1ZC1iMmU0LTQ5MTktOWYyZC02MTQ4MDU0MzkyNmFyEFaBVpC3ODNhVFOzEzYp31yIAQGaAREKD2NsYXVkZS1zb25uZXQtNagBwdbU1gawAQLCAVgIDhAAGioBeb8B+J8BiBUCxDUDTzcFJdsFvL4R3OUEJq0KmBMDTzcL+0oRfGQEJq0gBDIEEnHPJToEx/EdtEIESz+Y7koEgCVNqVAOWgTZBeFWYARoAXAD2gGgAQoWcHJlZml4X2JlZm9yZV9ibG9ja192MRIg9rTZqSuzPgubXshMBvBmQJhx/w6QOi4D++qUFkA63s0iQGVRLDLjUwYos3yHzIn8wqqKyZUfcEQeoS2hi9ihrMjL6e312fe1kRWNsuFtOMILUgvogclV0lZzlX/mVC2I2UAyIMLAE8hqnJLiL5ZvPYYXdo+LekTJAq3MCXv6HgmK+04fSAMSDFbp0MSkJ8+CtVgTDRoM9AOsuwalCwtzR6mnIjA26kB+2NJKqGd1aG1L7oJHdq26a2gkyVOJOohbtF9bfwfWas4W7W9VD7ued6Il858qc3NL0jPZ+wnlpBpro4fLjFMBXfXRQ6jTFgeEFgcW7TKeexGFAON98GqCgI1pkp7t0za5EO1JqK+z1dsrMrmlHnjvcopW9I7LF0UcI7vipzezuu1vKdVjhTRjZMLSz0ZKoQYmctmW6cGaEwnjk2yK26tAb84YAQ=="
+     }
+    ]
+   }
+  },
+  {
+   "seq": 16,
+   "ts": "2026-10-18T09:18:56.746Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01NyV5Mz9Z7e1ET7dQNXzVwT",
+      "name": "Read",
+      "type": "tool_use",
+      "input": {
+       "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000024/CHANGELOG.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 17,
+   "ts": "2026-10-18T09:18:56.749Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Read",
+    "type": "tool_started",
+    "input": {
+     "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000024/CHANGELOG.md"
+    },
+    "toolUseId": "toolu_01NyV5Mz9Z7e1ET7dQNXzVwT"
+   }
+  },
+  {
+   "seq": 18,
+   "ts": "2026-10-18T09:18:56.754Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "1\t# Changelog\n2\t\n3\t## 1.1.0\n4\t- Add the HTTP service with a `/report` endpoint\n5\t- Sort report rows by total, largest first\n6\t\n7\t## 1.0.0\n8\t- First release: sales report CLI\n9\t",
+    "isError": false,
+    "toolUseId": "toolu_01NyV5Mz9Z7e1ET7dQNXzVwT",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 19,
+   "ts": "2026-10-18T09:18:57.497Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01XGC8G9pgV89aJS3tcSER7A",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "git show --stat 2e08226 && echo \"=====\" && git show --stat 544640c",
+       "description": "Show stats for the two commits since 1.1.0"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 20,
+   "ts": "2026-10-18T09:18:57.501Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "git show --stat 2e08226 && echo \"=====\" && git show --stat 544640c",
+     "description": "Show stats for the two commits since 1.1.0"
+    },
+    "toolUseId": "toolu_01XGC8G9pgV89aJS3tcSER7A"
+   }
+  },
+  {
+   "seq": 21,
+   "ts": "2026-10-18T09:18:57.556Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "commit 2e08226d02b1392b925d2a50b284b55e3c0bdeac\nAuthor: Artus Demo <demo@example.com>\nDate:   Mon Oct 5 09:15:00 2026 +0200\n\n    Document the CLI and the service in the README\n\n README.md | 11 ++++++++++-\n 1 file changed, 10 insertions(+), 1 deletion(-)\n=====\ncommit 544640ce047c01dee7e974c8aef14c8142acdbd0\nAuthor: Artus Demo <demo@example.com>\nDate:   Fri Oct 2 16:40:00 2026 +0200\n\n    Add date helpers for daily rollups\n\n src/dates.js       | 13 +++++++++++++\n test/dates.test.js | 14 ++++++++++++++\n 2 files changed, 27 insertions(+)",
+    "isError": false,
+    "toolUseId": "toolu_01XGC8G9pgV89aJS3tcSER7A",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 22,
+   "ts": "2026-10-18T09:18:59.350Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "EvQECtADCBIYAipAI/sOEeLN3xLeuutln+fca8YL9YHLUHv8YiANNxraFFbKk/ecFEjx09jw2KbH3HObgBgnmjsSzeyKNp/omTp2PzIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiRlNTZmMzk1ZC1iMmU0LTQ5MTktOWYyZC02MTQ4MDU0MzkyNmFyEFaBVpC3ODNhVFOzEzYp31yIAQGaAREKD2NsYXVkZS1zb25uZXQtNagBxNbU1gawAQLCAW0IFRAAGj8Beb8B+J8BiBUCxDUDTzcFJdsFvL4R3OUEJq0KmBMDTzcL+0oRfGQEJq0KlrMKW54DTzcLatQLoaYRYTsEJq0gBDIEEnHPJToEx/EdtEIESz+Y7koEgCVNqVAOWgTZBeFWYAZoAXAD2gGgAQoWcHJlZml4X2JlZm9yZV9ibG9ja192MRIgLQtyNORqv75aQJzpYT+1h7J5Ofu0GFup2/Vd3vd6pdwiQONjnjmvKUwDXpna7SlUMGgxHX0odI9bR8DJsfdUhQN+u34nlGpAESo804sy8aakiN3Os6NAkNDCiCqApkTC6YcyIMLAE8hqnJLiL5ZvPYYXdo+LekTJAq3MCXv6HgmK+04fSAMSDLip9t9PrKe3wWwN2xoM7xBoJYuSw5illjUzIjBIpYOdhRaG0LvYpoE5U2K7QDb5GI5MyZuplAMbeV+Ny4936Ls2dEFI6hiejLrDNBMqUSazZzVxPgj9iA5TnT5hU7+salqLlICeeL/zXqVzsXrNIHOtlqD8sg903lpyq7N7wCHGiKoQ+ou1rruxD7hKCUaSEHv8eYdRu1bYuTulDlUVkxgB"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 23,
+   "ts": "2026-10-18T09:18:59.889Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01C1pP5xnEiSCvzEKwPYVzoQ",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "git show 544640c -- src/dates.js && echo \"=====README=====\" && git show 2e08226 -- README.md",
+       "description": "Show diffs for date helpers and README changes"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 24,
+   "ts": "2026-10-18T09:18:59.893Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "git show 544640c -- src/dates.js && echo \"=====README=====\" && git show 2e08226 -- README.md",
+     "description": "Show diffs for date helpers and README changes"
+    },
+    "toolUseId": "toolu_01C1pP5xnEiSCvzEKwPYVzoQ"
+   }
+  },
+  {
+   "seq": 25,
+   "ts": "2026-10-18T09:18:59.963Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "commit 544640ce047c01dee7e974c8aef14c8142acdbd0\nAuthor: Artus Demo <demo@example.com>\nDate:   Fri Oct 2 16:40:00 2026 +0200\n\n    Add date helpers for daily rollups\n\ndiff --git a/src/dates.js b/src/dates.js\nnew file mode 100644\nindex 0000000..f00fc61\n--- /dev/null\n+++ b/src/dates.js\n@@ -0,0 +1,13 @@\n+/**\n+ * Parses an ISO-8601 timestamp and returns midnight (UTC) of its calendar day in UTC,\n+ * e.g. '2026-03-01T23:30:00-05:00' -> 2026-03-02T00:00:00.000Z.\n+ */\n+export function parseDay(iso) {\n+  const d = new Date(iso);\n+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());\n+}\n+\n+/** 'YYYY-MM-DD' of the UTC calendar day. */\n+export function dayKey(iso) {\n+  return parseDay(iso).toISOString().slice(0, 10);\n+}\n=====README=====\ncommit 2e08226d02b1392b925d2a50b284b55e3c0bdeac\nAuthor: Artus Demo <demo@example.com>\nDate:   Mon Oct 5 09:15:00 2026 +0200\n\n    Document the CLI and the service in the README\n\ndiff --git a/README.md b/README.md\nindex 19136bb..1f6966f 100644\n--- a/README.md\n+++ b/README.md\n@@ -1,3 +1,12 @@\n # artus-demo-repo\n \n-A tiny sales-report CLI, the sample project for the Artus demo.\n+A deliberately small Node project (no dependencies) used to record the\n+[Artus](https://github.com/demo/artus) demo: a sales-report CLI and a minimal HTTP service.\n+\n+```bash\n+npm test                 # node --test\n+node src/cli.js          # print the report\n+npm start                # serve it on :3000\n+```\n+\n+Some bugs here are intentional — the demo sessions fix and review them.",
+    "isError": false,
+    "toolUseId": "toolu_01C1pP5xnEiSCvzEKwPYVzoQ",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 32,
+   "ts": "2026-10-18T09:19:01.545Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "text": "Now I'll add the 1.2.0 section to CHANGELOG.md.",
+      "type": "text"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 33,
+   "ts": "2026-10-18T09:19:04.288Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01B77yJeACiQ2xGc3ZKjpCGB",
+      "name": "Edit",
+      "type": "tool_use",
+      "input": {
+       "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000024/CHANGELOG.md",
+       "new_string": "# Changelog\n\n## 1.2.0 - 2026-10-18\n### Added\n- Add date helper utilities (`parseDay`, `dayKey`) for grouping report data into daily rollups\n\n### Docs\n- Document how to run the tests, CLI, and HTTP service in the README\n\n## 1.1.0",
+       "old_string": "# Changelog\n\n## 1.1.0",
+       "replace_all": false
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 34,
+   "ts": "2026-10-18T09:19:04.291Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Edit",
+    "type": "tool_started",
+    "input": {
+     "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000024/CHANGELOG.md",
+     "new_string": "# Changelog\n\n## 1.2.0 - 2026-10-18\n### Added\n- Add date helper utilities (`parseDay`, `dayKey`) for grouping report data into daily rollups\n\n### Docs\n- Document how to run the tests, CLI, and HTTP service in the README\n\n## 1.1.0",
+     "old_string": "# Changelog\n\n## 1.1.0",
+     "replace_all": false
+    },
+    "toolUseId": "toolu_01B77yJeACiQ2xGc3ZKjpCGB"
+   }
+  },
+  {
+   "seq": 35,
+   "ts": "2026-10-18T09:19:04.293Z",
+   "type": "permission_request",
+   "payload": {
+    "type": "permission_request",
+    "input": {
+     "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000024/CHANGELOG.md",
+     "new_string": "# Changelog\n\n## 1.2.0 - 2026-10-18\n### Added\n- Add date helper utilities (`parseDay`, `dayKey`) for grouping report data into daily rollups\n\n### Docs\n- Document how to run the tests, CLI, and HTTP service in the README\n\n## 1.1.0",
+     "old_string": "# Changelog\n\n## 1.1.0",
+     "replace_all": false
+    },
+    "toolName": "Edit",
+    "requestId": "p1",
+    "suggestions": [
+     {
+      "mode": "acceptEdits",
+      "type": "setMode",
+      "destination": "session"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 36,
+   "ts": "2026-10-18T09:19:04.295Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "WAITING_INPUT"
+   }
+  },
+  {
+   "seq": 37,
+   "ts": "2026-10-18T09:19:13.210Z",
+   "type": "permission_response",
+   "payload": {
+    "type": "permission_response",
+    "behavior": "allow",
+    "requestId": "p1"
+   }
+  },
+  {
+   "seq": 38,
+   "ts": "2026-10-18T09:19:13.216Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 39,
+   "ts": "2026-10-18T09:19:13.224Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "The file /home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000024/CHANGELOG.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+    "isError": false,
+    "toolUseId": "toolu_01B77yJeACiQ2xGc3ZKjpCGB",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 40,
+   "ts": "2026-10-18T09:19:15.112Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_015pRmYhsSmoYetNALnG5AXw",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "git add CHANGELOG.md && git status",
+       "description": "Stage CHANGELOG.md changes"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 41,
+   "ts": "2026-10-18T09:19:15.115Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "git add CHANGELOG.md && git status",
+     "description": "Stage CHANGELOG.md changes"
+    },
+    "toolUseId": "toolu_015pRmYhsSmoYetNALnG5AXw"
+   }
+  },
+  {
+   "seq": 42,
+   "ts": "2026-10-18T09:19:15.121Z",
+   "type": "permission_request",
+   "payload": {
+    "type": "permission_request",
+    "input": {
+     "command": "git add CHANGELOG.md && git status",
+     "description": "Stage CHANGELOG.md changes"
+    },
+    "toolName": "Bash",
+    "requestId": "p2",
+    "suggestions": [
+     {
+      "type": "addRules",
+      "rules": [
+       {
+        "toolName": "Bash",
+        "ruleContent": "git add *"
+       }
+      ],
+      "behavior": "allow",
+      "destination": "localSettings"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 43,
+   "ts": "2026-10-18T09:19:15.123Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "WAITING_INPUT"
+   }
+  },
+  {
+   "seq": 44,
+   "ts": "2026-10-18T09:19:21.196Z",
+   "type": "permission_response",
+   "payload": {
+    "type": "permission_response",
+    "behavior": "allow",
+    "requestId": "p2"
+   }
+  },
+  {
+   "seq": 45,
+   "ts": "2026-10-18T09:19:21.201Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 46,
+   "ts": "2026-10-18T09:19:21.298Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "On branch chore/changelog-1.2.0\nChanges to be committed:\n  (use \"git restore --staged <file>...\" to unstage)\n\tmodified:   CHANGELOG.md",
+    "isError": false,
+    "toolUseId": "toolu_015pRmYhsSmoYetNALnG5AXw",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 47,
+   "ts": "2026-10-18T09:19:23.500Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01HQj9P3HrF9ZqUxeYQsRrvJ",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "git commit -m \"$(cat <<'EOF'\nAdd 1.2.0 section to CHANGELOG.md\n\nSummarizes the date-helper utilities and README documentation work\nlanded since the 1.1.0 release.\nEOF\n)\"",
+       "description": "Commit the changelog update"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 48,
+   "ts": "2026-10-18T09:19:23.504Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "git commit -m \"$(cat <<'EOF'\nAdd 1.2.0 section to CHANGELOG.md\n\nSummarizes the date-helper utilities and README documentation work\nlanded since the 1.1.0 release.\nEOF\n)\"",
+     "description": "Commit the changelog update"
+    },
+    "toolUseId": "toolu_01HQj9P3HrF9ZqUxeYQsRrvJ"
+   }
+  },
+  {
+   "seq": 49,
+   "ts": "2026-10-18T09:19:23.510Z",
+   "type": "permission_request",
+   "payload": {
+    "type": "permission_request",
+    "input": {
+     "command": "git commit -m \"$(cat <<'EOF'\nAdd 1.2.0 section to CHANGELOG.md\n\nSummarizes the date-helper utilities and README documentation work\nlanded since the 1.1.0 release.\nEOF\n)\"",
+     "description": "Commit the changelog update"
+    },
+    "toolName": "Bash",
+    "requestId": "p3",
+    "suggestions": [
+     {
+      "type": "addRules",
+      "rules": [
+       {
+        "toolName": "Bash",
+        "ruleContent": "git commit -m ' *"
+       }
+      ],
+      "behavior": "allow",
+      "destination": "localSettings"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 50,
+   "ts": "2026-10-18T09:19:23.515Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "WAITING_INPUT"
+   }
+  },
+  {
+   "seq": 51,
+   "ts": "2026-10-18T09:19:28.664Z",
+   "type": "permission_response",
+   "payload": {
+    "type": "permission_response",
+    "behavior": "allow",
+    "requestId": "p3"
+   }
+  },
+  {
+   "seq": 52,
+   "ts": "2026-10-18T09:19:28.668Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 53,
+   "ts": "2026-10-18T09:19:28.767Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "[chore/changelog-1.2.0 8078233] Add 1.2.0 section to CHANGELOG.md\n 1 file changed, 7 insertions(+)",
+    "isError": false,
+    "toolUseId": "toolu_01HQj9P3HrF9ZqUxeYQsRrvJ",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 83,
+   "ts": "2026-10-18T09:19:31.515Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "text": "Committed. I added a `## 1.2.0 - 2026-10-18` section to CHANGELOG.md covering the two commits since the `1.1.0` tag: the new `parseDay`/`dayKey` date helpers (under Added) and the README documentation for tests/CLI/HTTP service (under Docs). Committed as `8078233` on `chore/changelog-1.2.0`, no push, no other files touched.",
+      "type": "text"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 84,
+   "ts": "2026-10-18T09:19:31.823Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_013utfMiKpCbQsJLHSQxpAhX",
+      "name": "ToolSearch",
+      "type": "tool_use",
+      "input": {
+       "query": "report_result",
+       "max_results": 3
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 85,
+   "ts": "2026-10-18T09:19:31.826Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "ToolSearch",
+    "type": "tool_started",
+    "input": {
+     "query": "report_result",
+     "max_results": 3
+    },
+    "toolUseId": "toolu_013utfMiKpCbQsJLHSQxpAhX"
+   }
+  },
+  {
+   "seq": 86,
+   "ts": "2026-10-18T09:19:31.828Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "{\"type\":\"tool_reference\",\"tool_name\":\"mcp__memory__report_result\"}\n{\"type\":\"tool_reference\",\"tool_name\":\"mcp__memory__check_children\"}\n{\"type\":\"tool_reference\",\"tool_name\":\"mcp__memory__spawn_child_session\"}",
+    "isError": false,
+    "toolUseId": "toolu_013utfMiKpCbQsJLHSQxpAhX",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 87,
+   "ts": "2026-10-18T09:19:36.217Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01Du586dGbWrpoP3iyEpQfBp",
+      "name": "mcp__memory__report_result",
+      "type": "tool_use",
+      "input": {
+       "summary": "Updated CHANGELOG.md on branch chore/changelog-1.2.0: added a \"## 1.2.0 - 2026-10-18\" section summarizing the two commits since the 1.1.0 tag — date helper utilities (parseDay/dayKey) for daily rollups under \"Added\", and README documentation of tests/CLI/HTTP service under \"Docs\". Committed as 8078233 with message \"Add 1.2.0 section to CHANGELOG.md\". No push, no PR, no other files touched (verified git log 1.1.0..HEAD showed only these two commits).",
+       "sessionId": "00000000-0000-4000-8000-000000000024"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 88,
+   "ts": "2026-10-18T09:19:36.221Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "mcp__memory__report_result",
+    "type": "tool_started",
+    "input": {
+     "summary": "Updated CHANGELOG.md on branch chore/changelog-1.2.0: added a \"## 1.2.0 - 2026-10-18\" section summarizing the two commits since the 1.1.0 tag — date helper utilities (parseDay/dayKey) for daily rollups under \"Added\", and README documentation of tests/CLI/HTTP service under \"Docs\". Committed as 8078233 with message \"Add 1.2.0 section to CHANGELOG.md\". No push, no PR, no other files touched (verified git log 1.1.0..HEAD showed only these two commits).",
+     "sessionId": "00000000-0000-4000-8000-000000000024"
+    },
+    "toolUseId": "toolu_01Du586dGbWrpoP3iyEpQfBp"
+   }
+  },
+  {
+   "seq": 89,
+   "ts": "2026-10-18T09:19:36.225Z",
+   "type": "permission_request",
+   "payload": {
+    "type": "permission_request",
+    "input": {
+     "summary": "Updated CHANGELOG.md on branch chore/changelog-1.2.0: added a \"## 1.2.0 - 2026-10-18\" section summarizing the two commits since the 1.1.0 tag — date helper utilities (parseDay/dayKey) for daily rollups under \"Added\", and README documentation of tests/CLI/HTTP service under \"Docs\". Committed as 8078233 with message \"Add 1.2.0 section to CHANGELOG.md\". No push, no PR, no other files touched (verified git log 1.1.0..HEAD showed only these two commits).",
+     "sessionId": "00000000-0000-4000-8000-000000000024"
+    },
+    "toolName": "mcp__memory__report_result",
+    "requestId": "p4",
+    "suggestions": [
+     {
+      "type": "addRules",
+      "rules": [
+       {
+        "toolName": "mcp__memory__report_result"
+       }
+      ],
+      "behavior": "allow",
+      "destination": "localSettings"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 90,
+   "ts": "2026-10-18T09:19:36.229Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "WAITING_INPUT"
+   }
+  },
+  {
+   "seq": 91,
+   "ts": "2026-10-18T09:19:43.484Z",
+   "type": "permission_response",
+   "payload": {
+    "type": "permission_response",
+    "behavior": "allow",
+    "requestId": "p4"
+   }
+  },
+  {
+   "seq": 92,
+   "ts": "2026-10-18T09:19:43.490Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 93,
+   "ts": "2026-10-18T09:19:43.495Z",
+   "type": "child_reported",
+   "payload": {
+    "childId": "00000000-0000-4000-8000-000000000024",
+    "service": "artus-demo-repo",
+    "summary": "Updated CHANGELOG.md on branch chore/changelog-1.2.0: added a \"## 1.2.0 - 2026-10-18\" section summarizing the two commits since the 1.1.0 tag — date helper utilities (parseDay/dayKey) for daily rollups under \"Added\", and README documentation of tests/CLI/HTTP service under \"Docs\". Committed as 8078233 with message \"Add 1.2.0 section to CHANGELOG.md\". No push, no PR, no other files touched (verified git log 1.1.0..HEAD showed only these two commits).",
+    "childName": "artus-demo-repo: chore/changelog-1.2.0"
+   }
+  },
+  {
+   "seq": 94,
+   "ts": "2026-10-18T09:19:43.507Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "reported to parent \"Release 1.2 prep\"",
+    "isError": false,
+    "toolUseId": "toolu_01Du586dGbWrpoP3iyEpQfBp",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 110,
+   "ts": "2026-10-18T09:19:45.240Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "text": "Reported back to the parent session. CHANGELOG.md is updated and committed on `chore/changelog-1.2.0` (commit `8078233`), with no push or PR created.",
+      "type": "text"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 111,
+   "ts": "2026-10-18T09:19:45.262Z",
+   "type": "turn_complete",
+   "payload": {
+    "type": "turn_complete",
+    "model": "claude-sonnet-5",
+    "usage": {
+     "speed": "standard",
+     "iterations": [
+      {
+       "type": "message",
+       "input_tokens": 2,
+       "output_tokens": 59,
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 356,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_read_input_tokens": 34355,
+       "cache_creation_input_tokens": 356
+      }
+     ],
+     "input_tokens": 18,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "output_tokens": 1724,
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 15922,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "output_tokens_details": {
+      "thinking_tokens": 98
+     },
+     "cache_read_input_tokens": 277590,
+     "cache_creation_input_tokens": 15922
+    },
+    "costUsd": 0.1378,
+    "numTurns": 10,
+    "durationMs": 56000,
+    "stopReason": "success"
+   }
+  },
+  {
+   "seq": 112,
+   "ts": "2026-10-18T09:19:45.266Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  },
+  {
+   "seq": 113,
+   "ts": "2026-10-18T09:19:46.378Z",
+   "type": "context_usage",
+   "payload": {
+    "type": "context_usage",
+    "tokens": 34713,
+    "window": 967000,
+    "breakdown": {
+     "messages": {
+      "user": 299,
+      "assistant": 796,
+      "toolCalls": 728,
+      "attachments": 4204,
+      "toolResults": 994
+     },
+     "topTools": [
+      {
+       "name": "Bash",
+       "tokens": 1091
+      },
+      {
+       "name": "mcp__memory__report_result",
+       "tokens": 201
+      },
+      {
+       "name": "Edit",
+       "tokens": 198
+      },
+      {
+       "name": "Read",
+       "tokens": 121
+      },
+      {
+       "name": "ToolSearch",
+       "tokens": 111
+      }
+     ],
+     "categories": [
+      {
+       "name": "Free space",
+       "tokens": 899287
+      },
+      {
+       "name": "MCP tools (deferred)",
+       "tokens": 38381
+      },
+      {
+       "name": "Autocompact buffer",
+       "tokens": 33000
+      },
+      {
+       "name": "System tools (deferred)",
+       "tokens": 15592
+      },
+      {
+       "name": "System tools",
+       "tokens": 12882
+      },
+      {
+       "name": "System prompt",
+       "tokens": 9565
+      },
+      {
+       "name": "Messages",
+       "tokens": 9544
+      },
+      {
+       "name": "Skills",
+       "tokens": 1875
+      },
+      {
+       "name": "MCP tools",
+       "tokens": 847
+      }
+     ],
+     "mcpServers": [
+      {
+       "name": "memory",
+       "tokens": 2910,
+       "deferred": false
+      }
+     ]
+    },
+    "autoCompactAt": 934000
+   }
+  }
+ ],
+ "changes": {
+  "baseBranch": "main",
+  "mergeBase": "2e08226d02b1392b925d2a50b284b55e3c0bdeac",
+  "baseKnown": true,
+  "files": [
+   {
+    "path": "CHANGELOG.md",
+    "oldPath": null,
+    "status": "modified",
+    "where": [
+     "committed"
+    ],
+    "additions": 7,
+    "deletions": 0,
+    "mtime": 1792355154569
+   }
+  ]
+ },
+ "files": {
+  "CHANGELOG.md": {
+   "path": "CHANGELOG.md",
+   "oldPath": null,
+   "status": "modified",
+   "content": "# Changelog\n\n## 1.2.0 - 2026-10-18\n### Added\n- Add date helper utilities (`parseDay`, `dayKey`) for grouping report data into daily rollups\n\n### Docs\n- Document how to run the tests, CLI, and HTTP service in the README\n\n## 1.1.0\n- Add the HTTP service with a `/report` endpoint\n- Sort report rows by total, largest first\n\n## 1.0.0\n- First release: sales report CLI\n",
+   "baseContent": "# Changelog\n\n## 1.1.0\n- Add the HTTP service with a `/report` endpoint\n- Sort report rows by total, largest first\n\n## 1.0.0\n- First release: sales report CLI\n",
+   "binary": false,
+   "truncated": false,
+   "size": 365
+  }
+ },
+ "git": {
+  "status": {
+   "branch": "chore/changelog-1.2.0",
+   "dirty": [],
+   "upstream": null,
+   "ahead": 0,
+   "behind": 0,
+   "aheadOfBase": 1
+  },
+  "log": [
+   {
+    "hash": "8078233",
+    "subject": "Add 1.2.0 section to CHANGELOG.md",
+    "author": "Artus Demo",
+    "date": "8 minutes ago"
+   },
+   {
+    "hash": "2e08226",
+    "subject": "Document the CLI and the service in the README",
+    "author": "Artus Demo",
+    "date": "2 weeks ago"
+   },
+   {
+    "hash": "544640c",
+    "subject": "Add date helpers for daily rollups",
+    "author": "Artus Demo",
+    "date": "2 weeks ago"
+   },
+   {
+    "hash": "7af954d",
+    "subject": "Sort report rows by total, largest first; release 1.1.0",
+    "author": "Artus Demo",
+    "date": "6 weeks ago"
+   },
+   {
+    "hash": "f3dbc6a",
+    "subject": "Add an HTTP service with a /report endpoint",
+    "author": "Artus Demo",
+    "date": "6 weeks ago"
+   },
+   {
+    "hash": "4444a91",
+    "subject": "Initial commit: sales report CLI",
+    "author": "Artus Demo",
+    "date": "7 weeks ago"
+   }
+  ]
+ }
+}

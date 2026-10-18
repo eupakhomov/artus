@@ -1,10 +1,29 @@
-import type { ChangeList, ChangedFileView, DiagramView, Envelope, SessionDetail, SessionSummary } from '../protocol';
+import type { ChangeList, ChangedFileView, DiagramView, Envelope, SessionDetail, SessionState, SessionSummary } from '../protocol';
 
 /** The Git panel's reads (`GET /api/sessions/{id}/git/status|log|diff`), recorded as the backend returned them. */
 export interface DemoGit {
   status: { branch: string; dirty: string[]; upstream: string | null; ahead: number; behind: number; aheadOfBase: number };
   log: { hash: string; subject: string; author: string; date: string }[];
   diff?: string;
+}
+
+/**
+ * Everything hand-made about a recording lives in frontend/demo/scripts.json, so a re-capture (which rewrites the fixture
+ * files) is one command. Applied by fixtures.ts `applyScript`.
+ */
+export interface DemoScript {
+  /** events up to this seq are seeded instantly; the rest play live */
+  seedUntilSeq?: number;
+  /** permission requestIds the viewer decides; any other prompt plays through with its recorded answer. Absent = all */
+  pauseOn?: string[];
+  /** per pause point: what plays when the viewer denies — the rest of the recording is dropped */
+  deny?: Record<string, TailEvent[]>;
+  /** drop everything after this seq (e.g. the "backend restarted" tail of a session captured after a restart) */
+  endAtSeq?: number;
+  /** individual events to drop (environment-only notices) */
+  dropSeqs?: number[];
+  /** override the captured session state (a session captured CRASHED that should show as IDLE) */
+  state?: SessionState;
 }
 
 /** An event the player invents (deny tail): everything but the seq/ts it assigns. */
@@ -19,11 +38,8 @@ export interface DemoFixture {
   detail: SessionDetail;
   /** the full journal; events with seq <= script.seedUntilSeq are seeded instantly, the rest play live */
   events: Envelope[];
-  script?: {
-    seedUntilSeq: number;
-    /** per permission requestId: the events that replace the recorded tail up to and including its turn_complete when the viewer denies */
-    deny?: Record<string, TailEvent[]>;
-  };
+  /** the hand-made playback script, merged in at load from frontend/demo/scripts.json (keyed by fixture file name) */
+  script?: DemoScript;
   changes?: ChangeList;
   git?: DemoGit;
   files?: Record<string, ChangedFileView>;

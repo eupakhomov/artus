@@ -2,11 +2,11 @@
 // Captures sessions from a running Artus backend into scrubbed demo fixtures (phase 24; see frontend/demo/SCENARIOS.md).
 //   node scripts/capture-demo.mjs --url http://localhost:8080 --token $T --out frontend/demo/fixtures \
 //        --sessions <id>,<id>,… [--home /home/me] [--path /real/repo=/home/demo/projects/artus-demo-repo] \
-//        [--name alicebook=demo-host] [--deny alice]
+//        [--name alicebook=demo-host] [--deny alice] [--keep github.com/alice/public-repo] [--keep-environment]
 //   node scripts/capture-demo.mjs --check [--out frontend/demo/fixtures] [--deny alice]   # exit 1 on any leak
 // Both modes also apply frontend/demo/denylist.txt and treat the Artus token (--token / $ARTUS_TOKEN) as a secret: it is
-// redacted on capture and its presence fails the check. Needs Node >= 22, no dependencies. The `script` block
-// (seedUntilSeq, deny branches) is added by hand afterwards.
+// redacted on capture and its presence fails the check. Needs Node >= 22, no dependencies. Playback scripting
+// (seed point, pause points, deny tails, trims) lives in frontend/demo/scripts.json, which a capture never touches.
 import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -71,7 +71,10 @@ for (const id of ids) {
   console.log(`captured ${summary.name} (${events.length} events)`);
 }
 
-const scrubbed = scrubFixtures(captured, { homes: opt('home'), paths: pairs('path'), names: pairs('name'), secrets: token ? [token] : [] });
+const scrubbed = scrubFixtures(captured, {
+  homes: opt('home'), paths: pairs('path'), names: pairs('name'), keep: opt('keep'), secrets: token ? [token] : [],
+  stripEnvironment: !flag('keep-environment'),
+});
 mkdirSync(out, { recursive: true });
 scrubbed.forEach((f, i) => {
   const slug = f.summary.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
@@ -79,5 +82,5 @@ scrubbed.forEach((f, i) => {
 });
 const leaks = scrubbed.flatMap((f) => findLeaks(f, deny, denyRegexes));
 for (const l of leaks) console.error(`LEAK ${l.where}: ${l.match}`);
-console.log(leaks.length ? `${leaks.length} leak(s) remain — fix the scrub options and re-run` : `wrote ${scrubbed.length} fixtures to ${out}; now add the script block by hand and read them through`);
+console.log(leaks.length ? `${leaks.length} leak(s) remain — fix the scrub options and re-run` : `wrote ${scrubbed.length} fixtures to ${out}; check frontend/demo/scripts.json still matches, then read them through`);
 process.exit(leaks.length ? 1 : 0);

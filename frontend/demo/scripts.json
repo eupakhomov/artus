@@ -1,0 +1,177 @@
+{
+  "01-fix-flaky-date-parsing": {
+    "seedUntilSeq": 23,
+    "pauseOn": [
+      "p1"
+    ],
+    "endAtSeq": 74,
+    "state": "IDLE",
+    "deny": {
+      "p1": [
+        {
+          "type": "state_changed",
+          "payload": {
+            "state": "RUNNING"
+          }
+        },
+        {
+          "type": "tool_result",
+          "payload": {
+            "toolUseId": "toolu_01V55DeuGdGDSMRyBwaXZGTk",
+            "output": "Denied by user",
+            "isError": true,
+            "truncated": false
+          }
+        },
+        {
+          "type": "assistant_message",
+          "payload": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Understood — I won't run the tests. The fix is already in `src/dates.js`: `parseDay` now uses the UTC getters and `Date.UTC`, so the calendar day no longer depends on the machine's timezone. Run `node --test test/dates.test.js` whenever you're ready."
+              }
+            ]
+          }
+        },
+        {
+          "type": "turn_complete",
+          "payload": {
+            "stopReason": "end_turn",
+            "costUsd": 0.0061,
+            "durationMs": 2400,
+            "numTurns": 1,
+            "usage": {},
+            "model": "claude-sonnet-5"
+          }
+        },
+        {
+          "type": "state_changed",
+          "payload": {
+            "state": "IDLE"
+          }
+        }
+      ]
+    }
+  },
+  "02-review-pr-1-rate-limiter": {
+    "seedUntilSeq": 32,
+    "pauseOn": [
+      "p8"
+    ],
+    "deny": {
+      "p8": [
+        {
+          "type": "state_changed",
+          "payload": {
+            "state": "RUNNING"
+          }
+        },
+        {
+          "type": "tool_result",
+          "payload": {
+            "toolUseId": "toolu_01HM89UuKu1LCv2TWqoPHbi2",
+            "output": "Denied by user",
+            "isError": true,
+            "truncated": false
+          }
+        },
+        {
+          "type": "assistant_message",
+          "payload": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Submission was declined, so nothing was posted to the PR. The full review stays here in the transcript — tell me if you'd like it submitted differently (e.g. summary-only, without inline comments)."
+              }
+            ]
+          }
+        },
+        {
+          "type": "turn_complete",
+          "payload": {
+            "stopReason": "end_turn",
+            "costUsd": 0.0312,
+            "durationMs": 5200,
+            "numTurns": 1,
+            "usage": {},
+            "model": "claude-opus-5"
+          }
+        },
+        {
+          "type": "state_changed",
+          "payload": {
+            "state": "IDLE"
+          }
+        }
+      ]
+    }
+  },
+  "03-add-csv-export": {
+    "seedUntilSeq": 41,
+    "pauseOn": [],
+    "dropSeqs": [
+      2,
+      11
+    ],
+    "endAtSeq": 304,
+    "state": "IDLE"
+  },
+  "04-release-1-2-prep": {
+    "seedUntilSeq": 18,
+    "pauseOn": [
+      "p3"
+    ],
+    "deny": {
+      "p3": [
+        {
+          "type": "state_changed",
+          "payload": {
+            "state": "RUNNING"
+          }
+        },
+        {
+          "type": "tool_result",
+          "payload": {
+            "toolUseId": "toolu_01FNkMBCmq3naQAuGdprGLGL",
+            "output": "Denied by user",
+            "isError": true,
+            "truncated": false
+          }
+        },
+        {
+          "type": "assistant_message",
+          "payload": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Okay, I've left the version bump uncommitted: `package.json` is at 1.2.0 on `chore/release-1.2.0`, and the child's changelog is committed on `chore/changelog-1.2.0`. Commit it whenever you're ready."
+              }
+            ]
+          }
+        },
+        {
+          "type": "turn_complete",
+          "payload": {
+            "stopReason": "end_turn",
+            "costUsd": 0.0094,
+            "durationMs": 2100,
+            "numTurns": 1,
+            "usage": {},
+            "model": "claude-sonnet-5"
+          }
+        },
+        {
+          "type": "state_changed",
+          "payload": {
+            "state": "IDLE"
+          }
+        }
+      ]
+    }
+  },
+  "05-artus-demo-repo-chore-changelog-1-2-0": {
+    "seedUntilSeq": 18,
+    "pauseOn": []
+  }
+}

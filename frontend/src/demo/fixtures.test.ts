@@ -3,12 +3,13 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { transcriptFromEvents, useStore } from '../store/store';
 import { SessionPlayer } from './player';
-import { loadFixtures, shiftFixture } from './fixtures';
-import type { DemoFixture } from './types';
+import { applyScript, fixtureName, loadFixtures, shiftFixture } from './fixtures';
+import type { DemoFixture, DemoScript } from './types';
 
 const dir = fileURLToPath(new URL('../../demo/fixtures/', import.meta.url));
 const files = readdirSync(dir).filter((f) => f.endsWith('.json')).sort();
-const raw = files.map((f) => JSON.parse(readFileSync(dir + f, 'utf8')) as DemoFixture);
+const scripts = JSON.parse(readFileSync(fileURLToPath(new URL('../../demo/scripts.json', import.meta.url)), 'utf8')) as Record<string, DemoScript>;
+const raw = files.map((f) => applyScript(JSON.parse(readFileSync(dir + f, 'utf8')) as DemoFixture, scripts[fixtureName(f)]));
 
 describe('bundled demo fixtures', () => {
   it('has fixtures: live sessions plus closed history', () => {
@@ -38,17 +39,47 @@ describe('bundled demo fixtures', () => {
 
   it('every open session records its Git panel reads', () => {
     for (const f of raw.filter((x) => x.summary.state !== 'CLOSED')) {
-      expect(f.git?.status.branch, f.summary.name).toBe(f.summary.branch);
+      // a review session is a detached checkout of the reviewed branch: git reports no branch name
+      expect(f.git?.status.branch, f.summary.name).toBe(f.summary.sessionType === 'review' ? '' : f.summary.branch);
       expect(f.git?.log.length, f.summary.name).toBeGreaterThan(0);
     }
   });
 
-  it('every pause point has a deny branch', () => {
-    for (const f of raw) {
-      for (const e of f.events.filter((x) => x.type === 'permission_request' && x.seq > (f.script?.seedUntilSeq ?? 0))) {
-        expect(f.script?.deny?.[e.payload['requestId'] as string], `${f.summary.name}`).toBeDefined();
+  it('every scripts.json key names a fixture, and every live open session has a script', () => {
+    const names = files.map(fixtureName);
+    for (const key of Object.keys(scripts)) expect(names, key).toContain(key);
+    for (const [i, f] of raw.entries()) if (f.summary.state !== 'CLOSED') expect(scripts[fixtureName(files[i]!)], f.summary.name).toBeDefined();
+  });
+
+  it('every pause point exists live in its recording and has a deny branch', () => {
+    for (const f of raw.filter((x) => x.summary.state !== 'CLOSED')) { // closed sessions are read-only: never played
+      const live = f.events.filter((x) => x.type === 'permission_request' && x.seq > (f.script?.seedUntilSeq ?? 0))
+        .map((x) => x.payload['requestId'] as string);
+      for (const id of f.script?.pauseOn ?? live) {
+        expect(live, `${f.summary.name}: ${id}`).toContain(id);
+        expect(f.script?.deny?.[id], `${f.summary.name}: ${id}`).toBeDefined();
       }
     }
+  });
+
+  it('a scripted session ends in its scripted state, with no crash tail', () => {
+    for (const f of raw.filter((x) => x.script?.state)) {
+      expect(f.summary.state).toBe(f.script!.state);
+      expect(f.events.some((e) => e.type === 'exiting' || (e.type === 'state_changed' && e.payload['state'] === 'CRASHED')), f.summary.name).toBe(false);
+    }
+  });
+
+  it.each(files.map((f, i) => [f, raw[i]!] as const))('%s plays to the end when every pause point is denied', (_name, f) => {
+    const timers: (() => void)[] = [];
+    const player = new SessionPlayer(f, { setTimeout: (fn) => { timers.push(fn); return timers.length; }, clearTimeout: () => {}, now: () => Date.now() });
+    const got: string[] = [];
+    player.attach((e) => got.push(e.type));
+    for (let guard = 0; guard < 10_000 && !player.finished; guard++) {
+      if (player.waitingForDecision) player.respond({ requestId: player.waitingForDecision, behavior: 'deny' });
+      timers.shift()?.();
+    }
+    expect(player.finished).toBe(true);
+    if (f.script?.pauseOn?.length) expect(got.at(-1)).toBe('state_changed'); // a deny tail always closes on IDLE
   });
 
   it('rebases timestamps so the latest event is just before now', () => {
@@ -57,9 +88,6 @@ describe('bundled demo fixtures', () => {
     const latest = Math.max(...loaded.flatMap((f) => f.events.map((e) => Date.parse(e.ts!))));
     expect(now - latest).toBeLessThan(10_000);
     expect(now - latest).toBeGreaterThan(0);
-    const commits = loaded.flatMap((f) => f.git?.log ?? []).map((c) => Date.parse(c.date));
-    expect(Math.max(...commits)).toBeLessThan(now);
-    expect(now - Math.max(...commits)).toBeLessThan(24 * 3_600_000);
   });
 
   it('shiftFixture does not mutate its input', () => {

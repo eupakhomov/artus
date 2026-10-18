@@ -337,7 +337,8 @@ public class GitOpsService {
 				cn.put("path", c.path());
 				cn.put("line", c.line());
 				cn.put("side", c.side() == null || c.side().isBlank() ? "RIGHT" : c.side());
-				if (c.startLine() != null) {
+				// GitHub 422s a start_line that doesn't precede line; a single-line comment simply omits it
+				if (c.startLine() != null && c.startLine() < c.line()) {
 					cn.put("start_line", c.startLine());
 				}
 				cn.put("body", c.body());
@@ -353,8 +354,31 @@ public class GitOpsService {
 				"repos/" + pr.owner() + "/" + pr.repo() + "/pulls/" + pr.number() + "/reviews",
 				"-X", "POST", "--input", "-");
 		if (!result.ok()) {
-			throw new IllegalStateException("gh api pulls/reviews failed: " + (result.stderr().isBlank() ? result.stdout() : result.stderr()));
+			throw new IllegalStateException("gh api pulls/reviews failed: " + reviewFailureDetail(result));
 		}
+	}
+
+	/**
+	 * gh prints only "gh: Unprocessable Entity (HTTP 422)" on stderr; GitHub's actual reasons ("Review Can not request
+	 * changes on your own pull request", a comment line outside the diff…) are in the JSON body on stdout. The agent needs
+	 * those to correct its call, so they lead the message.
+	 */
+	String reviewFailureDetail(GhResult result) {
+		List<String> reasons = new ArrayList<>();
+		try {
+			JsonNode body = result.stdout().isBlank() ? null : mapper.readTree(result.stdout());
+			if (body != null) {
+				for (JsonNode e : body.path("errors")) {
+					String reason = e.isTextual() ? e.asText() : e.path("message").asText("");
+					if (!reason.isBlank()) reasons.add(reason);
+				}
+				if (reasons.isEmpty() && !body.path("message").asText("").isBlank()) reasons.add(body.path("message").asText());
+			}
+		} catch (JacksonException e) {
+			// not JSON — fall through to the raw output
+		}
+		String raw = result.stderr().isBlank() ? result.stdout() : result.stderr();
+		return reasons.isEmpty() ? raw : String.join("; ", reasons) + " (" + raw + ")";
 	}
 
 	// --- gh process plumbing ---

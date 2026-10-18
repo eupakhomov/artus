@@ -1,0 +1,868 @@
+{
+ "summary": {
+  "id": "00000000-0000-4000-8000-000000000001",
+  "name": "Fix flaky date parsing",
+  "provider": "claude",
+  "repoPath": "/home/demo/projects/artus-demo-repo",
+  "servicePath": "/home/demo/projects/artus-demo-repo",
+  "branch": "fix/date-parsing",
+  "model": "claude-sonnet-5",
+  "permissionMode": "acceptEdits",
+  "state": "CRASHED",
+  "kind": "user",
+  "sessionType": "development",
+  "costToDate": 0.1708,
+  "updatedAt": "2026-10-18T09:12:28.277Z",
+  "lastSeq": 77,
+  "closedAt": null,
+  "prUrl": null
+ },
+ "detail": {
+  "session": {
+   "id": "00000000-0000-4000-8000-000000000001",
+   "name": "Fix flaky date parsing",
+   "provider": "claude",
+   "slackEnabled": false,
+   "repoPath": "/home/demo/projects/artus-demo-repo",
+   "servicePath": "/home/demo/projects/artus-demo-repo",
+   "cwdPath": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001",
+   "branch": "fix/date-parsing",
+   "baseBranch": "main",
+   "worktreePath": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001",
+   "providerSessionId": "00000000-0000-4000-8000-000000000002",
+   "capabilities": {
+    "mcp": true,
+    "agents": true,
+    "effort": true,
+    "models": [
+     {
+      "id": "haiku",
+      "tier": "cheap",
+      "label": "haiku"
+     },
+     {
+      "id": "sonnet",
+      "tier": "standard",
+      "label": "sonnet"
+     },
+     {
+      "id": "opus",
+      "tier": "premium",
+      "label": "opus"
+     }
+    ],
+    "resume": true,
+    "skills": true,
+    "compact": true,
+    "planMode": true,
+    "thinking": true,
+    "interrupt": true,
+    "contextDirs": true,
+    "modelSwitch": true,
+    "updatedInput": true,
+    "fallbackModel": true,
+    "serenaContext": "claude-code",
+    "reportsCostUsd": true,
+    "permissionModes": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "bypassPermissions"
+    ],
+    "unsupportedSessionFields": []
+   },
+   "model": "claude-sonnet-5",
+   "permissionMode": "acceptEdits",
+   "ecosystemPath": "/home/demo/projects",
+   "contextDirs": [],
+   "thinking": null,
+   "effort": null,
+   "costBudgetUsd": null,
+   "state": "CRASHED",
+   "kickoffPrompt": "The date parser in src/dates.js returns the wrong day for ISO strings with a timezone offset. Fix it and make sure the tests pass.",
+   "kind": "user",
+   "sessionType": "development",
+   "ticketRef": null,
+   "continuedFromId": null,
+   "parentSessionId": null,
+   "prUrl": null,
+   "prCheckStatus": null,
+   "prCheckedAt": null,
+   "reflectionEnabled": false,
+   "codeIntel": null,
+   "contextTokens": 32046,
+   "contextWindow": 967000
+  },
+  "costToDate": 0.1708,
+  "queued": [],
+  "lastSeq": 77
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": "2026-10-18T09:00:00.000Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "CREATING"
+   }
+  },
+  {
+   "seq": 2,
+   "ts": "2026-10-18T09:00:00.003Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "PROVISIONING"
+   }
+  },
+  {
+   "seq": 3,
+   "ts": "2026-10-18T09:00:00.057Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "STARTING"
+   }
+  },
+  {
+   "seq": 4,
+   "ts": "2026-10-18T09:00:00.090Z",
+   "type": "queue_updated",
+   "payload": {
+    "queued": [
+     {
+      "pos": 16,
+      "text": "The date parser in src/dates.js returns the wrong day for ISO strings with a timezone offset. Fix it and make sure the tests pass."
+     }
+    ]
+   }
+  },
+  {
+   "seq": 5,
+   "ts": "2026-10-18T09:00:00.239Z",
+   "type": "ready",
+   "payload": {
+    "pid": 51184,
+    "type": "ready",
+    "provider": "claude",
+    "capabilities": {
+     "mcp": true,
+     "agents": true,
+     "effort": true,
+     "models": [
+      {
+       "id": "haiku",
+       "tier": "cheap",
+       "label": "haiku"
+      },
+      {
+       "id": "sonnet",
+       "tier": "standard",
+       "label": "sonnet"
+      },
+      {
+       "id": "opus",
+       "tier": "premium",
+       "label": "opus"
+      }
+     ],
+     "resume": true,
+     "skills": true,
+     "compact": true,
+     "planMode": true,
+     "thinking": true,
+     "interrupt": true,
+     "contextDirs": true,
+     "modelSwitch": true,
+     "updatedInput": true,
+     "fallbackModel": true,
+     "serenaContext": "claude-code",
+     "reportsCostUsd": true,
+     "permissionModes": [
+      "default",
+      "acceptEdits",
+      "plan",
+      "bypassPermissions"
+     ],
+     "unsupportedSessionFields": []
+    },
+    "protocolVersion": 1
+   }
+  },
+  {
+   "seq": 6,
+   "ts": "2026-10-18T09:00:00.250Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  },
+  {
+   "seq": 7,
+   "ts": "2026-10-18T09:00:00.254Z",
+   "type": "user_message",
+   "payload": {
+    "text": "The date parser in src/dates.js returns the wrong day for ISO strings with a timezone offset. Fix it and make sure the tests pass."
+   }
+  },
+  {
+   "seq": 8,
+   "ts": "2026-10-18T09:00:00.257Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 9,
+   "ts": "2026-10-18T09:00:00.261Z",
+   "type": "queue_updated",
+   "payload": {
+    "queued": []
+   }
+  },
+  {
+   "seq": 10,
+   "ts": "2026-10-18T09:00:04.707Z",
+   "type": "system_init",
+   "payload": {
+    "cwd": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001",
+    "type": "system_init",
+    "model": "claude-sonnet-5",
+    "tools": [],
+    "mcpServers": [
+     {
+      "name": "memory",
+      "status": "connected"
+     }
+    ],
+    "permissionMode": "acceptEdits",
+    "providerSessionId": "00000000-0000-4000-8000-000000000002"
+   }
+  },
+  {
+   "seq": 11,
+   "ts": "2026-10-18T09:00:06.789Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "EuIDCusCCBIYAipA9cWgjBs9yYFQHJ71JyIh3aXFoGak1typmLpXZF9nxvMpeCclwQKav3fe/bJmba2QlYj7V3v1ENOBDpeZi1SyMjIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiRlNTZmMzk1ZC1iMmU0LTQ5MTktOWYyZC02MTQ4MDU0MzkyNmFyEFaBVpC3ODNhVFOzEzYp31yIAQGaAREKD2NsYXVkZS1zb25uZXQtNagB2M3U1gawAQLCAUkICRAAGhsBeb8B+J8BsYcCxDUDTzcFJdsFI0YR3OUEJq0gBDIEEnHPJToEspp+lUIESz+Y7koEgCVNqVAOWgTZBeFWYAJoAXAD2gFgChZwcmVmaXhfYmVmb3JlX2Jsb2NrX3YxEiAvqR0sXh8DN1j0m0BIC6dEu3yNuIoVkWdwtslp4Cf4QSIAMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgy57vIPSe2FySHRyvYaDJSq4GqWP34L8MzKkyIw7jtZApWIxI/rtnZ1HFWj+Ky0tmLM6vrXEEtmffqQ+1YYh3d1/cYpapaKI2vsOXB3KiQ35bDWJ4RFsYY47w/XB7nIp7L2G5R3+CTQjoGwidQ04RtV334YAQ=="
+     }
+    ]
+   }
+  },
+  {
+   "seq": 12,
+   "ts": "2026-10-18T09:00:08.383Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01TmekSxBD9TQgGajSpaaivd",
+      "name": "Read",
+      "type": "tool_use",
+      "input": {
+       "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001/src/dates.js"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 13,
+   "ts": "2026-10-18T09:00:08.387Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Read",
+    "type": "tool_started",
+    "input": {
+     "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001/src/dates.js"
+    },
+    "toolUseId": "toolu_01TmekSxBD9TQgGajSpaaivd"
+   }
+  },
+  {
+   "seq": 14,
+   "ts": "2026-10-18T09:00:08.395Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "1\t/**\n2\t * Parses an ISO-8601 timestamp and returns midnight (UTC) of its calendar day in UTC,\n3\t * e.g. '2026-03-01T23:30:00-05:00' -> 2026-03-02T00:00:00.000Z.\n4\t */\n5\texport function parseDay(iso) {\n6\t  const d = new Date(iso);\n7\t  return new Date(d.getFullYear(), d.getMonth(), d.getDate());\n8\t}\n9\t\n10\t/** 'YYYY-MM-DD' of the UTC calendar day. */\n11\texport function dayKey(iso) {\n12\t  return parseDay(iso).toISOString().slice(0, 10);\n13\t}\n14\t",
+    "isError": false,
+    "toolUseId": "toolu_01TmekSxBD9TQgGajSpaaivd",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 15,
+   "ts": "2026-10-18T09:00:10.284Z",
+   "type": "thinking_progress",
+   "payload": {
+    "type": "thinking_progress",
+    "estimatedTokens": 50,
+    "estimatedTokensDelta": 50
+   }
+  },
+  {
+   "seq": 16,
+   "ts": "2026-10-18T09:00:11.485Z",
+   "type": "thinking_progress",
+   "payload": {
+    "type": "thinking_progress",
+    "estimatedTokens": 240,
+    "estimatedTokensDelta": 190
+   }
+  },
+  {
+   "seq": 17,
+   "ts": "2026-10-18T09:00:11.490Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "ErkHCrsDCBIYAipA07dG9SZbsyZbNawRkOlsqov/dHD4bGFyzu0Za7YdIbWkvH3ONWINg0qaq/pMlXKolrm2sc5i41CHnPYj6gf3GDIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiRlNTZmMzk1ZC1iMmU0LTQ5MTktOWYyZC02MTQ4MDU0MzkyNmFyEFaBVpC3ODNhVFOzEzYp31yIAQGaAREKD2NsYXVkZS1zb25uZXQtNagB3c3U1gawAQLCAVgIDhAAGioBeb8B+J8BsYcCxDUDTzcFJdsFI0YR3OUEJq0KHZYDTzcL60YRrvIEJq0gBDIEEnHPJToEspp+lUIESz+Y7koEgCVNqVAOWgTZBeFWYARoAXAD2gGgAQoWcHJlZml4X2JlZm9yZV9ibG9ja192MRIgT6y4QDc+5hn/vAlju5XJd5OOGS7m5jQlqN91kL4ZVSciQPXFoIwbPcmBUBye9SciId2lxaBmpNbcqZi6V2RfZ8bzKXgnJcECmr933v2yZm2tkJWI+1d79RDTgQ6XmYtUsjIyIMLAE8hqnJLiL5ZvPYYXdo+LekTJAq3MCXv6HgmK+04fSAMSDOlNYOITRwhRsJUiFRoMysvzEqVjBw9soTj1IjCEOLrRmXo4oOOxctCJ1f5wvqZJ57FPBCpvlQKOdlmgTLBg7HeFdN3BTTJya3IJSIUqqgO7C0dLtUAEFo36QbFM8abuCjIR26mAZ4w8Dq10aXwJk8SwKnNlEtqwYhiNsBbt4ZnPN4NjBgYdwnxGcjFixANgAyxjXhCrnOxVpQEBvKQIONi2HNyshHW7kvO8H5GmwEkLJFVUsly4MruZ/9Gtf6OkHn7OTmmX659AZmsOQpV+hYtVh7+YaF01DzqczuoS2x5BI9iIIRAvhYbPabjms0fGrqPjo2O2tKwwb2UGx3Mt5E2IIc+mt8DfwYPQr0UqFQy66SXWoXA6L9H4BD3cJb0+CXnaL2BIqUSs3jnjBaPIlz+7X8fEbfRXWB8bwYeieIu2Dzb7+7JKTKck7fzZWck0Z+FBmCUFszoy4Grrxdak4Yy0z5kZeG9hbm9I2aAgR9dVawXyg45tEOb5Cpic2ynQtDl8nD79ZNBdMM3/wjcClhr79qp6oPEXUr9c/Cfwo3sMRULbq+ijV3CgYwLP6qt9zhPrIxk0/6lPCzdN81FQkp6K0vhvR3DIX3CIfBraEmNRSEhvPB255jKRirJ3q0mh2gWl3yGBXdHpkyRJskTMLtYfDwgnfeMxH8AYAQ=="
+     }
+    ]
+   }
+  },
+  {
+   "seq": 18,
+   "ts": "2026-10-18T09:00:13.156Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01T31AqyYbQS5zuRsRiWKi1d",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "find /home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001 -iname \"*date*\" -path \"*test*\"",
+       "description": "Find test files related to dates"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 19,
+   "ts": "2026-10-18T09:00:13.162Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "find /home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001 -iname \"*date*\" -path \"*test*\"",
+     "description": "Find test files related to dates"
+    },
+    "toolUseId": "toolu_01T31AqyYbQS5zuRsRiWKi1d"
+   }
+  },
+  {
+   "seq": 20,
+   "ts": "2026-10-18T09:00:13.464Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001/test/dates.test.js",
+    "isError": false,
+    "toolUseId": "toolu_01T31AqyYbQS5zuRsRiWKi1d",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 21,
+   "ts": "2026-10-18T09:00:15.403Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_016xcujTJgF1PvMyhfwU2UhB",
+      "name": "Read",
+      "type": "tool_use",
+      "input": {
+       "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001/test/dates.test.js"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 22,
+   "ts": "2026-10-18T09:00:15.407Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Read",
+    "type": "tool_started",
+    "input": {
+     "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001/test/dates.test.js"
+    },
+    "toolUseId": "toolu_016xcujTJgF1PvMyhfwU2UhB"
+   }
+  },
+  {
+   "seq": 23,
+   "ts": "2026-10-18T09:00:15.409Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "1\t// Run the date tests in a fixed non-UTC zone, so they behave the same on every machine.\n2\tprocess.env.TZ = 'America/Los_Angeles';\n3\t\n4\timport { test } from 'node:test';\n5\timport assert from 'node:assert/strict';\n6\timport { dayKey, parseDay } from '../src/dates.js';\n7\t\n8\ttest('parseDay uses the UTC calendar day for offset timestamps', () => {\n9\t  assert.equal(parseDay('2026-03-01T23:30:00-05:00').toISOString(), '2026-03-02T00:00:00.000Z');\n10\t});\n11\t\n12\ttest('dayKey keeps UTC midnight on the same day', () => {\n13\t  assert.equal(dayKey('2026-03-01T00:00:00Z'), '2026-03-01');\n14\t});\n15\t",
+    "isError": false,
+    "toolUseId": "toolu_016xcujTJgF1PvMyhfwU2UhB",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 33,
+   "ts": "2026-10-18T09:00:17.193Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "text": "Now I'll fix the bug: it uses local-time getters/constructor instead of UTC.",
+      "type": "text"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 34,
+   "ts": "2026-10-18T09:00:19.829Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_016Wi74TQGNLKrobVuA6GLiz",
+      "name": "Edit",
+      "type": "tool_use",
+      "input": {
+       "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001/src/dates.js",
+       "new_string": "  const d = new Date(iso);\n  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));",
+       "old_string": "  const d = new Date(iso);\n  return new Date(d.getFullYear(), d.getMonth(), d.getDate());",
+       "replace_all": false
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 35,
+   "ts": "2026-10-18T09:00:19.832Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Edit",
+    "type": "tool_started",
+    "input": {
+     "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001/src/dates.js",
+     "new_string": "  const d = new Date(iso);\n  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));",
+     "old_string": "  const d = new Date(iso);\n  return new Date(d.getFullYear(), d.getMonth(), d.getDate());",
+     "replace_all": false
+    },
+    "toolUseId": "toolu_016Wi74TQGNLKrobVuA6GLiz"
+   }
+  },
+  {
+   "seq": 36,
+   "ts": "2026-10-18T09:00:19.838Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "The file /home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000001/src/dates.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+    "isError": false,
+    "toolUseId": "toolu_016Wi74TQGNLKrobVuA6GLiz",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 37,
+   "ts": "2026-10-18T09:00:22.042Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01V55DeuGdGDSMRyBwaXZGTk",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "node --test test/dates.test.js 2>&1",
+       "description": "Run date tests"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 38,
+   "ts": "2026-10-18T09:00:22.045Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "node --test test/dates.test.js 2>&1",
+     "description": "Run date tests"
+    },
+    "toolUseId": "toolu_01V55DeuGdGDSMRyBwaXZGTk"
+   }
+  },
+  {
+   "seq": 39,
+   "ts": "2026-10-18T09:00:22.052Z",
+   "type": "permission_request",
+   "payload": {
+    "type": "permission_request",
+    "input": {
+     "command": "node --test test/dates.test.js 2>&1",
+     "description": "Run date tests"
+    },
+    "toolName": "Bash",
+    "requestId": "p1",
+    "suggestions": [
+     {
+      "type": "addRules",
+      "rules": [
+       {
+        "toolName": "Bash",
+        "ruleContent": "node --test test/dates.test.js"
+       }
+      ],
+      "behavior": "allow",
+      "destination": "localSettings"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 40,
+   "ts": "2026-10-18T09:00:22.056Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "WAITING_INPUT"
+   }
+  },
+  {
+   "seq": 41,
+   "ts": "2026-10-18T09:00:43.106Z",
+   "type": "permission_response",
+   "payload": {
+    "type": "permission_response",
+    "behavior": "allow",
+    "requestId": "p1"
+   }
+  },
+  {
+   "seq": 42,
+   "ts": "2026-10-18T09:00:43.113Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 43,
+   "ts": "2026-10-18T09:00:43.240Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "✔ parseDay uses the UTC calendar day for offset timestamps (0.648734ms)\n✔ dayKey keeps UTC midnight on the same day (0.122028ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 38.657567",
+    "isError": false,
+    "toolUseId": "toolu_01V55DeuGdGDSMRyBwaXZGTk",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 70,
+   "ts": "2026-10-18T09:00:45.776Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "text": "Fixed: `parseDay` was using local-timezone getters (`getFullYear`/`getMonth`/`getDate`) and the local-time `Date` constructor, which shifted the calendar day depending on the machine's timezone. Switched to the UTC equivalents (`getUTCFullYear`/`getUTCMonth`/`getUTCDate` + `Date.UTC`). Both tests pass.",
+      "type": "text"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 71,
+   "ts": "2026-10-18T09:00:45.798Z",
+   "type": "turn_complete",
+   "payload": {
+    "type": "turn_complete",
+    "model": "claude-sonnet-5",
+    "usage": {
+     "speed": "standard",
+     "iterations": [
+      {
+       "type": "message",
+       "input_tokens": 2,
+       "output_tokens": 136,
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 274,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_read_input_tokens": 31770,
+       "cache_creation_input_tokens": 274
+      }
+     ],
+     "input_tokens": 12,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "output_tokens": 1067,
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 32044,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "output_tokens_details": {
+      "thinking_tokens": 186
+     },
+     "cache_read_input_tokens": 154656,
+     "cache_creation_input_tokens": 32044
+    },
+    "costUsd": 0.1708,
+    "numTurns": 6,
+    "durationMs": 41133,
+    "stopReason": "success"
+   }
+  },
+  {
+   "seq": 72,
+   "ts": "2026-10-18T09:00:45.801Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  },
+  {
+   "seq": 73,
+   "ts": "2026-10-18T09:00:46.564Z",
+   "type": "context_usage",
+   "payload": {
+    "type": "context_usage",
+    "tokens": 32046,
+    "window": 967000,
+    "breakdown": {
+     "messages": {
+      "user": 39,
+      "assistant": 614,
+      "toolCalls": 337,
+      "attachments": 4095,
+      "toolResults": 514
+     },
+     "topTools": [
+      {
+       "name": "Read",
+       "tokens": 420
+      },
+      {
+       "name": "Bash",
+       "tokens": 248
+      },
+      {
+       "name": "Edit",
+       "tokens": 183
+      }
+     ],
+     "categories": [
+      {
+       "name": "Free space",
+       "tokens": 901954
+      },
+      {
+       "name": "MCP tools (deferred)",
+       "tokens": 38603
+      },
+      {
+       "name": "Autocompact buffer",
+       "tokens": 33000
+      },
+      {
+       "name": "System tools (deferred)",
+       "tokens": 15592
+      },
+      {
+       "name": "System tools",
+       "tokens": 12882
+      },
+      {
+       "name": "System prompt",
+       "tokens": 9521
+      },
+      {
+       "name": "Messages",
+       "tokens": 7143
+      },
+      {
+       "name": "Skills",
+       "tokens": 1875
+      },
+      {
+       "name": "MCP tools",
+       "tokens": 625
+      }
+     ],
+     "mcpServers": [
+      {
+       "name": "memory",
+       "tokens": 2910,
+       "deferred": true
+      }
+     ]
+    },
+    "autoCompactAt": 934000
+   }
+  },
+  {
+   "seq": 74,
+   "ts": "2026-10-18T09:01:05.747Z",
+   "type": "diagram_generated",
+   "payload": {
+    "mermaid": "flowchart TD\n    A[\"ISO date string with timezone offset\"] --> B[\"new Date(iso)\"]\n    B --> C{\"Extract calendar day\"}\n    C -->|\"Old: getFullYear, getMonth, getDate (local time)\"| D[\"new Date(year, month, date) local constructor\"]\n    D --> E[\"Day shifts depending on machine timezone (bug)\"]\n    C -->|\"New: getUTCFullYear, getUTCMonth, getUTCDate\"| F[\"Date.UTC(year, month, date)\"]\n    F --> G[\"new Date(UTC timestamp)\"]\n    G --> H[\"Correct calendar day regardless of machine timezone\"]",
+    "repaired": false,
+    "rationale": "The change is a single data-transformation function, so a flowchart best shows how the input ISO string flows through parsing and reconstruction under the old (buggy) versus new (fixed) logic.",
+    "diagramType": "flowchart",
+    "fingerprint": "121c44cfbbca5408be0b3ca6dcf87e64ef8e627b31f3ca6352243e6d743d75a7"
+   }
+  },
+  {
+   "seq": 75,
+   "ts": "2026-10-18T09:12:01.748Z",
+   "type": "exiting",
+   "payload": {
+    "type": "exiting",
+    "reason": "shutdown"
+   }
+  },
+  {
+   "seq": 76,
+   "ts": "2026-10-18T09:12:28.271Z",
+   "type": "error",
+   "payload": {
+    "fatal": true,
+    "message": "backend restarted while session was live"
+   }
+  },
+  {
+   "seq": 77,
+   "ts": "2026-10-18T09:12:28.279Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "CRASHED"
+   }
+  }
+ ],
+ "changes": {
+  "baseBranch": "main",
+  "mergeBase": "2e08226d02b1392b925d2a50b284b55e3c0bdeac",
+  "baseKnown": true,
+  "files": [
+   {
+    "path": "src/dates.js",
+    "oldPath": null,
+    "status": "modified",
+    "where": [
+     "unstaged"
+    ],
+    "additions": 1,
+    "deletions": 1,
+    "mtime": 1792354021186
+   }
+  ]
+ },
+ "files": {
+  "src/dates.js": {
+   "path": "src/dates.js",
+   "oldPath": null,
+   "status": "modified",
+   "content": "/**\n * Parses an ISO-8601 timestamp and returns midnight (UTC) of its calendar day in UTC,\n * e.g. '2026-03-01T23:30:00-05:00' -> 2026-03-02T00:00:00.000Z.\n */\nexport function parseDay(iso) {\n  const d = new Date(iso);\n  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));\n}\n\n/** 'YYYY-MM-DD' of the UTC calendar day. */\nexport function dayKey(iso) {\n  return parseDay(iso).toISOString().slice(0, 10);\n}\n",
+   "baseContent": "/**\n * Parses an ISO-8601 timestamp and returns midnight (UTC) of its calendar day in UTC,\n * e.g. '2026-03-01T23:30:00-05:00' -> 2026-03-02T00:00:00.000Z.\n */\nexport function parseDay(iso) {\n  const d = new Date(iso);\n  return new Date(d.getFullYear(), d.getMonth(), d.getDate());\n}\n\n/** 'YYYY-MM-DD' of the UTC calendar day. */\nexport function dayKey(iso) {\n  return parseDay(iso).toISOString().slice(0, 10);\n}\n",
+   "binary": false,
+   "truncated": false,
+   "size": 432
+  }
+ },
+ "git": {
+  "status": {
+   "branch": "fix/date-parsing",
+   "dirty": [
+    "M src/dates.js"
+   ],
+   "upstream": null,
+   "ahead": 0,
+   "behind": 0,
+   "aheadOfBase": 0
+  },
+  "log": [
+   {
+    "hash": "2e08226",
+    "subject": "Document the CLI and the service in the README",
+    "author": "Artus Demo",
+    "date": "2 weeks ago"
+   },
+   {
+    "hash": "544640c",
+    "subject": "Add date helpers for daily rollups",
+    "author": "Artus Demo",
+    "date": "2 weeks ago"
+   },
+   {
+    "hash": "7af954d",
+    "subject": "Sort report rows by total, largest first; release 1.1.0",
+    "author": "Artus Demo",
+    "date": "6 weeks ago"
+   },
+   {
+    "hash": "f3dbc6a",
+    "subject": "Add an HTTP service with a /report endpoint",
+    "author": "Artus Demo",
+    "date": "6 weeks ago"
+   },
+   {
+    "hash": "4444a91",
+    "subject": "Initial commit: sales report CLI",
+    "author": "Artus Demo",
+    "date": "7 weeks ago"
+   }
+  ],
+  "diff": "diff --git a/src/dates.js b/src/dates.js\nindex f00fc61..1fe1f1c 100644\n--- a/src/dates.js\n+++ b/src/dates.js\n@@ -4,7 +4,7 @@\n  */\n export function parseDay(iso) {\n   const d = new Date(iso);\n-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());\n+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));\n }\n \n /** 'YYYY-MM-DD' of the UTC calendar day. */"
+ },
+ "diagram": {
+  "diagramType": "flowchart",
+  "mermaid": "flowchart TD\n    A[\"ISO date string with timezone offset\"] --> B[\"new Date(iso)\"]\n    B --> C{\"Extract calendar day\"}\n    C -->|\"Old: getFullYear, getMonth, getDate (local time)\"| D[\"new Date(year, month, date) local constructor\"]\n    D --> E[\"Day shifts depending on machine timezone (bug)\"]\n    C -->|\"New: getUTCFullYear, getUTCMonth, getUTCDate\"| F[\"Date.UTC(year, month, date)\"]\n    F --> G[\"new Date(UTC timestamp)\"]\n    G --> H[\"Correct calendar day regardless of machine timezone\"]",
+  "rationale": "The change is a single data-transformation function, so a flowchart best shows how the input ISO string flows through parsing and reconstruction under the old (buggy) versus new (fixed) logic.",
+  "fingerprint": "121c44cfbbca5408be0b3ca6dcf87e64ef8e627b31f3ca6352243e6d743d75a7",
+  "repaired": false,
+  "seq": 74
+ },
+ "currentFingerprint": "121c44cfbbca5408be0b3ca6dcf87e64ef8e627b31f3ca6352243e6d743d75a7"
+}

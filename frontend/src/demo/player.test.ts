@@ -117,6 +117,60 @@ describe('SessionPlayer', () => {
     expect(live.every((e, i) => i === 0 || e.seq > live[i - 1]!.seq)).toBe(true);
   });
 
+  it('plays what was recorded during the wait, then holds right before the recorded answer', () => {
+    const events = [
+      ev(1, 'user_message', { text: 'go' }, '2026-01-01T00:00:00Z'),
+      ev(2, 'permission_request', { requestId: 'r1' }, '2026-01-01T00:00:01Z'),
+      ev(3, 'state_changed', { state: 'WAITING_INPUT' }, '2026-01-01T00:00:01Z'),
+      ev(4, 'tool_started', { toolUseId: 'parallel' }, '2026-01-01T00:00:02Z'),
+      ev(5, 'permission_response', { requestId: 'r1', behavior: 'allow' }, '2026-01-01T00:00:09Z'),
+      ev(6, 'tool_result', { toolUseId: 't' }, '2026-01-01T00:00:10Z'),
+    ];
+    const { p, got, advance } = run(fixture(events, { seedUntilSeq: 1 }));
+    advance(60_000);
+    expect(got.filter((e) => e.seq > 0).map((e) => e.type)).toEqual(['user_message', 'permission_request', 'state_changed', 'tool_started']);
+    p.respond({ requestId: 'r1', behavior: 'allow' });
+    advance(10_000);
+    expect(got.filter((e) => e.seq > 0).map((e) => e.type).slice(-2)).toEqual(['permission_response', 'tool_result']);
+  });
+
+  it('answering early flushes what was recorded before the answer', () => {
+    const events = [
+      ev(1, 'permission_request', { requestId: 'r1' }, '2026-01-01T00:00:00Z'),
+      ev(2, 'state_changed', { state: 'WAITING_INPUT' }, '2026-01-01T00:00:01Z'),
+      ev(3, 'permission_response', { requestId: 'r1', behavior: 'allow' }, '2026-01-01T00:00:02Z'),
+    ];
+    const { p, got, advance } = run(fixture(events, { seedUntilSeq: 0 }));
+    advance(1_500); // the request is out (first event: the capped gap); WAITING_INPUT is still 1 s away
+    expect(got.filter((e) => e.seq > 0).map((e) => e.type)).toEqual(['permission_request']);
+    p.respond({ requestId: 'r1', behavior: 'deny' });
+    expect(got.filter((e) => e.seq > 0).map((e) => e.type)).toEqual(
+      ['permission_request', 'state_changed', 'permission_response', 'state_changed', 'stream_delta', 'assistant_message', 'turn_complete', 'state_changed']);
+  });
+
+  it('a prompt that is not a pause point is answered quickly, whatever the recorded wait', () => {
+    const events = [
+      ev(1, 'permission_request', { requestId: 'r1' }, '2026-01-01T00:00:00Z'),
+      ev(2, 'permission_response', { requestId: 'r1', behavior: 'allow' }, '2026-01-01T00:00:30Z'),
+    ];
+    const { got, advance } = run(fixture(events, { seedUntilSeq: 1, pauseOn: [] }));
+    advance(450);
+    expect(got.filter((e) => e.seq > 0).map((e) => e.type)).toEqual(['permission_request', 'permission_response']);
+  });
+
+  it('only pauseOn prompts wait; the others play through with their recorded answer', () => {
+    const events = [
+      ev(1, 'permission_request', { requestId: 'r1' }, '2026-01-01T00:00:00Z'),
+      ev(2, 'permission_response', { requestId: 'r1', behavior: 'allow' }, '2026-01-01T00:00:01Z'),
+      ev(3, 'permission_request', { requestId: 'r2' }, '2026-01-01T00:00:02Z'),
+      ev(4, 'permission_response', { requestId: 'r2', behavior: 'allow' }, '2026-01-01T00:00:03Z'),
+    ];
+    const { p, got, advance } = run(fixture(events, { seedUntilSeq: 0, pauseOn: ['r2'] }));
+    advance(60_000);
+    expect(got.filter((e) => e.seq > 0).map((e) => e.payload['requestId'])).toEqual(['r1', 'r1', 'r2']);
+    expect(p.waitingForDecision).toBe('r2');
+  });
+
   it('ignores a response for a different request id', () => {
     const { p, advance } = run(fixture(journal(), { seedUntilSeq: 2 }));
     advance(10_000);

@@ -137,6 +137,41 @@ class GitOpsServiceTest {
 				.hasMessageContaining("422");
 	}
 
+	@Test
+	void submitPrReviewSurfacesGitHubsReasonsFromTheJsonBody() {
+		String body = "{\"message\":\"Unprocessable Entity\",\"errors\":[\"Review Can not request changes on your own pull request\"],\"status\":\"422\"}";
+		GitOpsService gitOps = gitOpsWithFakeGh(
+				new GitOpsService.GhResult(1, body, "gh: Unprocessable Entity (HTTP 422)"), new java.util.ArrayList<>());
+		GitOpsService.PrRef pr = new GitOpsService.PrRef("acme", "widget", 7);
+
+		assertThatThrownBy(() -> gitOps.submitPrReview(Path.of("/worktree"), pr, "REQUEST_CHANGES", "body", List.of()))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("Review Can not request changes on your own pull request")
+				.hasMessageContaining("HTTP 422");
+	}
+
+	@Test
+	void submitPrReviewReadsObjectShapedErrorsToo() {
+		String body = "{\"message\":\"Validation Failed\",\"errors\":[{\"resource\":\"PullRequestReviewComment\",\"message\":\"line must be part of the diff\"}]}";
+		GitOpsService gitOps = new GitOpsService(null, null, new JsonMapper());
+		assertThat(gitOps.reviewFailureDetail(new GitOpsService.GhResult(1, body, "gh: Validation Failed (HTTP 422)")))
+				.startsWith("line must be part of the diff");
+	}
+
+	@Test
+	void submitPrReviewOmitsAStartLineThatDoesNotPrecedeTheLine() {
+		List<List<String>> captured = new java.util.ArrayList<>();
+		GitOpsService gitOps = gitOpsWithFakeGh(new GitOpsService.GhResult(0, "", ""), captured);
+		GitOpsService.PrRef pr = new GitOpsService.PrRef("acme", "widget", 7);
+
+		gitOps.submitPrReview(Path.of("/worktree"), pr, "COMMENT", "b", List.of(
+				new GitOpsService.ReviewComment("a.js", 7, null, 7, "single line, start == line"),
+				new GitOpsService.ReviewComment("a.js", 9, null, 4, "a real range")));
+
+		String stdin = captured.get(1).get(0);
+		assertThat(stdin).doesNotContain("\"start_line\":7").contains("\"start_line\":4");
+	}
+
 	// --- originSlug parsing / PR detail parsing (Slack-started reviews) ---
 
 	@Test

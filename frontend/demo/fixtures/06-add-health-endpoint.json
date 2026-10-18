@@ -1,0 +1,924 @@
+{
+ "summary": {
+  "id": "00000000-0000-4000-8000-000000000026",
+  "name": "Add health endpoint",
+  "provider": "claude",
+  "repoPath": "/home/demo/projects/artus-demo-repo",
+  "servicePath": "/home/demo/projects/artus-demo-repo",
+  "branch": "feat/health-endpoint",
+  "model": "claude-sonnet-5",
+  "permissionMode": "acceptEdits",
+  "state": "CLOSED",
+  "kind": "user",
+  "sessionType": "development",
+  "costToDate": 0.115,
+  "updatedAt": "2026-10-18T09:22:45.319Z",
+  "lastSeq": 111,
+  "closedAt": "2026-10-18T09:22:45.319Z",
+  "prUrl": "https://github.com/eupakhomov/artus-demo-repo/pull/2"
+ },
+ "detail": {
+  "session": {
+   "id": "00000000-0000-4000-8000-000000000026",
+   "name": "Add health endpoint",
+   "provider": "claude",
+   "slackEnabled": false,
+   "repoPath": "/home/demo/projects/artus-demo-repo",
+   "servicePath": "/home/demo/projects/artus-demo-repo",
+   "cwdPath": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026",
+   "branch": "feat/health-endpoint",
+   "baseBranch": "main",
+   "worktreePath": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026",
+   "providerSessionId": "00000000-0000-4000-8000-000000000027",
+   "capabilities": {
+    "mcp": true,
+    "agents": true,
+    "effort": true,
+    "models": [
+     {
+      "id": "haiku",
+      "tier": "cheap",
+      "label": "haiku"
+     },
+     {
+      "id": "sonnet",
+      "tier": "standard",
+      "label": "sonnet"
+     },
+     {
+      "id": "opus",
+      "tier": "premium",
+      "label": "opus"
+     }
+    ],
+    "resume": true,
+    "skills": true,
+    "compact": true,
+    "planMode": true,
+    "thinking": true,
+    "interrupt": true,
+    "contextDirs": true,
+    "modelSwitch": true,
+    "updatedInput": true,
+    "fallbackModel": true,
+    "serenaContext": "claude-code",
+    "reportsCostUsd": true,
+    "permissionModes": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "bypassPermissions"
+    ],
+    "unsupportedSessionFields": []
+   },
+   "model": "claude-sonnet-5",
+   "permissionMode": "acceptEdits",
+   "ecosystemPath": "/home/demo/projects",
+   "contextDirs": [],
+   "thinking": null,
+   "effort": null,
+   "costBudgetUsd": null,
+   "state": "CLOSED",
+   "kickoffPrompt": "Add a GET /health endpoint to the HTTP service in src/server.js that returns 200 with {\"status\":\"ok\"}, and a test for it. Run the server tests.",
+   "kind": "user",
+   "sessionType": "development",
+   "ticketRef": null,
+   "continuedFromId": null,
+   "parentSessionId": null,
+   "prUrl": "https://github.com/eupakhomov/artus-demo-repo/pull/2",
+   "prCheckStatus": "ERROR",
+   "prCheckedAt": "2026-10-18T09:24:33.228Z",
+   "reflectionEnabled": false,
+   "codeIntel": null,
+   "contextTokens": 33962,
+   "contextWindow": 967000
+  },
+  "costToDate": 0.115,
+  "queued": [],
+  "lastSeq": 111
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": "2026-10-18T09:20:13.859Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "CREATING"
+   }
+  },
+  {
+   "seq": 2,
+   "ts": "2026-10-18T09:20:13.862Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "PROVISIONING"
+   }
+  },
+  {
+   "seq": 3,
+   "ts": "2026-10-18T09:20:13.912Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "STARTING"
+   }
+  },
+  {
+   "seq": 4,
+   "ts": "2026-10-18T09:20:13.973Z",
+   "type": "queue_updated",
+   "payload": {
+    "queued": [
+     {
+      "pos": 25,
+      "text": "Add a GET /health endpoint to the HTTP service in src/server.js that returns 200 with {\"status\":\"ok\"}, and a test for it. Run the server tests."
+     }
+    ]
+   }
+  },
+  {
+   "seq": 5,
+   "ts": "2026-10-18T09:20:14.073Z",
+   "type": "ready",
+   "payload": {
+    "pid": 58747,
+    "type": "ready",
+    "provider": "claude",
+    "capabilities": {
+     "mcp": true,
+     "agents": true,
+     "effort": true,
+     "models": [
+      {
+       "id": "haiku",
+       "tier": "cheap",
+       "label": "haiku"
+      },
+      {
+       "id": "sonnet",
+       "tier": "standard",
+       "label": "sonnet"
+      },
+      {
+       "id": "opus",
+       "tier": "premium",
+       "label": "opus"
+      }
+     ],
+     "resume": true,
+     "skills": true,
+     "compact": true,
+     "planMode": true,
+     "thinking": true,
+     "interrupt": true,
+     "contextDirs": true,
+     "modelSwitch": true,
+     "updatedInput": true,
+     "fallbackModel": true,
+     "serenaContext": "claude-code",
+     "reportsCostUsd": true,
+     "permissionModes": [
+      "default",
+      "acceptEdits",
+      "plan",
+      "bypassPermissions"
+     ],
+     "unsupportedSessionFields": []
+    },
+    "protocolVersion": 1
+   }
+  },
+  {
+   "seq": 6,
+   "ts": "2026-10-18T09:20:14.083Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  },
+  {
+   "seq": 7,
+   "ts": "2026-10-18T09:20:14.085Z",
+   "type": "user_message",
+   "payload": {
+    "text": "Add a GET /health endpoint to the HTTP service in src/server.js that returns 200 with {\"status\":\"ok\"}, and a test for it. Run the server tests."
+   }
+  },
+  {
+   "seq": 8,
+   "ts": "2026-10-18T09:20:14.088Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 9,
+   "ts": "2026-10-18T09:20:14.091Z",
+   "type": "queue_updated",
+   "payload": {
+    "queued": []
+   }
+  },
+  {
+   "seq": 10,
+   "ts": "2026-10-18T09:20:15.901Z",
+   "type": "system_init",
+   "payload": {
+    "cwd": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026",
+    "type": "system_init",
+    "model": "claude-sonnet-5",
+    "tools": [],
+    "mcpServers": [
+     {
+      "name": "memory",
+      "status": "connected"
+     }
+    ],
+    "permissionMode": "acceptEdits",
+    "providerSessionId": "00000000-0000-4000-8000-000000000027"
+   }
+  },
+  {
+   "seq": 11,
+   "ts": "2026-10-18T09:20:17.740Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "EvsDCusCCBIYAipArgyzNIqbEedpNshOvVzYmCeuWctga+rxzrbYjjeBXW8QmpJ6E+4zz1IsNISglaG53S6cH9+EBJVJm7Vr45rOuzIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiRlNTZmMzk1ZC1iMmU0LTQ5MTktOWYyZC02MTQ4MDU0MzkyNmFyEFaBVpC3ODNhVFOzEzYp31yIAQGaAREKD2NsYXVkZS1zb25uZXQtNagBk9fU1gawAQLCAUkICRAAGhsBeb8B+J8BfuoCxDUDTzcFJdsFjucR3OUEJq0gBDIEEnHPJToE/RMeaEIESz+Y7koEgCVNqVAOWgTZBeFWYAJoAXAD2gFgChZwcmVmaXhfYmVmb3JlX2Jsb2NrX3YxEiDtDwNXdIcqfWvRJVt8uGO4BtSDjvEF3GvuhPj8ch56zSIAMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgxxC/J6Bbx3n0xQDCoaDG8dKIF5bXzY/OxpeSIwPtWfpgCsHd/aOGtj4GRvvB0huaQMroWKk+PSKlphwF/x7raaX1U5EqSwvdUkcGyqKj2IVsBRjjC9M+17ApOQUW57fqX9VWShIZb3CcCqjs2TYK67z7+z/56sHFCb39/e3AwgurgtkoyHxGuwc2gUGAE="
+     }
+    ]
+   }
+  },
+  {
+   "seq": 12,
+   "ts": "2026-10-18T09:20:17.751Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01YbY2MJ4nzQ11ug2ddh5tPo",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "cat src/server.js"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 13,
+   "ts": "2026-10-18T09:20:17.753Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "cat src/server.js"
+    },
+    "toolUseId": "toolu_01YbY2MJ4nzQ11ug2ddh5tPo"
+   }
+  },
+  {
+   "seq": 14,
+   "ts": "2026-10-18T09:20:17.906Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "import { createServer } from 'node:http';\nimport { sales } from './data.js';\nimport { totals } from './report.js';\n\nexport const server = createServer((req, res) => {\n  if (req.url === '/report') {\n    res.writeHead(200, { 'content-type': 'application/json' });\n    res.end(JSON.stringify(totals(sales)));\n    return;\n  }\n  res.writeHead(404).end();\n});\n\nif (import.meta.url === `file://${process.argv[1]}`) server.listen(3000, () => console.log('listening on :3000'));",
+    "isError": false,
+    "toolUseId": "toolu_01YbY2MJ4nzQ11ug2ddh5tPo",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 15,
+   "ts": "2026-10-18T09:20:18.762Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01TDDzLJrFHP9GoQ2nuAqZEP",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "ls test* tests* 2>/dev/null; find . -iname \"*server*test*\" -o -iname \"*test*server*\" 2>/dev/null | grep -v node_modules"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 16,
+   "ts": "2026-10-18T09:20:18.764Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "ls test* tests* 2>/dev/null; find . -iname \"*server*test*\" -o -iname \"*test*server*\" 2>/dev/null | grep -v node_modules"
+    },
+    "toolUseId": "toolu_01TDDzLJrFHP9GoQ2nuAqZEP"
+   }
+  },
+  {
+   "seq": 17,
+   "ts": "2026-10-18T09:20:18.888Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "test:\ndates.test.js\nreport.test.js",
+    "isError": false,
+    "toolUseId": "toolu_01TDDzLJrFHP9GoQ2nuAqZEP",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 18,
+   "ts": "2026-10-18T09:20:20.585Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_011xH1e3e5czpYVHq17SFMaA",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "cat test/report.test.js; echo \"---\"; cat package.json"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 19,
+   "ts": "2026-10-18T09:20:20.589Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "cat test/report.test.js; echo \"---\"; cat package.json"
+    },
+    "toolUseId": "toolu_011xH1e3e5czpYVHq17SFMaA"
+   }
+  },
+  {
+   "seq": 20,
+   "ts": "2026-10-18T09:20:20.656Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { formatReport, totals } from '../src/report.js';\n\nconst sales = [\n  { product: 'a', amount: 1, at: '2026-03-01T00:00:00Z' },\n  { product: 'b', amount: 5, at: '2026-03-01T00:00:00Z' },\n  { product: 'a', amount: 2, at: '2026-03-01T00:00:00Z' },\n];\n\ntest('totals sums per product, largest first', () => {\n  assert.deepEqual(totals(sales), [{ name: 'b', total: 5 }, { name: 'a', total: 3 }]);\n});\n\ntest('formatReport prints a header and one line per product', () => {\n  const out = formatReport(totals(sales));\n  assert.equal(out.split('\\n').length, 3);\n  assert.match(out, /^name\\s+total$/m);\n});\n---\n{\n  \"name\": \"artus-demo-repo\",\n  \"version\": \"1.1.0\",\n  \"description\": \"A tiny sales-report CLI and HTTP service, used as the sample project for the Artus demo\",\n  \"type\": \"module\",\n  \"license\": \"Apache-2.0\",\n  \"scripts\": {\n    \"test\": \"node --test\",\n    \"start\": \"node src/server.js\"\n  }\n}",
+    "isError": false,
+    "toolUseId": "toolu_011xH1e3e5czpYVHq17SFMaA",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 31,
+   "ts": "2026-10-18T09:20:22.366Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "text": "Now I'll add the `/health` route and a test using node:http requests against the server.",
+      "type": "text"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 32,
+   "ts": "2026-10-18T09:20:24.955Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_013xYoogSYfavfLzqYkUTTgd",
+      "name": "Edit",
+      "type": "tool_use",
+      "input": {
+       "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026/src/server.js",
+       "new_string": "export const server = createServer((req, res) => {\n  if (req.url === '/health') {\n    res.writeHead(200, { 'content-type': 'application/json' });\n    res.end(JSON.stringify({ status: 'ok' }));\n    return;\n  }\n  if (req.url === '/report') {",
+       "old_string": "export const server = createServer((req, res) => {\n  if (req.url === '/report') {",
+       "replace_all": false
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 33,
+   "ts": "2026-10-18T09:20:24.960Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Edit",
+    "type": "tool_started",
+    "input": {
+     "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026/src/server.js",
+     "new_string": "export const server = createServer((req, res) => {\n  if (req.url === '/health') {\n    res.writeHead(200, { 'content-type': 'application/json' });\n    res.end(JSON.stringify({ status: 'ok' }));\n    return;\n  }\n  if (req.url === '/report') {",
+     "old_string": "export const server = createServer((req, res) => {\n  if (req.url === '/report') {",
+     "replace_all": false
+    },
+    "toolUseId": "toolu_013xYoogSYfavfLzqYkUTTgd"
+   }
+  },
+  {
+   "seq": 34,
+   "ts": "2026-10-18T09:20:24.969Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "The file /home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026/src/server.js has been updated successfully. (file state is current in your context — no need to Read it back)",
+    "isError": false,
+    "toolUseId": "toolu_013xYoogSYfavfLzqYkUTTgd",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 35,
+   "ts": "2026-10-18T09:20:28.102Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_0171pvhr1icmhxWyytRxFH5K",
+      "name": "Write",
+      "type": "tool_use",
+      "input": {
+       "content": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { server } from '../src/server.js';\n\ntest('GET /health returns 200 with {\"status\":\"ok\"}', async () => {\n  server.listen(0);\n  const { port } = server.address();\n  try {\n    const res = await fetch(`http://localhost:${port}/health`);\n    assert.equal(res.status, 200);\n    assert.deepEqual(await res.json(), { status: 'ok' });\n  } finally {\n    server.close();\n  }\n});\n",
+       "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026/test/server.test.js"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 36,
+   "ts": "2026-10-18T09:20:28.105Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Write",
+    "type": "tool_started",
+    "input": {
+     "content": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { server } from '../src/server.js';\n\ntest('GET /health returns 200 with {\"status\":\"ok\"}', async () => {\n  server.listen(0);\n  const { port } = server.address();\n  try {\n    const res = await fetch(`http://localhost:${port}/health`);\n    assert.equal(res.status, 200);\n    assert.deepEqual(await res.json(), { status: 'ok' });\n  } finally {\n    server.close();\n  }\n});\n",
+     "file_path": "/home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026/test/server.test.js"
+    },
+    "toolUseId": "toolu_0171pvhr1icmhxWyytRxFH5K"
+   }
+  },
+  {
+   "seq": 37,
+   "ts": "2026-10-18T09:20:28.110Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "File created successfully at: /home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026/test/server.test.js (file state is current in your context — no need to Read it back)",
+    "isError": false,
+    "toolUseId": "toolu_0171pvhr1icmhxWyytRxFH5K",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 38,
+   "ts": "2026-10-18T09:20:29.672Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_01QNZpDNGF8DJWYdn4rr8F8Z",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "node --test 2>&1"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 39,
+   "ts": "2026-10-18T09:20:29.675Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "node --test 2>&1"
+    },
+    "toolUseId": "toolu_01QNZpDNGF8DJWYdn4rr8F8Z"
+   }
+  },
+  {
+   "seq": 40,
+   "ts": "2026-10-18T09:20:29.679Z",
+   "type": "permission_request",
+   "payload": {
+    "type": "permission_request",
+    "input": {
+     "command": "node --test 2>&1"
+    },
+    "toolName": "Bash",
+    "requestId": "p1",
+    "suggestions": [
+     {
+      "type": "addRules",
+      "rules": [
+       {
+        "toolName": "Bash",
+        "ruleContent": "node --test"
+       }
+      ],
+      "behavior": "allow",
+      "destination": "localSettings"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 41,
+   "ts": "2026-10-18T09:20:29.683Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "WAITING_INPUT"
+   }
+  },
+  {
+   "seq": 42,
+   "ts": "2026-10-18T09:20:37.027Z",
+   "type": "permission_response",
+   "payload": {
+    "type": "permission_response",
+    "behavior": "allow",
+    "requestId": "p1"
+   }
+  },
+  {
+   "seq": 43,
+   "ts": "2026-10-18T09:20:37.032Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 44,
+   "ts": "2026-10-18T09:20:37.205Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "Exit code 1\n✖ parseDay uses the UTC calendar day for offset timestamps (1.198513ms)\n✖ dayKey keeps UTC midnight on the same day (0.193538ms)\n✔ totals sums per product, largest first (0.975604ms)\n✔ formatReport prints a header and one line per product (0.294109ms)\n✔ GET /health returns 200 with {\"status\":\"ok\"} (20.498808ms)\nℹ tests 5\nℹ suites 0\nℹ pass 3\nℹ fail 2\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 87.272716\n\n✖ failing tests:\n\ntest at test/dates.test.js:8:1\n✖ parseDay uses the UTC calendar day for offset timestamps (1.198513ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + '2026-03-01T08:00:00.000Z'\n  - '2026-03-02T00:00:00.000Z'\n              ^\n  \n      at TestContext.<anonymous> (file:///home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026/test/dates.test.js:9:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.start (node:internal/test_runner/test:1242:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: '2026-03-01T08:00:00.000Z',\n    expected: '2026-03-02T00:00:00.000Z',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\ntest at test/dates.test.js:12:1\n✖ dayKey keeps UTC midnight on the same day (0.193538ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  + actual - expected\n  \n  + '2026-02-28'\n  - '2026-03-01'\n           ^\n  \n      at TestContext.<anonymous> (file:///home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026/test/dates.test.js:13:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)\n      at Test.postRun (node:internal/test_runner/test:1522:19)\n      at Test.run (node:internal/test_runner/test:1447:12)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: '2026-02-28',\n    expected: '2026-03-01',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }",
+    "isError": true,
+    "toolUseId": "toolu_01QNZpDNGF8DJWYdn4rr8F8Z",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 62,
+   "ts": "2026-10-18T09:20:39.246Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "text": "My new `/health` test passes. The 2 failures are pre-existing, unrelated to my change — they're in `test/dates.test.js` and look like a pre-existing bug/timezone issue in the date helpers.",
+      "type": "text"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 63,
+   "ts": "2026-10-18T09:20:39.853Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "id": "toolu_0157hQbsUWAvYBWnmweHQMqb",
+      "name": "Bash",
+      "type": "tool_use",
+      "input": {
+       "command": "git stash push -u -m \"wip-health-check\" && node --test 2>&1 | tail -20; git stash pop"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "seq": 64,
+   "ts": "2026-10-18T09:20:39.856Z",
+   "type": "tool_started",
+   "payload": {
+    "name": "Bash",
+    "type": "tool_started",
+    "input": {
+     "command": "git stash push -u -m \"wip-health-check\" && node --test 2>&1 | tail -20; git stash pop"
+    },
+    "toolUseId": "toolu_0157hQbsUWAvYBWnmweHQMqb"
+   }
+  },
+  {
+   "seq": 65,
+   "ts": "2026-10-18T09:20:40.194Z",
+   "type": "permission_request",
+   "payload": {
+    "type": "permission_request",
+    "input": {
+     "command": "git stash push -u -m \"wip-health-check\" && node --test 2>&1 | tail -20; git stash pop"
+    },
+    "toolName": "Bash",
+    "requestId": "p2",
+    "suggestions": [
+     {
+      "type": "addRules",
+      "rules": [
+       {
+        "toolName": "Bash",
+        "ruleContent": "git stash *"
+       },
+       {
+        "toolName": "Bash",
+        "ruleContent": "node --test"
+       }
+      ],
+      "behavior": "allow",
+      "destination": "localSettings"
+     },
+     {
+      "type": "addRules",
+      "rules": [
+       {
+        "toolName": "Bash",
+        "ruleContent": "git stash *"
+       }
+      ],
+      "behavior": "allow",
+      "destination": "localSettings"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 66,
+   "ts": "2026-10-18T09:20:40.200Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "WAITING_INPUT"
+   }
+  },
+  {
+   "seq": 67,
+   "ts": "2026-10-18T09:20:47.596Z",
+   "type": "permission_response",
+   "payload": {
+    "type": "permission_response",
+    "behavior": "allow",
+    "requestId": "p2"
+   }
+  },
+  {
+   "seq": 68,
+   "ts": "2026-10-18T09:20:47.601Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 69,
+   "ts": "2026-10-18T09:20:47.967Z",
+   "type": "tool_result",
+   "payload": {
+    "type": "tool_result",
+    "output": "Saved working directory and index state On feat/health-endpoint: wip-health-check\n  + actual - expected\n  \n  + '2026-02-28'\n  - '2026-03-01'\n           ^\n  \n      at TestContext.<anonymous> (file:///home/demo/agentic-worktrees/00000000-0000-4000-8000-000000000026/test/dates.test.js:13:10)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1382:25)\n      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)\n      at Test.postRun (node:internal/test_runner/test:1522:19)\n      at Test.run (node:internal/test_runner/test:1447:12)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: '2026-02-28',\n    expected: '2026-03-01',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\nOn branch feat/health-endpoint\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   src/server.js\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\ttest/server.test.js\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\nDropped refs/stash@{0} (3878f028c96858258e8e7ad6c45be092fb22f425)",
+    "isError": false,
+    "toolUseId": "toolu_0157hQbsUWAvYBWnmweHQMqb",
+    "truncated": false
+   }
+  },
+  {
+   "seq": 104,
+   "ts": "2026-10-18T09:20:50.605Z",
+   "type": "assistant_message",
+   "payload": {
+    "type": "assistant_message",
+    "content": [
+     {
+      "text": "Confirmed: those `dates.test.js` failures are pre-existing on this branch, unrelated to the `/health` change.\n\nAdded `GET /health` to `src/server.js` (returns `200 {\"status\":\"ok\"}`) and a test in `test/server.test.js`, which passes. The two pre-existing failures in `test/dates.test.js` (UTC day-boundary bug) are unrelated to this change — let me know if you'd like those fixed too.",
+      "type": "text"
+     }
+    ]
+   }
+  },
+  {
+   "seq": 105,
+   "ts": "2026-10-18T09:20:50.624Z",
+   "type": "turn_complete",
+   "payload": {
+    "type": "turn_complete",
+    "model": "claude-sonnet-5",
+    "usage": {
+     "speed": "standard",
+     "iterations": [
+      {
+       "type": "message",
+       "input_tokens": 2,
+       "output_tokens": 149,
+       "cache_creation": {
+        "ephemeral_1h_input_tokens": 768,
+        "ephemeral_5m_input_tokens": 0
+       },
+       "cache_read_input_tokens": 33192,
+       "cache_creation_input_tokens": 768
+      }
+     ],
+     "input_tokens": 14,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "output_tokens": 1179,
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 15171,
+      "ephemeral_5m_input_tokens": 0
+     },
+     "server_tool_use": {
+      "web_fetch_requests": 0,
+      "web_search_requests": 0
+     },
+     "output_tokens_details": {
+      "thinking_tokens": 15
+     },
+     "cache_read_input_tokens": 207357,
+     "cache_creation_input_tokens": 15171
+    },
+    "costUsd": 0.115,
+    "numTurns": 8,
+    "durationMs": 34754,
+    "stopReason": "success"
+   }
+  },
+  {
+   "seq": 106,
+   "ts": "2026-10-18T09:20:50.628Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  },
+  {
+   "seq": 107,
+   "ts": "2026-10-18T09:20:51.318Z",
+   "type": "context_usage",
+   "payload": {
+    "type": "context_usage",
+    "tokens": 33962,
+    "window": 967000,
+    "breakdown": {
+     "messages": {
+      "user": 43,
+      "assistant": 368,
+      "toolCalls": 547,
+      "attachments": 4118,
+      "toolResults": 1564
+     },
+     "topTools": [
+      {
+       "name": "Bash",
+       "tokens": 1655
+      },
+      {
+       "name": "Write",
+       "tokens": 241
+      },
+      {
+       "name": "Edit",
+       "tokens": 215
+      }
+     ],
+     "categories": [
+      {
+       "name": "Free space",
+       "tokens": 900038
+      },
+      {
+       "name": "MCP tools (deferred)",
+       "tokens": 38603
+      },
+      {
+       "name": "Autocompact buffer",
+       "tokens": 33000
+      },
+      {
+       "name": "System tools (deferred)",
+       "tokens": 15592
+      },
+      {
+       "name": "System tools",
+       "tokens": 12882
+      },
+      {
+       "name": "System prompt",
+       "tokens": 9525
+      },
+      {
+       "name": "Messages",
+       "tokens": 9055
+      },
+      {
+       "name": "Skills",
+       "tokens": 1875
+      },
+      {
+       "name": "MCP tools",
+       "tokens": 625
+      }
+     ],
+     "mcpServers": [
+      {
+       "name": "memory",
+       "tokens": 2910,
+       "deferred": true
+      }
+     ]
+    },
+    "autoCompactAt": 934000
+   }
+  },
+  {
+   "seq": 108,
+   "ts": "2026-10-18T09:22:44.843Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "CLOSING"
+   }
+  },
+  {
+   "seq": 109,
+   "ts": "2026-10-18T09:22:45.308Z",
+   "type": "exiting",
+   "payload": {
+    "type": "exiting",
+    "reason": "shutdown"
+   }
+  },
+  {
+   "seq": 110,
+   "ts": "2026-10-18T09:22:45.320Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "CLOSED"
+   }
+  },
+  {
+   "seq": 111,
+   "ts": "2026-10-18T09:24:33.230Z",
+   "type": "pr_status_changed",
+   "payload": {
+    "url": "https://github.com/eupakhomov/artus-demo-repo/pull/2",
+    "status": "ERROR",
+    "headSha": null,
+    "previousStatus": "PENDING"
+   }
+  }
+ ],
+ "changes": {
+  "baseBranch": "main",
+  "mergeBase": null,
+  "baseKnown": false,
+  "files": []
+ },
+ "files": {}
+}
