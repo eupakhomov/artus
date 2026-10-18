@@ -5,7 +5,7 @@ import DiagramPanel from './DiagramPanel';
 
 export default function DiagramDialog({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
   const backdropDismiss = useBackdropDismiss(onClose);
-  const popOut = () => window.open(`/?diagram=${encodeURIComponent(sessionId)}`, `artus-diagram-${sessionId}`, 'popup,width=1100,height=800');
+  const popOut = () => window.open(`${import.meta.env.BASE_URL}?diagram=${encodeURIComponent(sessionId)}`, `artus-diagram-${sessionId}`, 'popup,width=1100,height=800');
   // portalled: the widget sits in a transformed grid item, which would trap and clip a position:fixed backdrop
   return createPortal(
     <div className="modal-backdrop" {...backdropDismiss}>

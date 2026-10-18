@@ -56,6 +56,10 @@ export {
   Download as DownloadIcon,
   Square as Interrupt,
   Play as Resume,
+  // phase 24 demo bar — a recording's transport, not a session action (distinct from Resume)
+  Play as DemoPlay,
+  Pause as DemoPause,
+  RotateCcw as DemoRestart,
   X as Close,
   // distinct from Restore/MinimizeToDock (window-frame controls) — this one's the
   // suggestion card's Compact action

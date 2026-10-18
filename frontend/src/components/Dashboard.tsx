@@ -34,13 +34,19 @@ const FOLD_CYCLE: SidebarFold[] = ['expanded', 'rail'];
 
 type LayoutMode = 'grid' | 'focus';
 
+// phase 24: below this the grid is unusable, so a narrow demo embed starts in focus layout with a folded sidebar — for that load
+// only, never written back (a later full-screen /demo/ visit on the same origin gets the normal grid). Always false outside demo builds.
+const NARROW_DEMO = import.meta.env.MODE === 'demo' && window.innerWidth < 760;
+
 function loadFold(): SidebarFold {
+  if (NARROW_DEMO) return 'rail';
   const fold = normalizeFold(localStorage.getItem(SIDEBAR_KEY), window.innerWidth);
   localStorage.setItem(SIDEBAR_KEY, fold);
   return fold;
 }
 
 function loadLayoutMode(): LayoutMode {
+  if (NARROW_DEMO) return 'focus';
   return localStorage.getItem(LAYOUT_MODE_KEY) === 'focus' ? 'focus' : 'grid';
 }
 
@@ -187,6 +193,7 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
 
   const views = useStore((s) => s.views);
   useEffect(() => {
+    if (import.meta.env.MODE === 'demo') return; // a recording has nothing to lose on unload (and Restart reloads)
     const anyRunning = Object.values(views).some((v) => v.state === 'RUNNING' || v.state === 'WAITING_INPUT');
     if (!anyRunning) return;
     const guard = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -405,7 +412,7 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
   return (
     <>
       <div className="topbar" ref={topbarRef}>
-        <h1 className="brand" title="Artus"><img src="/logo.svg" alt="Artus" className="brand-logo" /></h1>
+        <h1 className="brand" title="Artus"><img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Artus" className="brand-logo" /></h1>
         <button
           className={`icon-btn${fold === 'expanded' ? ' active' : ''}`}
           title={`Sidebar: ${fold} — click to toggle (b)`}

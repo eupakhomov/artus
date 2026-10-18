@@ -84,3 +84,5 @@ jobs:
           npm ci
           npm test
           npm run build
+          npm run build:demo
+      - run: node scripts/capture-demo.mjs --check

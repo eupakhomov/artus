@@ -560,3 +560,22 @@ kbd { display: inline-block; background: var(--panel2); border: 1px solid var(--
 .diagram-raw { flex: 1; overflow: auto; border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
 .diagram-raw pre { margin: 8px 0 0; font-family: 'JetBrains Mono', monospace; font-size: calc(12.5px * var(--font-scale)); white-space: pre-wrap; }
 .diagram-window { display: flex; flex-direction: column; height: 100vh; padding: 12px; box-sizing: border-box; background: var(--bg); color: var(--text); }
+
+/* ---------------------------------------------------------------------------
+   phase 24 — demo build only (the bar is mounted from main.tsx in `--mode demo`; harmless otherwise)
+   --------------------------------------------------------------------------- */
+html[data-demo] { --demo-bar-h: 38px; }
+html[data-demo] body { padding-bottom: var(--demo-bar-h); }
+html[data-demo] .grid-wrap.focus-mode .grid-item-wrap.active { bottom: calc(var(--demo-bar-h) + 8px) !important; }
+html[data-demo] .sidebar { height: calc(100vh - var(--topbar-h, 49px) - var(--demo-bar-h)); }
+.demo-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 90; height: var(--demo-bar-h); box-sizing: border-box;
+  display: flex; align-items: center; gap: 6px; padding: 0 12px;
+  background: var(--panel); border-top: 1px solid var(--border);
+}
+.demo-badge { color: var(--amber); border-color: var(--amber); }
+.demo-note { color: var(--muted); font-size: calc(12px * var(--font-scale)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.demo-spacer { flex: 1; }
+.demo-link { color: var(--accent); font-size: calc(13px * var(--font-scale)); text-decoration: none; white-space: nowrap; margin-left: 4px; }
+.demo-link:hover { text-decoration: underline; }
+@media (max-width: 640px) { .demo-note { display: none; } }

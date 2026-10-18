@@ -1,0 +1,742 @@
+{
+ "summary": {
+  "id": "00000000-0000-4000-8000-000000000001",
+  "name": "Fix flaky date parsing",
+  "provider": "claude",
+  "repoPath": "/home/demo/projects/artus-demo-repo",
+  "servicePath": "/home/demo/projects/artus-demo-repo",
+  "branch": "fix/date-parsing",
+  "model": "claude-sonnet-5-5",
+  "permissionMode": "default",
+  "state": "IDLE",
+  "kind": "user",
+  "sessionType": "development",
+  "costToDate": 0.0412,
+  "updatedAt": "2026-10-18T09:00:12.160Z",
+  "lastSeq": 46,
+  "closedAt": null,
+  "prUrl": null
+ },
+ "detail": {
+  "session": {
+   "id": "00000000-0000-4000-8000-000000000001",
+   "name": "Fix flaky date parsing",
+   "provider": "claude",
+   "slackEnabled": false,
+   "repoPath": "/home/demo/projects/artus-demo-repo",
+   "servicePath": "/home/demo/projects/artus-demo-repo",
+   "cwdPath": "/home/demo/agentic-worktrees/fix-date-parsing",
+   "branch": "fix/date-parsing",
+   "baseBranch": "main",
+   "worktreePath": "/home/demo/agentic-worktrees/fix-date-parsing",
+   "providerSessionId": "prov-1",
+   "capabilities": {
+    "permissionModes": [
+     "default",
+     "acceptEdits",
+     "plan",
+     "bypassPermissions"
+    ],
+    "thinking": true,
+    "effort": true,
+    "planMode": true,
+    "resume": true,
+    "skills": true,
+    "agents": true,
+    "mcp": true,
+    "interrupt": true,
+    "fallbackModel": true,
+    "updatedInput": true,
+    "modelSwitch": true,
+    "compact": true,
+    "models": [
+     {
+      "id": "haiku",
+      "label": "Haiku",
+      "tier": "cheap"
+     },
+     {
+      "id": "sonnet",
+      "label": "Sonnet",
+      "tier": "standard"
+     },
+     {
+      "id": "opus",
+      "label": "Opus",
+      "tier": "premium"
+     }
+    ]
+   },
+   "model": "claude-sonnet-5-5",
+   "permissionMode": "default",
+   "ecosystemPath": null,
+   "contextDirs": [],
+   "thinking": null,
+   "effort": null,
+   "costBudgetUsd": 5,
+   "state": "IDLE",
+   "kickoffPrompt": null,
+   "kind": "user",
+   "sessionType": "development",
+   "ticketRef": null,
+   "continuedFromId": null,
+   "parentSessionId": null,
+   "prUrl": null,
+   "prCheckStatus": null,
+   "prCheckedAt": null,
+   "reflectionEnabled": false,
+   "codeIntel": null,
+   "contextTokens": 31200,
+   "contextWindow": 200000
+  },
+  "queued": [],
+  "lastSeq": 46,
+  "costToDate": 0.0412
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": "2026-10-18T09:00:00.000Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "STARTING"
+   }
+  },
+  {
+   "seq": 2,
+   "ts": "2026-10-18T09:00:00.300Z",
+   "type": "ready",
+   "payload": {
+    "capabilities": {
+     "permissionModes": [
+      "default",
+      "acceptEdits",
+      "plan",
+      "bypassPermissions"
+     ],
+     "thinking": true,
+     "effort": true,
+     "planMode": true,
+     "resume": true,
+     "skills": true,
+     "agents": true,
+     "mcp": true,
+     "interrupt": true,
+     "fallbackModel": true,
+     "updatedInput": true,
+     "modelSwitch": true,
+     "compact": true,
+     "models": [
+      {
+       "id": "haiku",
+       "label": "Haiku",
+       "tier": "cheap"
+      },
+      {
+       "id": "sonnet",
+       "label": "Sonnet",
+       "tier": "standard"
+      },
+      {
+       "id": "opus",
+       "label": "Opus",
+       "tier": "premium"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "seq": 3,
+   "ts": "2026-10-18T09:00:00.400Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  },
+  {
+   "seq": 4,
+   "ts": "2026-10-18T09:00:01.900Z",
+   "type": "user_message",
+   "payload": {
+    "text": "The date parser in src/dates.js returns the wrong day for ISO strings with a timezone offset. Fix it and make sure the tests pass."
+   }
+  },
+  {
+   "seq": 5,
+   "ts": "2026-10-18T09:00:02.000Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 6,
+   "ts": "2026-10-18T09:00:02.400Z",
+   "type": "system_init",
+   "payload": {
+    "providerSessionId": "prov-5",
+    "model": "claude-sonnet-5-5",
+    "cwd": "",
+    "tools": [],
+    "mcpServers": [],
+    "permissionMode": "default"
+   }
+  },
+  {
+   "seq": 7,
+   "ts": "2026-10-18T09:00:02.700Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "thinking",
+    "text": "The failing case is probably new Date(str) mixed with getDate() — local vs UTC. Let me read the file and the test first."
+   }
+  },
+  {
+   "seq": 8,
+   "ts": "2026-10-18T09:00:02.800Z",
+   "type": "thinking_progress",
+   "payload": {
+    "estimatedTokens": 30
+   }
+  },
+  {
+   "seq": 9,
+   "ts": "2026-10-18T09:00:02.820Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "Let me look at the parser an"
+   }
+  },
+  {
+   "seq": 10,
+   "ts": "2026-10-18T09:00:02.840Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "d its tests."
+   }
+  },
+  {
+   "seq": 11,
+   "ts": "2026-10-18T09:00:03.340Z",
+   "type": "assistant_message",
+   "payload": {
+    "content": [
+     {
+      "type": "text",
+      "text": "Let me look at the parser and its tests."
+     }
+    ]
+   }
+  },
+  {
+   "seq": 12,
+   "ts": "2026-10-18T09:00:04.040Z",
+   "type": "tool_started",
+   "payload": {
+    "toolUseId": "toolu_0001",
+    "name": "Read",
+    "input": {
+     "file_path": "src/dates.js"
+    }
+   }
+  },
+  {
+   "seq": 13,
+   "ts": "2026-10-18T09:00:04.490Z",
+   "type": "tool_result",
+   "payload": {
+    "toolUseId": "toolu_0001",
+    "output": "export function parseDay(iso) {\n  const d = new Date(iso);\n  return new Date(d.getFullYear(), d.getMonth(), d.getDate());\n}\n",
+    "isError": false,
+    "truncated": false
+   }
+  },
+  {
+   "seq": 14,
+   "ts": "2026-10-18T09:00:05.190Z",
+   "type": "tool_started",
+   "payload": {
+    "toolUseId": "toolu_0002",
+    "name": "Read",
+    "input": {
+     "file_path": "test/dates.test.js"
+    }
+   }
+  },
+  {
+   "seq": 15,
+   "ts": "2026-10-18T09:00:05.640Z",
+   "type": "tool_result",
+   "payload": {
+    "toolUseId": "toolu_0002",
+    "output": "import { parseDay } from '../src/dates.js';\nimport assert from 'node:assert';\nassert.equal(parseDay('2026-03-01T23:30:00-05:00').getUTCDate(), 2);\n",
+    "isError": false,
+    "truncated": false
+   }
+  },
+  {
+   "seq": 16,
+   "ts": "2026-10-18T09:00:05.660Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "The bug: `getFullYear()/getM"
+   }
+  },
+  {
+   "seq": 17,
+   "ts": "2026-10-18T09:00:05.680Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "onth()/getDate()` read the *"
+   }
+  },
+  {
+   "seq": 18,
+   "ts": "2026-10-18T09:00:05.700Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "local* calendar day, so the "
+   }
+  },
+  {
+   "seq": 19,
+   "ts": "2026-10-18T09:00:05.720Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "result depends on the machin"
+   }
+  },
+  {
+   "seq": 20,
+   "ts": "2026-10-18T09:00:05.740Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "e's timezone. The test expec"
+   }
+  },
+  {
+   "seq": 21,
+   "ts": "2026-10-18T09:00:05.760Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "ts the UTC day (March 2). I'"
+   }
+  },
+  {
+   "seq": 22,
+   "ts": "2026-10-18T09:00:05.780Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "ll switch to the UTC getters"
+   }
+  },
+  {
+   "seq": 23,
+   "ts": "2026-10-18T09:00:05.800Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "."
+   }
+  },
+  {
+   "seq": 24,
+   "ts": "2026-10-18T09:00:06.300Z",
+   "type": "assistant_message",
+   "payload": {
+    "content": [
+     {
+      "type": "text",
+      "text": "The bug: `getFullYear()/getMonth()/getDate()` read the *local* calendar day, so the result depends on the machine's timezone. The test expects the UTC day (March 2). I'll switch to the UTC getters."
+     }
+    ]
+   }
+  },
+  {
+   "seq": 25,
+   "ts": "2026-10-18T09:00:07.000Z",
+   "type": "tool_started",
+   "payload": {
+    "toolUseId": "toolu_0003",
+    "name": "Edit",
+    "input": {
+     "file_path": "src/dates.js",
+     "old_string": "return new Date(d.getFullYear(), d.getMonth(), d.getDate());",
+     "new_string": "return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));"
+    }
+   }
+  },
+  {
+   "seq": 26,
+   "ts": "2026-10-18T09:00:07.450Z",
+   "type": "tool_result",
+   "payload": {
+    "toolUseId": "toolu_0003",
+    "output": "The file src/dates.js has been updated.",
+    "isError": false,
+    "truncated": false
+   }
+  },
+  {
+   "seq": 27,
+   "ts": "2026-10-18T09:00:07.470Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "Now I'll run the test suite "
+   }
+  },
+  {
+   "seq": 28,
+   "ts": "2026-10-18T09:00:07.490Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "to confirm."
+   }
+  },
+  {
+   "seq": 29,
+   "ts": "2026-10-18T09:00:07.990Z",
+   "type": "assistant_message",
+   "payload": {
+    "content": [
+     {
+      "type": "text",
+      "text": "Now I'll run the test suite to confirm."
+     }
+    ]
+   }
+  },
+  {
+   "seq": 30,
+   "ts": "2026-10-18T09:00:08.290Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "WAITING_INPUT"
+   }
+  },
+  {
+   "seq": 31,
+   "ts": "2026-10-18T09:00:08.490Z",
+   "type": "permission_request",
+   "payload": {
+    "requestId": "req-bash-1",
+    "toolName": "Bash",
+    "input": {
+     "command": "npm test",
+     "description": "Run the test suite"
+    },
+    "suggestions": []
+   }
+  },
+  {
+   "seq": 32,
+   "ts": "2026-10-18T09:00:09.690Z",
+   "type": "permission_response",
+   "payload": {
+    "requestId": "req-bash-1",
+    "behavior": "allow"
+   }
+  },
+  {
+   "seq": 33,
+   "ts": "2026-10-18T09:00:09.790Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 34,
+   "ts": "2026-10-18T09:00:10.390Z",
+   "type": "tool_started",
+   "payload": {
+    "toolUseId": "toolu_0004",
+    "name": "Bash",
+    "input": {
+     "command": "npm test",
+     "description": "Run the test suite"
+    }
+   }
+  },
+  {
+   "seq": 35,
+   "ts": "2026-10-18T09:00:10.840Z",
+   "type": "tool_result",
+   "payload": {
+    "toolUseId": "toolu_0004",
+    "output": "> artus-demo-repo@1.0.0 test\n> node --test\n\n✔ parseDay handles offsets (1.2ms)\n✔ parseDay keeps UTC midnight (0.4ms)\n\nℹ tests 2\nℹ pass 2\nℹ fail 0",
+    "isError": false,
+    "truncated": false
+   }
+  },
+  {
+   "seq": 36,
+   "ts": "2026-10-18T09:00:10.860Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "Both tests pass. `parseDay` "
+   }
+  },
+  {
+   "seq": 37,
+   "ts": "2026-10-18T09:00:10.880Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "now returns UTC midnight of "
+   }
+  },
+  {
+   "seq": 38,
+   "ts": "2026-10-18T09:00:10.900Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "the UTC calendar day, indepe"
+   }
+  },
+  {
+   "seq": 39,
+   "ts": "2026-10-18T09:00:10.920Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "ndent of the machine's timez"
+   }
+  },
+  {
+   "seq": 40,
+   "ts": "2026-10-18T09:00:10.940Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "one. The change is one line "
+   }
+  },
+  {
+   "seq": 41,
+   "ts": "2026-10-18T09:00:10.960Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "in `src/dates.js`."
+   }
+  },
+  {
+   "seq": 42,
+   "ts": "2026-10-18T09:00:11.460Z",
+   "type": "assistant_message",
+   "payload": {
+    "content": [
+     {
+      "type": "text",
+      "text": "Both tests pass. `parseDay` now returns UTC midnight of the UTC calendar day, independent of the machine's timezone. The change is one line in `src/dates.js`."
+     }
+    ]
+   }
+  },
+  {
+   "seq": 43,
+   "ts": "2026-10-18T09:00:11.860Z",
+   "type": "turn_complete",
+   "payload": {
+    "stopReason": "end_turn",
+    "costUsd": 0.0412,
+    "durationMs": 14000,
+    "numTurns": 3,
+    "usage": {},
+    "model": "claude-sonnet-5-5"
+   }
+  },
+  {
+   "seq": 44,
+   "ts": "2026-10-18T09:00:11.910Z",
+   "type": "context_usage",
+   "payload": {
+    "tokens": 31200,
+    "window": 200000,
+    "autoCompactAt": 160000,
+    "breakdown": {
+     "categories": [
+      {
+       "name": "System prompt",
+       "tokens": 3100
+      },
+      {
+       "name": "Tools",
+       "tokens": 9400
+      },
+      {
+       "name": "Messages",
+       "tokens": 18700
+      }
+     ],
+     "mcpServers": [
+      {
+       "name": "memory",
+       "tokens": 1200,
+       "deferred": true
+      }
+     ],
+     "topTools": [
+      {
+       "name": "Read",
+       "tokens": 2300
+      },
+      {
+       "name": "Bash",
+       "tokens": 900
+      }
+     ]
+    }
+   }
+  },
+  {
+   "seq": 45,
+   "ts": "2026-10-18T09:00:11.960Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  },
+  {
+   "seq": 46,
+   "ts": "2026-10-18T09:00:12.160Z",
+   "type": "diagram_generated",
+   "payload": {
+    "diagramType": "flowchart",
+    "fingerprint": "demo-fp-01",
+    "repaired": false,
+    "rationale": "Control flow of the fixed parser.",
+    "mermaid": "flowchart TD\n  A[parseDay iso] --> B[new Date iso]\n  B --> C[read UTC year/month/day]\n  C --> D[Date.UTC midnight]\n  D --> E[test: offset keeps UTC day]"
+   }
+  }
+ ],
+ "script": {
+  "seedUntilSeq": 15,
+  "deny": {
+   "req-bash-1": [
+    {
+     "type": "state_changed",
+     "payload": {
+      "state": "RUNNING"
+     }
+    },
+    {
+     "type": "stream_delta",
+     "payload": {
+      "deltaType": "text",
+      "text": "Understood — I won't run the tests. The fix is in place in src/dates.js; run `npm test` yourself whenever you like."
+     }
+    },
+    {
+     "type": "assistant_message",
+     "payload": {
+      "content": [
+       {
+        "type": "text",
+        "text": "Understood — I won't run the tests. The fix is in place in src/dates.js; run `npm test` yourself whenever you like."
+       }
+      ]
+     }
+    },
+    {
+     "type": "turn_complete",
+     "payload": {
+      "stopReason": "end_turn",
+      "costUsd": 0.006,
+      "durationMs": 2100,
+      "numTurns": 1,
+      "usage": {},
+      "model": null
+     }
+    }
+   ]
+  }
+ },
+ "changes": {
+  "baseBranch": "main",
+  "mergeBase": "a1b2c3d",
+  "baseKnown": true,
+  "files": [
+   {
+    "path": "src/dates.js",
+    "oldPath": null,
+    "status": "modified",
+    "where": [
+     "unstaged"
+    ],
+    "additions": 1,
+    "deletions": 1,
+    "mtime": 1
+   }
+  ]
+ },
+ "files": {
+  "src/dates.js": {
+   "path": "src/dates.js",
+   "oldPath": null,
+   "status": "modified",
+   "content": "export function parseDay(iso) {\n  const d = new Date(iso);\n  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));\n}\n",
+   "baseContent": "export function parseDay(iso) {\n  const d = new Date(iso);\n  return new Date(d.getFullYear(), d.getMonth(), d.getDate());\n}\n",
+   "binary": false,
+   "truncated": false,
+   "size": 143
+  }
+ },
+ "diagram": {
+  "diagramType": "flowchart",
+  "mermaid": "flowchart TD\n  A[parseDay iso] --> B[new Date iso]\n  B --> C[read UTC year/month/day]\n  C --> D[Date.UTC midnight]\n  D --> E[test: offset keeps UTC day]",
+  "rationale": "Control flow of the fixed parser.",
+  "fingerprint": "demo-fp-01",
+  "repaired": false,
+  "seq": 46
+ },
+ "currentFingerprint": "demo-fp-01",
+ "git": {
+  "status": {
+   "branch": "fix/date-parsing",
+   "dirty": [
+    "src/dates.js"
+   ],
+   "upstream": null,
+   "ahead": 0,
+   "behind": 0,
+   "aheadOfBase": 0
+  },
+  "log": [
+   {
+    "hash": "e4f5a6b",
+    "subject": "Merge PR #6: fix date parsing (1.1.x)",
+    "author": "Demo Maintainer",
+    "date": "2026-10-16T16:00:00.000Z"
+   },
+   {
+    "hash": "d3e4f5a",
+    "subject": "Add report command",
+    "author": "Demo Maintainer",
+    "date": "2026-10-16T08:00:00.000Z"
+   },
+   {
+    "hash": "c2d3e4f",
+    "subject": "Initial commit",
+    "author": "Demo Maintainer",
+    "date": "2026-10-15T08:00:00.000Z"
+   }
+  ],
+  "diff": "diff --git a/src/dates.js b/src/dates.js\n--- a/src/dates.js\n+++ b/src/dates.js\n@@ -1,4 +1,4 @@\n export function parseDay(iso) {\n   const d = new Date(iso);\n-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());\n+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));\n }\n"
+ }
+}

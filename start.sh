@@ -80,7 +80,9 @@ ensure_db() {
 
 start_app() {
   local jar
-  jar="$(ls target/artus-*.jar 2>/dev/null | grep -v '\.original$' | head -1 || true)"
+  # newest first (-t): a version bump leaves the previous jar in target/ until `mvn clean`, and a
+  # name sort would pick artus-0.0.1-SNAPSHOT.jar over artus-1.0.0.jar
+  jar="$(ls -t target/artus-*.jar 2>/dev/null | grep -v '\.original$' | head -1 || true)"
   if [ -z "$jar" ]; then
     echo "No jar found in target/ — run ./install.sh first." >&2
     exit 1

@@ -1,0 +1,7 @@
+# Leak denylist for demo fixtures (phase 24): one case-insensitive JS regex per line, '#' starts a comment.
+# Read by `node scripts/capture-demo.mjs` (capture and --check, incl. CI) on top of the built-in patterns in scrub.mjs
+# (real home/drive paths, token shapes, emails). Keep every identifier that must never reach the website here.
+# The maintainer's GitHub handle: allowed only as the public repo owner in a github.com URL.
+(?<!github\.com/)eupakhomov
+# Windows drive path seen through WSL
+d:\\projects

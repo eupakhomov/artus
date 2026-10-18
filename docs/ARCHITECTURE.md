@@ -571,6 +571,17 @@ reads `findRecentlyClosed` (no full-table scan). The dashboard fetches on mount,
 `ClosedSessionDialog` (transcript rebuilt with `transcriptFromEvents`, `Transcript` without `onPermission`);
 "Continue from this" mounts `CreateSessionDialog` with `continueFrom`, reusing the phase 7.3 handoff path.
 
+## 3l. Demo build (Phase 24)
+
+The dashboard can be compiled without a backend: `vite build --mode demo` swaps the two network modules (`api/rest`,
+`api/ws`) for fixture-backed ones at bundle time, so the production bundle is untouched. `SessionPlayer`
+(`src/demo/player.ts`, pure, clock-injected) replays a fixture's journal: events up to `script.seedUntilSeq` are seeded
+instantly followed by `replay_complete` (mirrors the real WS, so notification gating behaves), the rest play live with
+capped gaps and a fixed delta cadence. It stops at every `permission_request`; Allow continues the recorded tail, Deny
+skips to the end of that turn and plays the fixture's recorded denied tail (seqs stay strictly increasing). `rest.demo.ts`
+answers the calls the dashboard needs from the fixtures and rejects everything else with a 501 `ApiError`. Fixture
+capture and scrubbing: `scripts/capture-demo.mjs` + `frontend/demo/scrub.mjs`. Plan: `docs/plan/phase-24-demo-mode.md`.
+
 ## 4. Backlog implementation sketches (remaining: 5.4, 5.6–5.8, 5.10–5.11)
 
 ### 5.4 Templates v2 — remaining gap

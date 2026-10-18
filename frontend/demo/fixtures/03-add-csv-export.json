@@ -1,0 +1,446 @@
+{
+ "summary": {
+  "id": "00000000-0000-4000-8000-000000000003",
+  "name": "Add CSV export",
+  "provider": "codex",
+  "repoPath": "/home/demo/projects/artus-demo-repo",
+  "servicePath": "/home/demo/projects/artus-demo-repo",
+  "branch": "feat/csv-export",
+  "model": "gpt-5-codex",
+  "permissionMode": "default",
+  "state": "IDLE",
+  "kind": "user",
+  "sessionType": "development",
+  "costToDate": 0,
+  "updatedAt": "2026-10-18T09:02:08.620Z",
+  "lastSeq": 25,
+  "closedAt": null,
+  "prUrl": null
+ },
+ "detail": {
+  "session": {
+   "id": "00000000-0000-4000-8000-000000000003",
+   "name": "Add CSV export",
+   "provider": "codex",
+   "slackEnabled": false,
+   "repoPath": "/home/demo/projects/artus-demo-repo",
+   "servicePath": "/home/demo/projects/artus-demo-repo",
+   "cwdPath": "/home/demo/agentic-worktrees/feat-csv-export",
+   "branch": "feat/csv-export",
+   "baseBranch": "main",
+   "worktreePath": "/home/demo/agentic-worktrees/feat-csv-export",
+   "providerSessionId": "prov-3",
+   "capabilities": {
+    "permissionModes": [
+     "default",
+     "bypassPermissions"
+    ],
+    "thinking": false,
+    "effort": true,
+    "planMode": false,
+    "resume": true,
+    "skills": true,
+    "agents": false,
+    "mcp": true,
+    "interrupt": true,
+    "fallbackModel": false,
+    "updatedInput": true,
+    "modelSwitch": true,
+    "compact": true,
+    "models": []
+   },
+   "model": "gpt-5-codex",
+   "permissionMode": "default",
+   "ecosystemPath": null,
+   "contextDirs": [],
+   "thinking": null,
+   "effort": null,
+   "costBudgetUsd": 5,
+   "state": "IDLE",
+   "kickoffPrompt": null,
+   "kind": "user",
+   "sessionType": "development",
+   "ticketRef": null,
+   "continuedFromId": null,
+   "parentSessionId": null,
+   "prUrl": null,
+   "prCheckStatus": null,
+   "prCheckedAt": null,
+   "reflectionEnabled": false,
+   "codeIntel": null,
+   "contextTokens": 18400,
+   "contextWindow": 200000
+  },
+  "queued": [],
+  "lastSeq": 25,
+  "costToDate": 0
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": "2026-10-18T09:02:00.000Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "STARTING"
+   }
+  },
+  {
+   "seq": 2,
+   "ts": "2026-10-18T09:02:00.300Z",
+   "type": "ready",
+   "payload": {
+    "capabilities": {
+     "permissionModes": [
+      "default",
+      "bypassPermissions"
+     ],
+     "thinking": false,
+     "effort": true,
+     "planMode": false,
+     "resume": true,
+     "skills": true,
+     "agents": false,
+     "mcp": true,
+     "interrupt": true,
+     "fallbackModel": false,
+     "updatedInput": true,
+     "modelSwitch": true,
+     "compact": true,
+     "models": []
+    }
+   }
+  },
+  {
+   "seq": 3,
+   "ts": "2026-10-18T09:02:00.400Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  },
+  {
+   "seq": 4,
+   "ts": "2026-10-18T09:02:01.900Z",
+   "type": "user_message",
+   "payload": {
+    "text": "Add a `--csv` flag to the report command that prints the totals as CSV."
+   }
+  },
+  {
+   "seq": 5,
+   "ts": "2026-10-18T09:02:02.000Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "RUNNING"
+   }
+  },
+  {
+   "seq": 6,
+   "ts": "2026-10-18T09:02:02.400Z",
+   "type": "system_init",
+   "payload": {
+    "providerSessionId": "prov-5",
+    "model": "gpt-5-codex",
+    "cwd": "",
+    "tools": [],
+    "mcpServers": [],
+    "permissionMode": "default"
+   }
+  },
+  {
+   "seq": 7,
+   "ts": "2026-10-18T09:02:02.420Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "I'll find where the report c"
+   }
+  },
+  {
+   "seq": 8,
+   "ts": "2026-10-18T09:02:02.440Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "ommand formats its output."
+   }
+  },
+  {
+   "seq": 9,
+   "ts": "2026-10-18T09:02:02.940Z",
+   "type": "assistant_message",
+   "payload": {
+    "content": [
+     {
+      "type": "text",
+      "text": "I'll find where the report command formats its output."
+     }
+    ]
+   }
+  },
+  {
+   "seq": 10,
+   "ts": "2026-10-18T09:02:03.640Z",
+   "type": "tool_started",
+   "payload": {
+    "toolUseId": "toolu_0001",
+    "name": "Bash",
+    "input": {
+     "command": "rg -n \"formatReport\" src"
+    }
+   }
+  },
+  {
+   "seq": 11,
+   "ts": "2026-10-18T09:02:04.090Z",
+   "type": "tool_result",
+   "payload": {
+    "toolUseId": "toolu_0001",
+    "output": "src/report.js:12:export function formatReport(rows) {\nsrc/cli.js:9:  console.log(formatReport(rows));",
+    "isError": false,
+    "truncated": false
+   }
+  },
+  {
+   "seq": 12,
+   "ts": "2026-10-18T09:02:04.790Z",
+   "type": "tool_started",
+   "payload": {
+    "toolUseId": "toolu_0002",
+    "name": "Edit",
+    "input": {
+     "file_path": "src/report.js",
+     "old_string": "export function formatReport(rows) {",
+     "new_string": "export function formatCsv(rows) {\n  return [\"name,total\", ...rows.map((r) => `${r.name},${r.total}`)].join(\"\\n\");\n}\n\nexport function formatReport(rows) {"
+    }
+   }
+  },
+  {
+   "seq": 13,
+   "ts": "2026-10-18T09:02:05.240Z",
+   "type": "tool_result",
+   "payload": {
+    "toolUseId": "toolu_0002",
+    "output": "Applied patch to src/report.js",
+    "isError": false,
+    "truncated": false
+   }
+  },
+  {
+   "seq": 14,
+   "ts": "2026-10-18T09:02:05.940Z",
+   "type": "tool_started",
+   "payload": {
+    "toolUseId": "toolu_0003",
+    "name": "Edit",
+    "input": {
+     "file_path": "src/cli.js",
+     "old_string": "console.log(formatReport(rows));",
+     "new_string": "console.log(process.argv.includes('--csv') ? formatCsv(rows) : formatReport(rows));"
+    }
+   }
+  },
+  {
+   "seq": 15,
+   "ts": "2026-10-18T09:02:06.390Z",
+   "type": "tool_result",
+   "payload": {
+    "toolUseId": "toolu_0003",
+    "output": "Applied patch to src/cli.js",
+    "isError": false,
+    "truncated": false
+   }
+  },
+  {
+   "seq": 16,
+   "ts": "2026-10-18T09:02:07.090Z",
+   "type": "tool_started",
+   "payload": {
+    "toolUseId": "toolu_0004",
+    "name": "Bash",
+    "input": {
+     "command": "node --test"
+    }
+   }
+  },
+  {
+   "seq": 17,
+   "ts": "2026-10-18T09:02:07.540Z",
+   "type": "tool_result",
+   "payload": {
+    "toolUseId": "toolu_0004",
+    "output": "ℹ tests 5\nℹ pass 5\nℹ fail 0",
+    "isError": false,
+    "truncated": false
+   }
+  },
+  {
+   "seq": 18,
+   "ts": "2026-10-18T09:02:07.560Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "Added `formatCsv` in `src/re"
+   }
+  },
+  {
+   "seq": 19,
+   "ts": "2026-10-18T09:02:07.580Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "port.js` and wired `--csv` i"
+   }
+  },
+  {
+   "seq": 20,
+   "ts": "2026-10-18T09:02:07.600Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "n `src/cli.js`. All 5 tests "
+   }
+  },
+  {
+   "seq": 21,
+   "ts": "2026-10-18T09:02:07.620Z",
+   "type": "stream_delta",
+   "payload": {
+    "deltaType": "text",
+    "text": "pass."
+   }
+  },
+  {
+   "seq": 22,
+   "ts": "2026-10-18T09:02:08.120Z",
+   "type": "assistant_message",
+   "payload": {
+    "content": [
+     {
+      "type": "text",
+      "text": "Added `formatCsv` in `src/report.js` and wired `--csv` in `src/cli.js`. All 5 tests pass."
+     }
+    ]
+   }
+  },
+  {
+   "seq": 23,
+   "ts": "2026-10-18T09:02:08.520Z",
+   "type": "turn_complete",
+   "payload": {
+    "stopReason": "end_turn",
+    "costUsd": 0,
+    "durationMs": 14000,
+    "numTurns": 3,
+    "usage": {},
+    "model": "gpt-5-codex"
+   }
+  },
+  {
+   "seq": 24,
+   "ts": "2026-10-18T09:02:08.570Z",
+   "type": "context_usage",
+   "payload": {
+    "tokens": 18400,
+    "window": 200000,
+    "autoCompactAt": 160000
+   }
+  },
+  {
+   "seq": 25,
+   "ts": "2026-10-18T09:02:08.620Z",
+   "type": "state_changed",
+   "payload": {
+    "state": "IDLE"
+   }
+  }
+ ],
+ "script": {
+  "seedUntilSeq": 11
+ },
+ "changes": {
+  "baseBranch": "main",
+  "mergeBase": "c3d4e5f",
+  "baseKnown": true,
+  "files": [
+   {
+    "path": "src/report.js",
+    "oldPath": null,
+    "status": "modified",
+    "where": [
+     "unstaged"
+    ],
+    "additions": 4,
+    "deletions": 0,
+    "mtime": 1
+   },
+   {
+    "path": "src/cli.js",
+    "oldPath": null,
+    "status": "modified",
+    "where": [
+     "unstaged"
+    ],
+    "additions": 1,
+    "deletions": 1,
+    "mtime": 1
+   }
+  ]
+ },
+ "files": {
+  "src/report.js": {
+   "path": "src/report.js",
+   "oldPath": null,
+   "status": "modified",
+   "content": "export function formatCsv(rows) {}\n",
+   "baseContent": "export function formatReport(rows) {}\n",
+   "binary": false,
+   "truncated": false,
+   "size": 35
+  },
+  "src/cli.js": {
+   "path": "src/cli.js",
+   "oldPath": null,
+   "status": "modified",
+   "content": "console.log(process.argv.includes('--csv') ? formatCsv(rows) : formatReport(rows));\n",
+   "baseContent": "console.log(formatReport(rows));\n",
+   "binary": false,
+   "truncated": false,
+   "size": 84
+  }
+ },
+ "git": {
+  "status": {
+   "branch": "feat/csv-export",
+   "dirty": [
+    "src/report.js",
+    "src/cli.js"
+   ],
+   "upstream": null,
+   "ahead": 0,
+   "behind": 0,
+   "aheadOfBase": 0
+  },
+  "log": [
+   {
+    "hash": "e4f5a6b",
+    "subject": "Merge PR #6: fix date parsing (1.1.x)",
+    "author": "Demo Maintainer",
+    "date": "2026-10-16T16:00:00.000Z"
+   },
+   {
+    "hash": "d3e4f5a",
+    "subject": "Add report command",
+    "author": "Demo Maintainer",
+    "date": "2026-10-16T08:00:00.000Z"
+   },
+   {
+    "hash": "c2d3e4f",
+    "subject": "Initial commit",
+    "author": "Demo Maintainer",
+    "date": "2026-10-15T08:00:00.000Z"
+   }
+  ],
+  "diff": "diff --git a/src/cli.js b/src/cli.js\n--- a/src/cli.js\n+++ b/src/cli.js\n@@ -9 +9 @@\n-  console.log(formatReport(rows));\n+  console.log(process.argv.includes('--csv') ? formatCsv(rows) : formatReport(rows));\n"
+ }
+}

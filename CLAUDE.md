@@ -127,7 +127,8 @@ $mvnw package -DskipTests                                    # full: rebuilds fr
 #    start in background, print the token for the browser login:
 TOKEN="${ARTUS_TOKEN:-$(head -c 24 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 20)}"
 echo "$TOKEN" > /tmp/artus.token
-ARTUS_TOKEN="$TOKEN" nohup java -jar target/artus-0.0.1-SNAPSHOT.jar \
+JAR="$(ls -t target/artus-*.jar | head -1)"   # newest build (the version comes from pom.xml)
+ARTUS_TOKEN="$TOKEN" nohup java -jar "$JAR" \
   --server.address=0.0.0.0 > /tmp/artus.log 2>&1 &
 echo $! > /tmp/artus.pid
 until curl -sf localhost:8080/actuator/health >/dev/null; do sleep 1; done
@@ -243,6 +244,7 @@ live-confirmed protocol quirks: `docs/plan/phase-5.13-codex-provider.md`.
 ```bash
 cd frontend && npm install && npm run dev     # Vite on :5173, proxies /api and /ws to :8080
 npm test                                      # vitest — store/store.ts, protocol.ts helpers
+npm run dev:demo | build:demo                 # phase 24: backend-less replay build (see "Demo build" below)
 ```
 
 Production build is wired into `mvn package` (frontend-maven-plugin → `static/`), so
@@ -261,6 +263,22 @@ provably typechecks and is on disk has *zero* effect in the browser, even after 
 reload. Fix: kill and restart the `npm run dev` process after editing frontend source
 while manually verifying in a browser — don't trust HMR here. (`mvn package`'s frontend
 build is unaffected; it always reads fresh from disk.)
+
+### Demo build (phase 24)
+
+`npm run build:demo` (`vite build --mode demo`, output `frontend/dist-demo/`, relative base — the site serves it at `/demo/`) compiles the real
+dashboard with `src/api/rest.ts` and `src/api/ws.ts` swapped (a `resolveId` plugin in `vite.config.ts`) for
+`rest.demo.ts`/`ws.demo.ts`, which replay scrubbed recorded journals from `frontend/demo/fixtures/*.json` — no
+backend, no network. The normal build never contains demo code (`main.tsx` lazy-loads the demo bar only when
+`MODE === 'demo'`). Rules when touching the frontend:
+- A REST method missing from `rest.demo.ts` rejects with a 501 `ApiError` ("Not available in the demo") by design;
+  add it there only if the demo should show real content for it.
+- A WS command or journal event type the player should honour goes in `demo/player.ts` / `ws.demo.ts`.
+- Absolute URLs break the relative demo base: use `import.meta.env.BASE_URL` (`./` in the demo build).
+- Fixtures: `node frontend/demo/build-sample-fixtures.mjs` regenerates the hand-scripted **sample** set; real ones come
+  from `scripts/capture-demo.mjs` (records journal, changes, diagram and the Git panel's status/log/diff; scrubs
+  paths/secrets/emails/the Artus token; `--check` + `frontend/demo/denylist.txt` fail on leaks, CI runs it) — workflow in
+  `frontend/demo/SCENARIOS.md`. The demo bundle uses a relative base, so it works under any path. Embed params: `?theme=dark|light&speed=1|4&autoplay=0`.
 
 ### Visual style (read before touching UI)
 

@@ -39,7 +39,7 @@ export default function App() {
       <div className="gate">
         <div className="modal">
           <div className="brand brand-gate">
-            <img src="/logo.svg" alt="" className="brand-logo" />
+            <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="brand-logo" />
             <h2>Artus</h2>
           </div>
           <p className="brand-tagline">Multi-session manager for Claude Code and Codex</p>

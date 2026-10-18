@@ -32,4 +32,5 @@ function migrate(): void {
   }
 }
 
-migrate();
+// phase 24: the demo build runs on the website's origin and holds no token — never touch another app's keys there
+if (import.meta.env.MODE !== 'demo') migrate();

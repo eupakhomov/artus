@@ -37,6 +37,7 @@ node_modules/
 sidecar/dist/
 sidecar-codex/dist/
 frontend/dist/
+frontend/dist-demo/
 
 ### Local secrets/config ###
 application-local.yaml
