@@ -129,6 +129,21 @@ public class EventJournal {
 				.optional();
 	}
 
+	/** Most recent event of a given type for a session, if any (phase 22: the latest diagram). */
+	public Optional<JournalEvent> lastEventOfType(UUID sessionId, String type) {
+		flush(sessionId);
+		return jdbc.sql("""
+						SELECT seq, ts, type, payload FROM session_event
+						WHERE session_id = ? AND type = ? ORDER BY seq DESC LIMIT 1""")
+				.params(sessionId, type)
+				.query((rs, i) -> new JournalEvent(
+						rs.getLong("seq"),
+						rs.getTimestamp("ts").toInstant(),
+						rs.getString("type"),
+						readNode(rs.getString("payload"))))
+				.optional();
+	}
+
 	/** Whether any event of one of the given types exists after {@code afterSeq} — no row materialization. */
 	public boolean hasEventsAfter(UUID sessionId, long afterSeq, java.util.Collection<String> types) {
 		if (types.isEmpty()) {

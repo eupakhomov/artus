@@ -540,6 +540,27 @@ Slack  <==Web API (RestClient)==  SlackWebApi <- SlackOutbox <- SlackSessionMirr
   logs. Events missed while disconnected are not replayed (Slack does not replay them); the parent's **Status**
   button is the recovery path.
 
+## 3j. Visualize (Phase 22)
+
+A session's code logic as a Mermaid diagram, on demand. `VisualizeService` builds one prompt from
+`ChangesService.unifiedDiff` (merge-base..working tree, untracked files as `+` blocks, binary stubs, source ranked
+before lockfiles/generated output, hard char cap with an "N files omitted" trailer) and the last ~20k chars of
+`TranscriptDigest.render`, and runs it as one system turn on `SystemTurnLane.VISUALIZE` (model from the
+`visualize.model` tier via `ModelCatalog`, 90 s). The reply envelope (`TYPE:` / `WHY:` / a ```` ```mermaid ```` fence)
+is parsed leniently and journaled as `diagram_generated {diagramType, mermaid, rationale?, fingerprint, repaired}`;
+the latest one wins (a reply whose diagram would overflow the journal payload cap is refused with a readable error
+instead of being journaled as a truncation stub). The fingerprint is the SHA-256 of the *complete* diff, so
+`GET …/visualize` reports `stale` when the branch moved on; since status is polled (focus + 15 s per open view), the
+fingerprint is cached behind `ChangesService.changeSignature` — a cheap HEAD + `git status` + mtime/size hash — and
+only recomputed when that signature moves. The backend never parses Mermaid: the frontend renders with `beautiful-mermaid` (lazy chunk) and,
+if that throws, asks `POST …/visualize/repair` once before showing the raw source. Lane table:
+
+| Lane | Session name | Lock wait | Warm-up |
+|---|---|---|---|
+| `INTERACTIVE` | `system-interactive` | 20 s, then "busy" | after each turn + at startup |
+| `BACKGROUND` | `system-background` | the caller's own timeout | none |
+| `VISUALIZE` | `system-visualize` | 20 s, then "busy" (only vs. another diagram request) | none |
+
 ## 4. Backlog implementation sketches (remaining: 5.4, 5.6–5.8, 5.10–5.11)
 
 ### 5.4 Templates v2 — remaining gap

@@ -80,6 +80,7 @@ public class SettingsService {
 	private static final String SERVICE_DISCOVERY_ENABLED_KEY = "service-discovery.enabled";
 	private static final String SERVICE_DISCOVERY_STALENESS_DAYS_KEY = "service-discovery.staleness-days";
 	private static final String SERVICE_DISCOVERY_MODEL_KEY = "service-discovery.model";
+	private static final String VISUALIZE_MODEL_KEY = "visualize.model";
 	private static final String CONTEXT_WARN_PERCENT_KEY = "session.context-warn-percent";
 	private static final String MCP_SERENA_ROOT_KEY = "mcp.serena-root";
 	private static final String MCP_UV_PATH_KEY = "mcp.uv-path";
@@ -131,6 +132,12 @@ public class SettingsService {
 				fromPatch);
 	}
 
+	/** Like {@link #tierField} but an unset/blank value reads as {@code def} instead of "". */
+	private static Field<String> tierField(String key, String def, Function<SettingsPatch, String> fromPatch) {
+		return new Field<>(key, () -> def, Function.identity(), Function.identity(),
+				v -> v == null || v.isBlank() ? def : normalizeTier(v), fromPatch);
+	}
+
 	private final Field<Boolean> linearOAuthEnabled = boolField(LINEAR_OAUTH_KEY, false, SettingsPatch::linearOAuthEnabled);
 	private final Field<String> linearAllowedTools =
 			strField(LINEAR_ALLOWED_TOOLS_KEY, () -> DEFAULT_LINEAR_ALLOWED_TOOLS, SettingsPatch::linearAllowedTools);
@@ -176,6 +183,8 @@ public class SettingsService {
 	private final Field<Integer> serviceDiscoveryStalenessDays =
 			intField(SERVICE_DISCOVERY_STALENESS_DAYS_KEY, 14, 1, SettingsPatch::serviceDiscoveryStalenessDays);
 	private final Field<String> serviceDiscoveryModel = tierField(SERVICE_DISCOVERY_MODEL_KEY, SettingsPatch::serviceDiscoveryModel);
+	/** Phase 22: reading a diff and choosing a structure is a reasoning task, so default to {@code standard}. */
+	private final Field<String> visualizeModel = tierField(VISUALIZE_MODEL_KEY, "standard", SettingsPatch::visualizeModel);
 	/** decision 10: one number, same meaning everywhere — floor 30 (a lower bar is noise), ceiling 95
 	 * (past that there's no runway left to act on the nudge). */
 	private final Field<Integer> contextWarnPercent = new Field<>(CONTEXT_WARN_PERCENT_KEY, () -> 70,
@@ -219,7 +228,7 @@ public class SettingsService {
 				memoryReflectionDefault, memoryReflectionModel, memorySyncIntervalMinutes, memoryRetentionDays,
 				memoryReflectionApprovalRequired, serviceDiscoveryEnabled, serviceDiscoveryStalenessDays,
 				serviceDiscoveryModel, contextWarnPercent, mcpSerenaRoot, mcpUvPath, mcpGraphifyRoot,
-				mcpCodegraphRoot, codeIntelField, linearAllowedTools, authTokenRequired, slackDefaultEnabled);
+				mcpCodegraphRoot, codeIntelField, linearAllowedTools, authTokenRequired, slackDefaultEnabled, visualizeModel);
 	}
 
 	/** One snapshot of every setting in {@link #fields}, cached until the next {@link #apply}. */
@@ -264,7 +273,8 @@ public class SettingsService {
 				storedCodeIntel.isBlank() ? defaultCodeIntel(serenaRoot) : storedCodeIntel,
 				linearAllowedTools.resolve(raw),
 				authTokenRequired.resolve(raw),
-				slackDefaultEnabled.resolve(raw));
+				slackDefaultEnabled.resolve(raw),
+				visualizeModel.resolve(raw));
 		cache = built;
 		return built;
 	}

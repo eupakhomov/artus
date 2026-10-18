@@ -94,6 +94,18 @@ class SettingsServiceTest {
 	}
 
 	@Test
+	void visualizeModelDefaultsToStandardAndNormalizesLikeTheOtherTiers() {
+		SettingsService settings = newService();
+		assertThat(settings.current().visualizeModel()).isEqualTo("standard");
+		settings.apply(SettingsPatch.builder().visualizeModel("premium").build());
+		assertThat(settings.current().visualizeModel()).isEqualTo("premium");
+		settings.apply(SettingsPatch.builder().visualizeModel("opus").build());
+		assertThat(settings.current().visualizeModel()).isEqualTo("premium");
+		settings.apply(SettingsPatch.builder().visualizeModel("gpt-5").build());
+		assertThat(settings.current().visualizeModel()).isEqualTo("cheap");
+	}
+
+	@Test
 	void monorepoServiceGlobsDefaultsToTheStandardFourGlobs() {
 		assertThat(newService().current().monorepoServiceGlobs()).isEqualTo("packages/*,services/*,apps/*,libs/*");
 	}

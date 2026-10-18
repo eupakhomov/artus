@@ -228,4 +228,80 @@ class ChangesServiceTest {
 	void missingWorktreeListsNothing() {
 		assertThat(changes.list(repo.resolve("nope"), "main").files()).isEmpty();
 	}
+
+	@Test
+	void unifiedDiffCoversCommittedUnstagedAndUntrackedWithBinaryStub() throws IOException {
+		write("src/Foo.java", "class Foo {\n  int x;\n}\n");
+		git.runOrThrow(repo, "commit", "-q", "-am", "committed change");
+		write("keep.txt", "unchanged\nplus one\n");
+		write("fresh.md", "# hi\nthere\n");
+		Files.write(repo.resolve("blob.bin"), new byte[] {0, 1, 2, 3});
+
+		ChangesService.DiffSnapshot diff = changes.unifiedDiff(repo, "main", 100_000);
+
+		assertThat(diff.files()).isEqualTo(4);
+		assertThat(diff.text()).contains("+  int x;", "+plus one", "+# hi", "+there",
+				"Binary files /dev/null and b/blob.bin differ");
+		assertThat(diff.omitted()).isZero();
+	}
+
+	@Test
+	void unifiedDiffRanksSourceFirstAndCapsWithATrailer() throws IOException {
+		write("package-lock.json", "x\n".repeat(5000));
+		write("src/Bar.java", "class Bar {}\n");
+		ChangesService.DiffSnapshot diff = changes.unifiedDiff(repo, "main", 3000);
+
+		assertThat(diff.text()).contains("class Bar").contains("[diff truncated: 1 files omitted]");
+		assertThat(diff.text()).doesNotContain("x\nx\nx\nx");
+	}
+
+	@Test
+	void fingerprintIsStableAcrossNoOpAndChangesOnEditEvenInOmittedFiles() throws IOException {
+		write("src/Bar.java", "class Bar {}\n");
+		String first = changes.unifiedDiff(repo, "main", 100).fingerprint();
+		assertThat(changes.unifiedDiff(repo, "main", 100).fingerprint()).isEqualTo(first);
+		write("src/Bar.java", "class Bar { int y; }\n");
+		assertThat(changes.unifiedDiff(repo, "main", 100).fingerprint()).isNotEqualTo(first);
+	}
+
+	@Test
+	void unifiedDiffOfAMissingWorktreeIsEmpty() {
+		ChangesService.DiffSnapshot diff = changes.unifiedDiff(repo.resolve("nope"), "main", 1000);
+		assertThat(diff.empty()).isTrue();
+		assertThat(diff.text()).isEmpty();
+	}
+
+	@Test
+	void rankKeepsNonTestJavaSourcesInTheTopTier() {
+		assertThat(ChangesService.rank("src/Backtest.java")).isZero();
+		assertThat(ChangesService.rank("src/Contest.java")).isZero();
+		assertThat(ChangesService.rank("src/FooTest.java")).isEqualTo(1);
+		assertThat(ChangesService.rank("src/FooTests.java")).isEqualTo(1);
+		assertThat(ChangesService.rank("src/test/java/Foo.java")).isEqualTo(1);
+	}
+
+	@Test
+	void changeSignatureIsStableUntilTheWorktreeChanges() throws IOException {
+		String first = changes.changeSignature(repo);
+		assertThat(changes.changeSignature(repo)).isEqualTo(first);
+
+		write("src/Foo.java", "class Foo {\n  int signatureChange;\n}\n");
+		String second = changes.changeSignature(repo);
+		assertThat(second).isNotEqualTo(first);
+		assertThat(changes.changeSignature(repo)).isEqualTo(second);
+
+		assertThat(changes.changeSignature(repo.resolve("missing"))).isEqualTo("absent");
+	}
+
+	/** The regression that slipped past the listing-level test: an edit to an ALREADY-modified file
+	 * keeps the porcelain listing identical, so only the file's mtime+size can carry the change. */
+	@Test
+	void changeSignatureSeesAnEditToAnAlreadyModifiedFile() throws IOException {
+		write("src/Foo.java", "class Foo {\n  int a;\n}\n");
+		String first = changes.changeSignature(repo);
+		assertThat(changes.changeSignature(repo)).isEqualTo(first);
+
+		write("src/Foo.java", "class Foo {\n  int a;\n  int b;\n}\n");
+		assertThat(changes.changeSignature(repo)).isNotEqualTo(first);
+	}
 }

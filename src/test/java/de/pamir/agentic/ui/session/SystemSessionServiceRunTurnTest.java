@@ -283,6 +283,39 @@ class SystemSessionServiceRunTurnTest {
 	}
 
 	@Test
+	void aVisualizeTurnInFlightDoesNotBlockInteractiveOrBackgroundTurns() throws InterruptedException {
+		UUID visualizeId = seedSystemSession(SystemSessionService.VISUALIZE_NAME);
+		Thread visualize = Thread.ofVirtual().start(() ->
+				systemSessionService.runSystemTurn("diagram", SystemTurnLane.VISUALIZE, java.time.Duration.ofSeconds(5)));
+		awaitPendingTurn();
+		assertThat(systemSessionService.busy()).as("busy() is about the interactive worker").isFalse();
+
+		AtomicReference<String> result = new AtomicReference<>();
+		Thread interactive = Thread.ofVirtual().start(() -> result.set(
+				systemSessionService.runSystemTurn("quick", SystemTurnLane.INTERACTIVE, java.time.Duration.ofSeconds(2))));
+		awaitPendingTurn();
+		systemSessionService.onAssistantMessage(systemId, textContent("interactive answer"));
+		systemSessionService.completeTurn(systemId);
+		interactive.join(2000);
+
+		assertThat(result.get()).isEqualTo("interactive answer");
+		assertThat(sidecars.sentTo(visualizeId)).anyMatch(line -> line.contains("diagram"));
+		systemSessionService.completeTurn(visualizeId);
+		visualize.join(2000);
+	}
+
+	@Test
+	void startupSweepKeepsTheVisualizeLaneSession() {
+		UUID visualize = seedSystemSession(SystemSessionService.VISUALIZE_NAME);
+		SessionHousekeeping housekeeping = new SessionHousekeeping(props, sessions, sidecars, journalPublisher,
+				mapper, sessionService);
+
+		housekeeping.retireLegacySystemSessions();
+
+		assertThat(sessions.get(visualize).state()).isEqualTo(SessionState.IDLE);
+	}
+
+	@Test
 	void busyReportsAnInteractiveTurnInFlightOnly() throws InterruptedException {
 		assertThat(systemSessionService.busy()).isFalse();
 		Thread caller = Thread.ofVirtual().start(() ->

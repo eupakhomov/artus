@@ -380,6 +380,15 @@ describe('block marks', () => {
   });
 });
 
+describe('diagram_generated (phase 22)', () => {
+  it('keeps only the latest diagram, by journal order', () => {
+    const { apply } = useStore.getState();
+    apply(SID, env('diagram_generated', { diagramType: 'flowchart', mermaid: 'flowchart TD', fingerprint: 'a' }, 3));
+    apply(SID, env('diagram_generated', { diagramType: 'sequence', mermaid: 'sequenceDiagram', fingerprint: 'b' }, 9));
+    expect(useStore.getState().views[SID]?.diagram).toEqual({ seq: 9, fingerprint: 'b', diagramType: 'sequence' });
+  });
+});
+
 describe('phase 21 reflection notes', () => {
   const notes = () => (useStore.getState().views[SID]?.transcript ?? []).filter((i) => i.kind === 'note') as { text: string }[];
 

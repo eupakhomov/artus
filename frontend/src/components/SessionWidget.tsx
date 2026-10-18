@@ -8,7 +8,7 @@ import { notify, notificationForEvent } from '../notify';
 import { registerWidget, unregisterWidget } from '../hotkeys/widgetRegistry';
 import {
   ChildOf, Close, ContinuedFrom, DownloadIcon, Duplicate, EcosystemContext, GitPanelIcon,
-  ChangesIcon, ExtractSkill, InfoTag, Interrupt, LinkedTicket, Maximize, Memory, MinimizeToDock, PullRequest, Restore, SystemSession,
+  ChangesIcon, Diagram, ExtractSkill, InfoTag, Interrupt, LinkedTicket, Maximize, Memory, MinimizeToDock, PullRequest, Restore, SystemSession,
 } from '../icons';
 import Transcript from './Transcript';
 import CloseDialog from './CloseDialog';
@@ -16,6 +16,7 @@ import DuplicateDialog from './DuplicateDialog';
 import GitPanel from './GitPanel';
 import { appendToComposer } from '../changes/selection';
 const ChangesPanel = lazy(() => import('./ChangesPanel'));
+const DiagramDialog = lazy(() => import('../diagram/DiagramDialog'));
 import ContextSuggestionCard from './ContextSuggestionCard';
 
 export const MODE_CYCLE: PermissionMode[] = ['default', 'acceptEdits', 'plan', 'bypassPermissions'];
@@ -76,6 +77,8 @@ export default function SessionWidget({
   const [duplicating, setDuplicating] = useState(false);
   const [showGit, setShowGit] = useState(false);
   const [showChanges, setShowChanges] = useState(false);
+  const [showDiagram, setShowDiagram] = useState(false);
+  const [diagramStale, setDiagramStale] = useState(false);
   const [changes, setChanges] = useState<ChangeList | null>(null);
   const [changesLoading, setChangesLoading] = useState(false);
   const [changesError, setChangesError] = useState('');
@@ -286,6 +289,15 @@ export default function SessionWidget({
     if (isSystem || !entity || !settled) return;
     void refreshChanges();
   }, [isSystem, entity, settled, refreshChanges]);
+  // Visualize (phase 22): the button's outdated dot, only for a session that already has a diagram
+  // and only once its turn is over (the diff is in flux while it runs)
+  const diagramSeq = view?.diagram?.seq ?? null;
+  useEffect(() => {
+    if (isSystem || diagramSeq === null || showDiagram || (state !== 'IDLE' && state !== 'PARKED')) return;
+    let live = true;
+    api.visualizeStatus(sessionId).then((st) => { if (live) setDiagramStale(st.stale); }).catch(() => {});
+    return () => { live = false; };
+  }, [isSystem, sessionId, diagramSeq, state, showDiagram]);
   useEffect(() => {
     if (!showChanges) return;
     void refreshChanges();
@@ -478,6 +490,21 @@ export default function SessionWidget({
         )}
         {entity?.kind !== 'system' && (
           <button
+            className="icon-btn with-badge"
+            disabled={running}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => setShowDiagram(true)}
+            title={running
+              ? 'Visualize — wait for the turn to finish'
+              : diagramStale ? 'Visualize — diagram of the code logic (outdated: the branch changed since)'
+                : 'Visualize — diagram of the code logic on this branch (conversation-derived if there are no changes)'}
+          >
+            <Diagram />
+            {diagramStale && <span className="dot" style={{ background: 'var(--amber)' }} />}
+          </button>
+        )}
+        {entity?.kind !== 'system' && (
+          <button
             className="icon-btn"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={() => setDuplicating(true)}
@@ -627,6 +654,11 @@ export default function SessionWidget({
         </Suspense>
       )}
       </div>
+      {showDiagram && (
+        <Suspense fallback={null}>
+          <DiagramDialog sessionId={sessionId} onClose={() => setShowDiagram(false)} />
+        </Suspense>
+      )}
       {closing && (
         <CloseDialog
           sessionId={sessionId}

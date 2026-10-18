@@ -43,7 +43,8 @@ public record SettingsPatch(
 		String codeIntel,
 		String linearAllowedTools,
 		Boolean authTokenRequired,
-		Boolean slackDefaultEnabled) {
+		Boolean slackDefaultEnabled,
+		String visualizeModel) {
 
 	public static Builder builder() {
 		return new Builder();
@@ -85,6 +86,7 @@ public record SettingsPatch(
 		private String linearAllowedTools;
 		private Boolean authTokenRequired;
 		private Boolean slackDefaultEnabled;
+		private String visualizeModel;
 
 		public Builder linearOAuthEnabled(Boolean v) {
 			this.linearOAuthEnabled = v;
@@ -256,6 +258,11 @@ public record SettingsPatch(
 			return this;
 		}
 
+		public Builder visualizeModel(String v) {
+			this.visualizeModel = v;
+			return this;
+		}
+
 		public SettingsPatch build() {
 			return new SettingsPatch(linearOAuthEnabled, ticketImportSpec, ecosystemRoot, monorepoServiceGlobs,
 					monorepoDetectionEnabled, prChecksEnabled,
@@ -265,7 +272,7 @@ public record SettingsPatch(
 					memorySyncIntervalMinutes, memoryRetentionDays, memoryReflectionApprovalRequired,
 					serviceDiscoveryEnabled, serviceDiscoveryStalenessDays, serviceDiscoveryModel, contextWarnPercent,
 					mcpSerenaRoot, mcpUvPath, mcpGraphifyRoot, mcpCodegraphRoot, codeIntel, linearAllowedTools,
-					authTokenRequired, slackDefaultEnabled);
+					authTokenRequired, slackDefaultEnabled, visualizeModel);
 		}
 	}
 }

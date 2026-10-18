@@ -1,4 +1,4 @@
-import type { AssetKind, AuthStatus, ChangeList, ChangedFileView, FilledMeta, ImportItemResult, LibraryAsset, LibraryAssetContent, LibrarySearchHit, LibrarySource, MemoryDoc, MemoryDocDetail, MemoryEpisode, MemoryProposal, MemoryProposedOp, MemorySearchHit, PrInfo, ProviderView, ScanResult, ServiceProfileView, ServicesResponse, SessionDetail, SessionEntity, SessionSummary, Settings, SkillProposalMeta, SlackStatus, StaleSession, Template, TicketList, TurnUsage } from '../protocol';
+import type { AssetKind, AuthStatus, ChangeList, ChangedFileView, DiagramStatus, DiagramType, DiagramView, FilledMeta, ImportItemResult, LibraryAsset, LibraryAssetContent, LibrarySearchHit, LibrarySource, MemoryDoc, MemoryDocDetail, MemoryEpisode, MemoryProposal, MemoryProposedOp, MemorySearchHit, PrInfo, ProviderView, ScanResult, ServiceProfileView, ServicesResponse, SessionDetail, SessionEntity, SessionSummary, Settings, SkillProposalMeta, SlackStatus, StaleSession, Template, TicketList, TurnUsage } from '../protocol';
 
 let authToken: string | null = localStorage.getItem('artus.token');
 
@@ -108,6 +108,12 @@ export const api = {
   sessionChanges: (sessionId: string) => request<ChangeList>('GET', `/api/sessions/${sessionId}/changes`),
   sessionChangedFile: (sessionId: string, path: string) =>
     request<ChangedFileView>('GET', `/api/sessions/${sessionId}/changes/file?path=${encodeURIComponent(path)}`),
+  visualizeStatus: (sessionId: string) =>
+    request<DiagramStatus>('GET', `/api/sessions/${sessionId}/visualize`),
+  visualize: (sessionId: string, type: DiagramType | 'auto') =>
+    request<DiagramView>('POST', `/api/sessions/${sessionId}/visualize`, { type }),
+  visualizeRepair: (sessionId: string, mermaid: string, error: string) =>
+    request<DiagramView>('POST', `/api/sessions/${sessionId}/visualize/repair`, { mermaid, error }),
   authStatus: () => request<AuthStatus>('GET', '/api/auth/status'),
   slackStatus: () => request<SlackStatus>('GET', '/api/slack/status'),
   updateSettings: (patch: Partial<Pick<Settings, 'linearOAuthEnabled' | 'ticketImportSpec' | 'ecosystemRoot'
@@ -117,7 +123,7 @@ export const api = {
     | 'defaultProvider' | 'systemProvider' | 'codexPricing' | 'memoryRoot' | 'memoryEnabled' | 'memoryReflectionDefault'
     | 'memoryReflectionModel' | 'memorySyncIntervalMinutes' | 'memoryRetentionDays'
     | 'memoryReflectionApprovalRequired' | 'serviceDiscoveryEnabled' | 'serviceDiscoveryStalenessDays'
-    | 'serviceDiscoveryModel' | 'contextWarnPercent' | 'mcpSerenaRoot' | 'mcpUvPath' | 'mcpGraphifyRoot'
+    | 'serviceDiscoveryModel' | 'visualizeModel' | 'contextWarnPercent' | 'mcpSerenaRoot' | 'mcpUvPath' | 'mcpGraphifyRoot'
     | 'mcpCodegraphRoot' | 'codeIntel' | 'linearAllowedTools' | 'authTokenRequired' | 'slackDefaultEnabled'>>) =>
     request<Settings>('PATCH', '/api/settings', patch),
   listProviders: () => request<ProviderView[]>('GET', '/api/providers'),

@@ -1,6 +1,6 @@
 # Phase 19 — System session refactor: per-lane stateless workers
 
-Status: **landed (2026-10-17)**, all five steps; live manual script partly run (see log). Backend-heavy, one small frontend
+Status: **landed (2026-10-17)** (phase 22 later added a third lane, `VISUALIZE` / `system-visualize`), all five steps; live manual script partly run (see log). Backend-heavy, one small frontend
 touch (queue copy in the ticket dialogs); no schema migration.
 
 ## Background

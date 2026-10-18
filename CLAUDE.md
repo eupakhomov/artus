@@ -182,9 +182,9 @@ artus:
 Session/template `provider` (default from the persisted `session.default-provider`
 setting, Settings dialog → "Sessions") selects which entry `SidecarManager` spawns. The
 system sessions (ticket import, library AI-fill, reflection, service
-discovery, commit/PR drafting, handoff briefs) — phase 19: **two stateless sessions, one per
-`SystemTurnLane`** (`system-interactive`, `system-background`, both `kind='system'`, discriminated
-by `name`), each recycled after every turn (terminate sidecar → `provider_session_id = NULL` →
+discovery, commit/PR drafting, handoff briefs) — phase 19 (+22): **three stateless sessions, one per
+`SystemTurnLane`** (`system-interactive`, `system-background`, `system-visualize`, all `kind='system'`, discriminated
+by `name`; the visualize lane exists so a long diagram turn never makes the quick dialogs report "busy"), each recycled after every turn (terminate sidecar → `provider_session_id = NULL` →
 PARKED; the next wake starts a fresh conversation) so a long reflection can never block the quick
 dialog and context never accumulates — spawn as `session.system-provider`
 (same dialog; empty = follow `session.default-provider`) at a model from
@@ -487,6 +487,12 @@ effect on the next use with no backend restart.
   first and compacted once it reports ready); the button is hidden, chip-only, for a
   provider whose capabilities report `compact: false` (both shipped providers report
   `true`). See docs/plan/phase-12-linear-cache-serena-context.md track C.
+- **Visualize** (Settings dialog → "Visualize", `visualize.model` ∈ `cheap|standard|premium`, default `standard`; phase 22,
+  `docs/plan/phase-22-visualize.md`) — the widget's Visualize button runs one system turn on its own lane over the branch
+  diff (`ChangesService.unifiedDiff`) plus a digest tail and gets a Mermaid diagram (model picks one of flowchart/sequence/
+  class/er/state; the dialog can override), rendered in the dashboard by `beautiful-mermaid` (lazy chunk, pinned exact
+  version; the renderer is the validator → one repair turn, then raw source). Stored as a `diagram_generated` journal
+  event (latest wins); an "outdated" chip shows when the diff's SHA-256 fingerprint differs. Pop-out: `/?diagram=<sessionId>`.
 - **Slack** (Settings dialog -> "Slack", `slack.default-enabled`, default off; phase 18, setup and
   operations in `docs/SLACK.md`, as-built design in `docs/ARCHITECTURE.md` section 3i) — mirrors opted-in
   sessions into one private channel and lets allowlisted Slack users Allow/Deny, approve a plan, answer a

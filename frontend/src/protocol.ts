@@ -231,6 +231,8 @@ export interface Settings {
   serviceDiscoveryStalenessDays: number;
   /** tier: 'cheap' | 'standard' | 'premium' */
   serviceDiscoveryModel: string;
+  /** tier: 'cheap' | 'standard' | 'premium' — the model for Visualize diagram turns (default standard) */
+  visualizeModel: string;
   /** widget ctx chip amber threshold, 30-95 (default 70) */
   contextWarnPercent: number;
   /** Serena checkout root; empty = Serena unavailable (phase 12 track B) */
@@ -571,4 +573,26 @@ export function contextUsageTitle(
     lines.push('', 'Heaviest tools:', ...breakdown.topTools.map((t) => `  ${t.name}: ${n(t.tokens)}`));
   }
   return lines.join('\n');
+}
+
+// --- phase 22: Visualize ---
+
+export type DiagramType = 'flowchart' | 'sequence' | 'class' | 'er' | 'state';
+export const DIAGRAM_TYPES: DiagramType[] = ['flowchart', 'sequence', 'class', 'er', 'state'];
+
+/** a `diagram_generated` journal event's payload (+ its seq) */
+export interface DiagramView {
+  diagramType: DiagramType;
+  mermaid: string;
+  rationale: string | null;
+  /** SHA-256 of the diff it was generated from */
+  fingerprint: string;
+  repaired: boolean;
+  seq: number;
+}
+
+export interface DiagramStatus {
+  latest: DiagramView | null;
+  currentFingerprint: string;
+  stale: boolean;
 }

@@ -45,6 +45,13 @@ export {
   GitBranch as GitPanelIcon,
   FileDiff as ChangesIcon,
   Info as InfoTag,
+  // phase 22 Visualize: the header button, plus the dialog's copy-source and pop-out actions
+  Workflow as Diagram,
+  Clipboard as CopySource,
+  ExternalLink as PopOut,
+  ZoomIn,
+  ZoomOut,
+  Scan as FitView,
   Copy as Duplicate,
   Download as DownloadIcon,
   Square as Interrupt,

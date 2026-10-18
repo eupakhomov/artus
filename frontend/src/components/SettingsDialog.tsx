@@ -326,6 +326,14 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
       .catch(() => setSettings({ ...settings, serviceDiscoveryModel: previous }));
   };
 
+  const saveVisualizeModel = (model: string) => {
+    if (!settings) return;
+    const previous = settings.visualizeModel;
+    setSettings({ ...settings, visualizeModel: model });
+    void api.updateSettings({ visualizeModel: model })
+      .catch(() => setSettings({ ...settings, visualizeModel: previous }));
+  };
+
   const backdropDismiss = useBackdropDismiss(onClose);
 
   return (
@@ -662,6 +670,19 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
                 <option value="standard">standard (higher quality)</option>
                 <option value="premium">premium</option>
               </select>
+            </div>
+
+            <h3 style={{ margin: '18px 0 10px' }}>Visualize</h3>
+            <div className="form-grid">
+              <label>Diagram tier</label>
+              <select value={settings.visualizeModel} onChange={(e) => saveVisualizeModel(e.target.value)}>
+                <option value="cheap">cheap (faster, simpler diagrams)</option>
+                <option value="standard">standard (default)</option>
+                <option value="premium">premium</option>
+              </select>
+              <span className="full" style={{ color: 'var(--muted)', fontSize: 'calc(12.5px * var(--font-scale))' }}>
+                Model tier for the session widget's Visualize button, on the system-session provider.
+              </span>
             </div>
 
             <h3 style={{ margin: '18px 0 10px' }}>Access</h3>

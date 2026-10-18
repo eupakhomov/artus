@@ -36,6 +36,8 @@ export interface SessionView {
   transcript: TranscriptItem[];
   /** memory-curation marks by target journal seq, folded from block_marked events (phase 21) */
   marks: Record<number, BlockMark>;
+  /** the latest `diagram_generated` (phase 22): the widget's Visualize button knows a diagram exists; staleness comes from the status endpoint */
+  diagram: { seq: number; fingerprint: string; diagramType: string } | null;
   queued: QueuedMessage[];
   costToDate: number;
   wsStatus: WsStatus;
@@ -88,6 +90,7 @@ const emptyView = (): SessionView => ({
   costBudgetUsd: null,
   transcript: [],
   marks: {},
+  diagram: null,
   queued: [],
   costToDate: 0,
   wsStatus: 'connecting',
@@ -209,6 +212,9 @@ function reduce(view: SessionView, e: Envelope): SessionView {
       v.marks = marks;
       break;
     }
+    case 'diagram_generated':
+      v.diagram = { seq: e.seq, fingerprint: p['fingerprint'] as string, diagramType: p['diagramType'] as string };
+      break;
     case 'stream_delta':
     case 'assistant_message':
     case 'tool_started':

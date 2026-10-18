@@ -88,15 +88,14 @@ public class SessionHousekeeping {
 
 	/**
 	 * Phase 19: the singleton system session (named {@code system}) was replaced by two per-lane
-	 * sessions. Retire any leftover live system row that carries neither new name — orphan sidecar
+	 * sessions. Retire any leftover live system row that carries none of the lane names — orphan sidecar
 	 * killed, then the normal system-session close (scratch dir removed, CLOSED). The new rows are
 	 * created on demand. No-op once nothing legacy remains.
 	 */
 	@EventListener(ApplicationReadyEvent.class)
 	void retireLegacySystemSessions() {
 		for (SessionEntity session : sessions.findLiveSystemSessions()) {
-			if (SystemSessionService.INTERACTIVE_NAME.equals(session.name())
-					|| SystemSessionService.BACKGROUND_NAME.equals(session.name())) {
+			if (SystemSessionService.LANE_NAMES.contains(session.name())) {
 				continue;
 			}
 			log.info("startup sweep: retiring legacy system session {} ('{}', {})",

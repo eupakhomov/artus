@@ -59,7 +59,31 @@ public record Settings(
 		 */
 		boolean authTokenRequired,
 		/** Phase 18: whether new sessions start with Slack mirroring on (the create dialog can still override). */
-		boolean slackDefaultEnabled) {
+		boolean slackDefaultEnabled,
+		/** Phase 22: model tier ({@code cheap}/{@code standard}/{@code premium}) for Visualize diagram turns. */
+		String visualizeModel) {
+
+	/** Pre-phase-22 arity (no {@code visualizeModel}); keeps fixed-settings test fixtures compiling. */
+	public Settings(boolean linearOAuthEnabled, String ticketImportSpec, String ecosystemRoot,
+					String monorepoServiceGlobs, boolean monorepoDetectionEnabled, boolean prChecksEnabled,
+					int prCheckPollIntervalSeconds, String librarySkillsRoot, String libraryAgentsRoot,
+					boolean libraryVectorize, boolean librarySyncEnabled, int librarySyncIntervalMinutes,
+					String defaultProvider, String systemProvider, String memoryRoot, boolean memoryEnabled,
+					boolean memoryReflectionDefault, String memoryReflectionModel, int memorySyncIntervalMinutes,
+					int memoryRetentionDays, boolean memoryReflectionApprovalRequired,
+					boolean serviceDiscoveryEnabled, int serviceDiscoveryStalenessDays,
+					String serviceDiscoveryModel, int contextWarnPercent, String mcpSerenaRoot, String mcpUvPath,
+					String mcpGraphifyRoot, String mcpCodegraphRoot, String codeIntel, String linearAllowedTools,
+					boolean authTokenRequired, boolean slackDefaultEnabled) {
+		this(linearOAuthEnabled, ticketImportSpec, ecosystemRoot, monorepoServiceGlobs, monorepoDetectionEnabled,
+				prChecksEnabled, prCheckPollIntervalSeconds, librarySkillsRoot, libraryAgentsRoot, libraryVectorize,
+				librarySyncEnabled, librarySyncIntervalMinutes, defaultProvider, systemProvider, memoryRoot,
+				memoryEnabled, memoryReflectionDefault, memoryReflectionModel, memorySyncIntervalMinutes,
+				memoryRetentionDays, memoryReflectionApprovalRequired, serviceDiscoveryEnabled,
+				serviceDiscoveryStalenessDays, serviceDiscoveryModel, contextWarnPercent, mcpSerenaRoot, mcpUvPath,
+				mcpGraphifyRoot, mcpCodegraphRoot, codeIntel, linearAllowedTools, authTokenRequired,
+				slackDefaultEnabled, "standard");
+	}
 
 	/** Pre-phase-17 arity (no {@code authTokenRequired}); keeps fixed-settings test fixtures compiling. */
 	public Settings(boolean linearOAuthEnabled, String ticketImportSpec, String ecosystemRoot,

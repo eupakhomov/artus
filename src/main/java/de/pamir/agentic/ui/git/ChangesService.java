@@ -115,6 +115,202 @@ public class ChangesService {
 	}
 
 	/**
+	 * {@code text}: the capped unified diff handed to an LLM; {@code fingerprint}: SHA-256 of the
+	 * <em>complete</em> diff (so a change in a file the cap omitted still registers); {@code omitted}:
+	 * files left out (or cut) by the cap.
+	 */
+	public record DiffSnapshot(String text, String fingerprint, int files, int omitted) {
+		public boolean empty() {
+			return files == 0;
+		}
+	}
+
+	private static final int MAX_RAW_DIFF_BYTES = 8 * 1024 * 1024;
+	private static final int MAX_UNTRACKED_FILE_CHARS = 200_000;
+	private static final int MIN_USEFUL_REMAINDER = 2000;
+
+	/**
+	 * The branch's change as one unified diff — working tree versus the merge-base with {@code
+	 * baseBranch} (HEAD when the base can't be resolved), untracked text files appended as all-{@code +}
+	 * blocks, binary files reduced to git's one-line stub. Files are ranked source before tests/docs
+	 * before lockfiles/generated output, then packed up to {@code maxChars}; what doesn't fit is
+	 * counted in a trailing {@code [diff truncated: N files omitted]} line. An absent worktree yields
+	 * an empty snapshot.
+	 */
+	public DiffSnapshot unifiedDiff(Path worktree, String baseBranch, int maxChars) {
+		if (worktree == null || !Files.isDirectory(worktree)) {
+			return new DiffSnapshot("", fingerprintOf(""), 0, 0);
+		}
+		String mergeBase = mergeBase(worktree, baseBranch);
+		String from = mergeBase != null ? mergeBase : "HEAD";
+		var raw = git.runBytes(worktree, MAX_RAW_DIFF_BYTES, "diff", "--no-color", "--no-ext-diff", "-M", from);
+		if (!raw.ok()) {
+			throw new IllegalStateException("git diff failed");
+		}
+		List<String[]> chunks = new ArrayList<>(); // [path, text]
+		String tracked = new String(raw.stdout(), StandardCharsets.UTF_8);
+		for (String chunk : tracked.split("(?m)^(?=diff --git )")) {
+			if (chunk.isBlank()) {
+				continue;
+			}
+			chunks.add(new String[] {chunkPath(chunk), chunk.endsWith("\n") ? chunk : chunk + "\n"});
+		}
+		if (raw.truncated()) {
+			chunks.add(new String[] {"", "[git diff output exceeded " + MAX_RAW_DIFF_BYTES / 1024 / 1024
+					+ " MB and was cut]\n"});
+		}
+		Set<String> seen = new LinkedHashSet<>();
+		chunks.forEach(c -> seen.add(c[0]));
+		for (String path : run(worktree, "ls-files", "--others", "--exclude-standard", "-z").split("\0")) {
+			if (path.isEmpty() || seen.contains(path)) {
+				continue;
+			}
+			String block = untrackedBlock(worktree, path);
+			if (!block.isEmpty()) {
+				chunks.add(new String[] {path, block});
+			}
+		}
+		chunks.sort(Comparator.comparingInt(c -> rank(c[0])));
+
+		StringBuilder full = new StringBuilder();
+		StringBuilder capped = new StringBuilder();
+		int omitted = 0;
+		for (String[] c : chunks) {
+			full.append(c[1]);
+			int room = maxChars - capped.length();
+			if (c[1].length() <= room) {
+				capped.append(c[1]);
+			} else if (room > MIN_USEFUL_REMAINDER) {
+				capped.append(c[1], 0, room).append("\n[file diff truncated]\n");
+				omitted++;
+			} else {
+				omitted++;
+			}
+		}
+		if (omitted > 0) {
+			capped.append("[diff truncated: ").append(omitted).append(" files omitted]\n");
+		}
+		return new DiffSnapshot(capped.toString(), fingerprintOf(full.toString()), chunks.size(), omitted);
+	}
+
+	private static String chunkPath(String chunk) {
+		// "diff --git a/old b/new" — the new path is what the reader cares about
+		int nl = chunk.indexOf('\n');
+		String head = nl < 0 ? chunk : chunk.substring(0, nl);
+		int b = head.lastIndexOf(" b/");
+		return b >= 0 ? head.substring(b + 3) : head;
+	}
+
+	private String untrackedBlock(Path worktree, String path) {
+		Path file = worktree.resolve(path);
+		try {
+			if (Files.isSymbolicLink(file) || !Files.isRegularFile(file)) {
+				return "";
+			}
+			try (var in = Files.newInputStream(file)) {
+				// read one byte past the cap and decode with endOfInput=false (like readWorking), so a
+				// multi-byte char split at the 1 MB boundary reads as truncated text, not as binary
+				byte[] read = in.readNBytes(MAX_FILE_BYTES + 1);
+				boolean cut = read.length > MAX_FILE_BYTES;
+				Raw r = decode(cut ? java.util.Arrays.copyOf(read, MAX_FILE_BYTES) : read, cut, read.length);
+				String head = "diff --git a/" + path + " b/" + path + "\nnew file mode 100644\n";
+				if (r.binary) {
+					return head + "Binary files /dev/null and b/" + path + " differ\n";
+				}
+				String text = r.text;
+				if (text.length() > MAX_UNTRACKED_FILE_CHARS) {
+					text = text.substring(0, MAX_UNTRACKED_FILE_CHARS);
+					cut = true;
+				}
+				if (cut) {
+					text = text + "\n[file truncated]";
+				}
+				if (text.isEmpty()) {
+					return head;
+				}
+				StringBuilder sb = new StringBuilder(head).append("--- /dev/null\n+++ b/").append(path).append('\n');
+				String[] lines = text.split("\n", -1);
+				int n = text.endsWith("\n") ? lines.length - 1 : lines.length;
+				sb.append("@@ -0,0 +1,").append(n).append(" @@\n");
+				for (int i = 0; i < n; i++) {
+					sb.append('+').append(lines[i]).append('\n');
+				}
+				return sb.toString();
+			}
+		} catch (IOException e) {
+			return "";
+		}
+	}
+
+	/** 0 = source, 1 = tests/docs, 2 = lockfiles and generated output. */
+	static int rank(String path) {
+		String p = path.toLowerCase(Locale.ROOT);
+		String name = p.substring(p.lastIndexOf('/') + 1);
+		if (name.endsWith(".lock") || name.endsWith("-lock.json") || name.endsWith("-lock.yaml")
+				|| name.equals("go.sum") || name.endsWith(".min.js") || name.endsWith(".min.css")
+				|| name.endsWith(".snap") || name.endsWith(".map")
+				|| p.startsWith("dist/") || p.contains("/dist/") || p.startsWith("build/") || p.contains("/build/")
+				|| p.startsWith("target/") || p.contains("/target/") || p.contains("/generated/")
+				|| p.startsWith("node_modules/") || p.contains("/node_modules/")) {
+			return 2;
+		}
+		if (p.contains("/test/") || p.contains("/tests/") || p.contains("__tests__") || name.contains(".test.")
+				|| name.contains(".spec.") || isJavaTestName(path) || p.startsWith("docs/") || name.endsWith(".md")) {
+			return 1;
+		}
+		return 0;
+	}
+
+	/** Case-sensitive on purpose: {@code FooTest.java}/{@code FooTests.java} are tests; {@code Backtest.java} is not. */
+	private static boolean isJavaTestName(String path) {
+		String name = path.substring(path.lastIndexOf('/') + 1);
+		return name.endsWith("Test.java") || name.endsWith("Tests.java");
+	}
+
+	/**
+	 * Cheap worktree-change signature for staleness polling (phase 22): SHA-256 over HEAD, the
+	 * {@code git status --porcelain} listing, and each listed file's mtime+size. Any commit, stage,
+	 * edit, add or delete changes it; while it holds, {@link #unifiedDiff}'s fingerprint need not be
+	 * recomputed. A cache key only, never a substitute for the fingerprint itself.
+	 */
+	public String changeSignature(Path worktree) {
+		if (worktree == null || !Files.isDirectory(worktree)) {
+			return "absent";
+		}
+		StringBuilder sb = new StringBuilder();
+		var head = git.run(worktree, "rev-parse", "HEAD");
+		sb.append(head.ok() ? head.stdout() : "no-head").append('\n');
+		// raw bytes, not run(): GitResult strips stdout, which eats the leading space of a first
+		// " M path" entry — substring(3) would then stat "ath"-style garbage as "gone" forever
+		var status = git.runBytes(worktree, MAX_RAW_DIFF_BYTES, "status", "--porcelain", "-z");
+		for (String entry : new String(status.stdout(), StandardCharsets.UTF_8).split("\0")) {
+			if (entry.isEmpty()) {
+				continue;
+			}
+			sb.append(entry).append('|');
+			// a rename's second -z token is the old path and stats as "gone" — deterministic is all a key needs
+			String path = entry.length() > 3 ? entry.substring(3) : entry;
+			try {
+				Path f = worktree.resolve(path);
+				sb.append(Files.getLastModifiedTime(f).toMillis()).append(':').append(Files.size(f));
+			} catch (IOException e) {
+				sb.append("gone");
+			}
+			sb.append('\n');
+		}
+		return fingerprintOf(sb.toString());
+	}
+
+	private static String fingerprintOf(String text) {
+		try {
+			var md = java.security.MessageDigest.getInstance("SHA-256");
+			return java.util.HexFormat.of().formatHex(md.digest(text.getBytes(StandardCharsets.UTF_8)));
+		} catch (java.security.NoSuchAlgorithmException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	/**
 	 * @throws IllegalArgumentException malformed path, or one that resolves outside the worktree / through a symlink (→ 400)
 	 * @throws NoSuchElementException   the path isn't in the current change list (→ 404)
 	 */

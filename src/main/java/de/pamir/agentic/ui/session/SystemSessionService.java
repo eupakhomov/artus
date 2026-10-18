@@ -53,6 +53,9 @@ public class SystemSessionService {
 	/** {@code name} of the INTERACTIVE lane's session; {@code kind} is {@code 'system'} for both. */
 	static final String INTERACTIVE_NAME = "system-interactive";
 	static final String BACKGROUND_NAME = "system-background";
+	static final String VISUALIZE_NAME = "system-visualize";
+	/** Names of every lane's session row — anything else live with {@code kind='system'} is legacy. */
+	static final java.util.Set<String> LANE_NAMES = java.util.Set.of(INTERACTIVE_NAME, BACKGROUND_NAME, VISUALIZE_NAME);
 
 	/**
 	 * Per-lane state that used to be class-level singleton fields: the fair binary lock, the
@@ -78,7 +81,8 @@ public class SystemSessionService {
 
 	private final Map<SystemTurnLane, SystemWorker> workers = new EnumMap<>(Map.of(
 			SystemTurnLane.INTERACTIVE, new SystemWorker(SystemTurnLane.INTERACTIVE, INTERACTIVE_NAME),
-			SystemTurnLane.BACKGROUND, new SystemWorker(SystemTurnLane.BACKGROUND, BACKGROUND_NAME)));
+			SystemTurnLane.BACKGROUND, new SystemWorker(SystemTurnLane.BACKGROUND, BACKGROUND_NAME),
+			SystemTurnLane.VISUALIZE, new SystemWorker(SystemTurnLane.VISUALIZE, VISUALIZE_NAME)));
 
 	private final AppProperties props;
 	private final SettingsService settings;
@@ -140,7 +144,7 @@ public class SystemSessionService {
 	 */
 	public String runSystemTurn(String prompt, String modelOverride, SystemTurnLane lane, Duration timeout) {
 		SystemWorker worker = workers.get(lane);
-		Duration lockWait = lane == SystemTurnLane.INTERACTIVE ? INTERACTIVE_LOCK_WAIT : timeout;
+		Duration lockWait = lane == SystemTurnLane.BACKGROUND ? timeout : INTERACTIVE_LOCK_WAIT;
 		boolean acquired;
 		try {
 			acquired = worker.lock.tryAcquire(lockWait.toMillis(), TimeUnit.MILLISECONDS);

@@ -291,7 +291,10 @@ approval round-trip. Full mapping tables and rationale:
   written to long-term memory. `reflection_discarded {episode, reason?}` marks a discarded
   proposal — nothing was written (`reason: "superseded by refresh"` when a newer proposal
   replaced it). See docs/plan/phase-5.3-memory-reflection.md. Phase 21
-  (docs/plan/phase-21-memory-curation.md) adds `block_marked {targetSeq, mark}` — `mark` is
+  (docs/plan/phase-21-memory-curation.md) adds `diagram_generated {diagramType, mermaid, rationale?, fingerprint, repaired}` (phase 22,
+  docs/plan/phase-22-visualize.md — `diagramType` ∈ flowchart/sequence/class/er/state, `fingerprint` is the SHA-256 of the
+  diff it was generated from, `repaired` is true when it came from a repair turn; the latest one in the journal wins) and
+  `block_marked {targetSeq, mark}` — `mark` is
   `"important"`, `"excluded"` or `null` (clears); the current mark of a block is the last
   `block_marked` for its `targetSeq`, and only `user_message`/`assistant_message` seqs are
   markable — and `skill_extracted {name, assetId}` when an approved skill proposal lands in
