@@ -1,9 +1,9 @@
 import { memo, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { TranscriptItem } from '../store/store';
+import type { BlockMark, TranscriptItem } from '../store/store';
 import PermissionCard, { type PermissionResponse } from './PermissionCard';
-import { AgentAsset, ToolFailed, ToolOk, ToolRunning } from '../icons';
+import { AgentAsset, ExcludeFromMemory, MarkImportant, RememberBlock, ToolFailed, ToolOk, ToolRunning } from '../icons';
 
 const Markdown = memo(function Markdown({ text }: { text: string }) {
   return <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>;
@@ -28,16 +28,69 @@ function taskSummary(input: unknown): { subagentType: string; description: strin
   return { subagentType: i['subagent_type'], description: description ?? '' };
 }
 
+/** Memory-curation wiring (phase 21): present only when memory is enabled, so the affordance disappears with it. */
+export interface MarkContext {
+  marks: Record<number, BlockMark>;
+  onMark: (seq: number, mark: BlockMark | null) => void;
+  /** turn an important block into a memory proposal now; `remembering` holds the seqs in flight */
+  onRemember: (seq: number) => void;
+  remembering: ReadonlySet<number>;
+}
+
+function MarkActions({ seq, ctx }: { seq: number; ctx: MarkContext }) {
+  const current = ctx.marks[seq];
+  const toggle = (mark: BlockMark) => ctx.onMark(seq, current === mark ? null : mark);
+  return (
+    <span className="mark-actions">
+      <button
+        className={`icon-btn${current === 'important' ? ' active' : ''}`}
+        onClick={() => toggle('important')}
+        title={current === 'important' ? 'unmark — no longer important for memory' : 'mark important for memory & handoff'}
+      ><MarkImportant size={13} /></button>
+      <button
+        className={`icon-btn${current === 'excluded' ? ' active' : ''}`}
+        onClick={() => toggle('excluded')}
+        title={current === 'excluded' ? 'include again — allow memory reflection and handoff briefs to see this' : 'exclude from memory & handoff'}
+      ><ExcludeFromMemory size={13} /></button>
+      {current === 'important' && (
+        <button
+          className={`icon-btn${ctx.remembering.has(seq) ? ' pulse' : ''}`}
+          disabled={ctx.remembering.has(seq)}
+          onClick={() => ctx.onRemember(seq)}
+          title={ctx.remembering.has(seq) ? 'distilling a memory proposal…' : 'remember this — turn this block into a memory proposal'}
+        ><RememberBlock size={13} /></button>
+      )}
+    </span>
+  );
+}
+
+function markClass(seq: number | undefined, ctx: MarkContext | undefined): string {
+  if (!ctx || seq === undefined) return '';
+  const mark = ctx.marks[seq];
+  return ` markable${mark ? ` marked-${mark}` : ''}`;
+}
+
 function renderItem(
   item: TranscriptItem,
   key: React.Key,
   onPermission: (requestId: string, response: PermissionResponse) => void,
+  markCtx?: MarkContext,
 ): React.ReactNode {
   switch (item.kind) {
     case 'user':
-      return <div key={key} className="t-user">{item.text}</div>;
+      return (
+        <div key={key} className={`t-user${markClass(item.seq, markCtx)}`}>
+          {item.text}
+          {markCtx && item.seq !== undefined && <MarkActions seq={item.seq} ctx={markCtx} />}
+        </div>
+      );
     case 'text':
-      return <div key={key} className="t-text"><Markdown text={item.text} /></div>;
+      return (
+        <div key={key} className={`t-text${markClass(item.seq, markCtx)}`}>
+          <Markdown text={item.text} />
+          {markCtx && item.seq !== undefined && <MarkActions seq={item.seq} ctx={markCtx} />}
+        </div>
+      );
     case 'thinking':
       return (
         <details key={key} className="t-thinking">
@@ -75,7 +128,7 @@ function renderItem(
           </pre>
           {item.items?.length ? (
             <div className="t-nested">
-              {item.items.map((nested, j) => renderItem(nested, j, onPermission))}
+              {item.items.map((nested, j) => renderItem(nested, j, onPermission, markCtx))}
             </div>
           ) : null}
         </details>
@@ -110,9 +163,11 @@ function renderItem(
 export default function Transcript({
   items,
   onPermission,
+  markCtx,
 }: {
   items: TranscriptItem[];
   onPermission: (requestId: string, response: PermissionResponse) => void;
+  markCtx?: MarkContext;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
@@ -143,7 +198,7 @@ export default function Transcript({
         stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
       }}
     >
-      {items.map((item, i) => renderItem(item, i, onPermission))}
+      {items.map((item, i) => renderItem(item, i, onPermission, markCtx))}
     </div>
   );
 }

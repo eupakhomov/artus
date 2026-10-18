@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/rest';
-import type { MemoryDoc, MemoryDocDetail, MemoryProposal, MemoryProposedOp, MemorySearchHit } from '../protocol';
+import type { MemoryDoc, MemoryDocDetail, MemoryProposal, MemoryProposedOp, MemorySearchHit, SkillProposalMeta } from '../protocol';
 import { MemoryDoc as MemoryDocIcon, MemoryDocEditable as MemoryDocEditableIcon } from '../icons';
 import { useBackdropDismiss } from '../hooks/useBackdropDismiss';
 
@@ -12,13 +12,84 @@ interface OpDraft extends MemoryProposedOp {
   included: boolean;
 }
 
-function ProposalCard({ proposal, onDecided, onError }: {
+/** The transcript blocks a proposal (or one op) cites, quoted — expand to audit what it was based on. */
+function EvidenceQuotes({ seqs, evidence }: { seqs: number[] | undefined; evidence: Record<string, string> }) {
+  if (!seqs || seqs.length === 0) return null;
+  return (
+    <details className="evidence">
+      <summary>based on {seqs.length} transcript block{seqs.length > 1 ? 's' : ''}</summary>
+      {seqs.map((seq) => (
+        <blockquote key={seq}><span className="idle">#{seq}</span> {evidence[String(seq)] ?? '(not resolved)'}</blockquote>
+      ))}
+    </details>
+  );
+}
+
+type ProposalCardProps = {
   proposal: MemoryProposal;
   onDecided: () => void;
   onError: (msg: string) => void;
-}) {
+};
+
+function ProposalCard(props: ProposalCardProps) {
+  return props.proposal.kind === 'skill'
+    ? <SkillProposalCard {...props} />
+    : <MemoryProposalCard {...props} />;
+}
+
+/** A skill proposal: the SKILL.md body is `episode`, the name/description/tags are `ops` — all editable before approval. */
+function SkillProposalCard({ proposal, onDecided, onError }: ProposalCardProps) {
+  const meta = proposal.ops as SkillProposalMeta;
+  const [name, setName] = useState(meta.name);
+  const [description, setDescription] = useState(meta.description);
+  const [tags, setTags] = useState((meta.tags ?? []).join(', '));
+  const [content, setContent] = useState(proposal.episode);
+  const [busy, setBusy] = useState(false);
+
+  const approve = () => {
+    setBusy(true);
+    api.memoryApproveProposal(proposal.id, {
+      episode: content,
+      ops: { name: name.trim(), description: description.trim(), tags: splitTags(tags) },
+    })
+      .then(onDecided)
+      .catch((e) => { onError(String((e as Error).message ?? e)); setBusy(false); });
+  };
+
+  const discard = () => {
+    setBusy(true);
+    api.memoryDiscardProposal(proposal.id).then(onDecided).catch((e) => { onError(String((e as Error).message ?? e)); setBusy(false); });
+  };
+
+  return (
+    <div className="stale-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span className="chip">skill</span>
+        <span className="name">{proposal.sessionName}</span>
+        <span className="chip">{proposal.servicePath}</span>
+        <span className="idle">{new Date(proposal.createdAt).toLocaleString()}</span>
+      </div>
+      <input value={name} placeholder="skill-name (kebab-case)" onChange={(e) => setName(e.target.value)} />
+      <input value={description} placeholder="when should an agent use this skill?" onChange={(e) => setDescription(e.target.value)} />
+      <input value={tags} placeholder="tags, comma separated" onChange={(e) => setTags(e.target.value)} />
+      <textarea rows={12} value={content} onChange={(e) => setContent(e.target.value)} />
+      <EvidenceQuotes seqs={meta.evidence} evidence={proposal.evidence} />
+      <div className="proposal-actions">
+        <button disabled={busy} onClick={discard}>Discard</button>
+        <button
+          className="primary"
+          disabled={busy || !name.trim() || !content.trim()}
+          title={!name.trim() || !content.trim() ? 'a skill needs a name and a body' : undefined}
+          onClick={approve}
+        >Approve</button>
+      </div>
+    </div>
+  );
+}
+
+function MemoryProposalCard({ proposal, onDecided, onError }: ProposalCardProps) {
   const [episode, setEpisode] = useState(proposal.episode);
-  const [ops, setOps] = useState<OpDraft[]>(proposal.ops.map((o) => ({ ...o, included: true })));
+  const [ops, setOps] = useState<OpDraft[]>((proposal.ops as MemoryProposedOp[]).map((o) => ({ ...o, included: true })));
   const [busy, setBusy] = useState(false);
 
   const approve = () => {
@@ -37,11 +108,12 @@ function ProposalCard({ proposal, onDecided, onError }: {
   return (
     <div className="stale-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {proposal.kind === 'remember' && <span className="chip">remember</span>}
         <span className="name">{proposal.sessionName}</span>
         <span className="chip">{proposal.servicePath}</span>
         <span className="idle">{new Date(proposal.createdAt).toLocaleString()}</span>
       </div>
-      <textarea rows={2} value={episode} onChange={(e) => setEpisode(e.target.value)} />
+      {proposal.kind !== 'remember' && <textarea rows={2} value={episode} onChange={(e) => setEpisode(e.target.value)} />}
       {ops.length === 0 && <div className="note">no semantic memory changes proposed — episode only</div>}
       {ops.map((op, i) => (
         <div key={i} style={{ background: 'var(--panel2)', borderRadius: 6, padding: 8, opacity: op.included ? 1 : 0.5 }}>
@@ -71,9 +143,10 @@ function ProposalCard({ proposal, onDecided, onError }: {
               onChange={(e) => setOps((prev) => prev.map((o, j) => (j === i ? { ...o, content: e.target.value } : o)))}
             />
           )}
+          <EvidenceQuotes seqs={op.evidence} evidence={proposal.evidence} />
         </div>
       ))}
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+      <div className="proposal-actions">
         <button disabled={busy} onClick={discard}>Discard</button>
         <button className="primary" disabled={busy} onClick={approve}>Approve</button>
       </div>
@@ -195,6 +268,7 @@ export default function MemoryDialog({ onClose }: { onClose: () => void }) {
 
         {view === 'pending' && (
           <div className="stale-list">
+            {error && <div className="error-text">{error}</div>}
             {pending !== null && pending.length === 0 && (
               <div style={{ color: 'var(--muted)' }}>nothing awaiting approval</div>
             )}

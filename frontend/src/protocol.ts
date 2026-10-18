@@ -340,20 +340,38 @@ export interface MemoryProposedOp {
   tags?: string[];
   content?: string;
   reason?: string;
+  /** journal seqs of the transcript blocks this op was derived from (phase 21) */
+  evidence?: number[];
 }
 
-export interface MemoryProposal {
+/** The metadata half of a skill proposal; its SKILL.md body travels in `episode`. */
+export interface SkillProposalMeta {
+  name: string;
+  description: string;
+  tags?: string[];
+  evidence?: number[];
+}
+
+interface ProposalBase {
   id: string;
   sessionId: string;
   sessionName: string;
   servicePath: string;
-  reflectedSeq: number;
+  /** null for proposals that must not mark the session reflected (skill extraction) */
+  reflectedSeq: number | null;
+  /** memory proposals: the episode summary; skill proposals: the proposed SKILL.md body */
   episode: string;
-  ops: MemoryProposedOp[];
   status: ProposalStatus;
   createdAt: string;
   decidedAt: string | null;
+  /** quoted transcript snippets for every seq the proposal's ops cite, keyed by seq (phase 21) */
+  evidence: Record<string, string>;
 }
+
+/** 'remember' = one block the user asked to remember: memory ops with an empty episode. */
+export type MemoryProposal =
+  | (ProposalBase & { kind: 'memory' | 'remember'; ops: MemoryProposedOp[] })
+  | (ProposalBase & { kind: 'skill'; ops: SkillProposalMeta });
 
 export interface MemoryEpisode {
   id: string;

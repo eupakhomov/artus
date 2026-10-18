@@ -149,6 +149,24 @@ Full design + decisions: `docs/plan/phase-5.3-memory-reflection.md`.
   actually writes and journals `reflection_complete`; a discard journals
   `reflection_discarded` and writes nothing, leaving `reflectedSeq` unset so a
   later reflection isn't blocked by a discarded one.
+- **Curation (Phase 21**, `docs/plan/phase-21-memory-curation.md`**)**: the user can mark
+  transcript blocks *important* or *excluded* (`block_marked` journal events, folded by
+  `TranscriptDigest.marks`; `BlockMarkService` validates and journals them). The digest
+  every consumer shares (reflection, skill extraction, `HandoffService`) tags user/assistant
+  lines with `[#seq]` anchors, stars important ones and repeats them in full in an appendix
+  *after* the head/tail cap (so a mid-transcript mark survives truncation), and replaces
+  excluded content with a placeholder. The "nothing to reflect" gate requires a
+  digest-relevant event (message, mark, tool call) after `reflectedSeq` — reflection's own
+  journal lines don't count — so marking after a reflection re-arms the button; a refresh
+  feeds the session's earlier episodes into the prompt and supersedes (discards) a still-pending
+  proposal only once the replacement exists. `memory_proposal.kind` (V20) is `memory` /
+  `skill` / `remember`, one pending per (session, kind) except `remember`: **skill
+  extraction** (`ReflectionService.extractSkill`) always needs approval and, on approve,
+  `LibraryService.createSkill` writes `<skills-root>/<slug>/SKILL.md` with no upstream
+  source (name collision = 409, proposal stays pending to be renamed); **remember this**
+  turns one block into 1-2 memory ops with no episode and without touching `reflectedSeq`.
+  Reflection/skill ops cite `evidence` seqs, which `ProposalEvidenceService` resolves into
+  quoted snippets on `GET /api/memory/proposals`.
 - **Retrieval is hybrid**: pgvector cosine + Postgres FTS (`websearch_to_tsquery`/
   `ts_rank_cd`) + `pg_trgm` similarity (catches exact identifiers embeddings blur),
   fused with Reciprocal Rank Fusion in one SQL query (`MemoryRepository.

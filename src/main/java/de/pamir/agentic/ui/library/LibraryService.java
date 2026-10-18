@@ -162,6 +162,67 @@ public class LibraryService {
 		}
 	}
 
+	// --- skills authored inside Artus (phase 21 skill extraction) ---
+
+	private static final java.util.regex.Pattern SKILL_NAME = java.util.regex.Pattern.compile("[a-z0-9][a-z0-9-]{0,62}");
+
+	/** The one definition of a legal skill slug — shared with skill extraction so the two can't drift. */
+	public static boolean isValidSkillName(String name) {
+		return name != null && SKILL_NAME.matcher(name).matches();
+	}
+
+	/** Names of every skill already in the library — shown to the extraction prompt so it avoids duplicates. */
+	public List<String> skillNames() {
+		return assets.findAll("skill", null, null).stream().map(LibraryRepository.AssetEntity::name).toList();
+	}
+
+	/**
+	 * Writes a brand-new skill into the managed skills root as {@code <root>/<name>/SKILL.md} and
+	 * registers it like an import (no upstream source, so the sync loop never touches it). A name
+	 * that already exists — as a directory under the root or as a library skill — is refused rather
+	 * than overwritten or suffixed: the caller edits the name and tries again.
+	 */
+	public LibraryRepository.AssetEntity createSkill(String name, String description, List<String> tags, String body) {
+		if (!isValidSkillName(name)) {
+			throw new IllegalArgumentException("skill name must be a lowercase kebab-case slug (a-z, 0-9, '-'), got: " + name);
+		}
+		if (body == null || body.isBlank()) {
+			throw new IllegalArgumentException("skill content is empty");
+		}
+		String root = settings.current().librarySkillsRoot();
+		if (root == null || root.isBlank()) {
+			throw new IllegalStateException("no skills root configured (Settings -> Skill library)");
+		}
+		Path dir = Path.of(root).resolve(name).normalize();
+		if (!dir.startsWith(Path.of(root).normalize())) {
+			throw new IllegalArgumentException("skill path escapes the skills root: " + name);
+		}
+		if (Files.exists(dir) || assets.findAll("skill", null, name).stream().anyMatch(a -> a.name().equalsIgnoreCase(name))) {
+			throw new IllegalStateException("a skill named '" + name + "' already exists - rename it and approve again");
+		}
+		try {
+			Files.createDirectories(dir);
+			Files.writeString(dir.resolve("SKILL.md"), renderSkillMd(name, description, body), StandardCharsets.UTF_8);
+			var asset = assets.insert(null, "skill", name, description == null ? "" : description.strip(),
+					dir.toString(), name, scanner.hash(dir), tags == null ? List.of() : tags);
+			maybeEmbed(asset.id(), name, asset.description(), dir);
+			return asset;
+		} catch (IOException e) {
+			deleteRecursively(dir);
+			throw new UncheckedIOException(e);
+		} catch (RuntimeException e) {
+			deleteRecursively(dir);
+			throw e;
+		}
+	}
+
+	/** SKILL.md = YAML frontmatter (name, description) + the body, the format the scanner and Claude/Codex read. */
+	static String renderSkillMd(String name, String description, String body) {
+		String oneLine = description == null ? "" : description.strip().replaceAll("\\s+", " ");
+		String quoted = "\"" + oneLine.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+		return "---\nname: " + name + "\ndescription: " + quoted + "\n---\n\n" + body.strip() + "\n";
+	}
+
 	// --- sync support (used by LibrarySyncService) ---
 
 	/** Replaces the managed copy with fresh upstream content and updates the stored hash. */

@@ -5,6 +5,7 @@ import de.pamir.agentic.ui.memory.MemoryDocService;
 import de.pamir.agentic.ui.memory.MemoryEpisodeRepository;
 import de.pamir.agentic.ui.memory.MemoryProposalRepository;
 import de.pamir.agentic.ui.memory.MemoryRepository;
+import de.pamir.agentic.ui.memory.ProposalEvidenceService;
 import de.pamir.agentic.ui.memory.ReflectionService;
 import tools.jackson.databind.JsonNode;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,12 @@ public class MemoryController {
 	public record UpdateDocRequest(String description, List<String> tags, String content) {
 	}
 
+	/** A proposal plus the transcript snippets its {@code evidence} seqs resolve to (phase 21). */
+	public record ProposalView(UUID id, UUID sessionId, String sessionName, String servicePath, Long reflectedSeq,
+							   String episode, JsonNode ops, String status, Instant createdAt, Instant decidedAt,
+							   String kind, java.util.Map<Long, String> evidence) {
+	}
+
 	public record ApproveProposalRequest(String episode, JsonNode ops) {
 	}
 
@@ -58,16 +65,18 @@ public class MemoryController {
 	private final EmbeddingClient embeddings;
 	private final MemoryProposalRepository proposals;
 	private final ReflectionService reflection;
+	private final ProposalEvidenceService evidence;
 
 	public MemoryController(MemoryRepository docs, MemoryEpisodeRepository episodes, MemoryDocService docService,
 							 EmbeddingClient embeddings, MemoryProposalRepository proposals,
-							 ReflectionService reflection) {
+							 ReflectionService reflection, ProposalEvidenceService evidence) {
 		this.docs = docs;
 		this.episodes = episodes;
 		this.docService = docService;
 		this.embeddings = embeddings;
 		this.proposals = proposals;
 		this.reflection = reflection;
+		this.evidence = evidence;
 	}
 
 	@GetMapping("/search")
@@ -147,10 +156,19 @@ public class MemoryController {
 		return view(docs.get(id));
 	}
 
+	/** Just the number the topbar badge needs — the dashboard polls this every minute, so no evidence resolution. */
+	@GetMapping("/proposals/pending-count")
+	public java.util.Map<String, Long> pendingCount() {
+		return java.util.Map.of("count", proposals.countPending());
+	}
+
 	@GetMapping("/proposals")
-	public List<MemoryProposalRepository.Proposal> listProposals(
-			@RequestParam(defaultValue = "PENDING") String status) {
-		return proposals.findByStatus(status);
+	public List<ProposalView> listProposals(@RequestParam(defaultValue = "PENDING") String status) {
+		return proposals.findByStatus(status).stream()
+				.map(p -> new ProposalView(p.id(), p.sessionId(), p.sessionName(), p.servicePath(), p.reflectedSeq(),
+						p.episode(), p.ops(), p.status(), p.createdAt(), p.decidedAt(), p.kind(),
+						evidence.resolve(p.sessionId(), p.ops())))
+				.toList();
 	}
 
 	@PostMapping("/proposals/{id}/approve")

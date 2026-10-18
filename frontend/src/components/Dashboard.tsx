@@ -164,12 +164,12 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
   // pending memory-reflection proposals drive the 🧠 badge, same polling shape as 📚 above
   const prevPending = useRef(-1);
   const refreshPendingMemory = useCallback(() => {
-    void api.memoryProposals('PENDING').then((list) => {
-      if (prevPending.current >= 0 && list.length > prevPending.current) {
-        notify('Memory', `${list.length} reflection${list.length > 1 ? 's' : ''} awaiting approval`);
+    void api.memoryPendingCount().then((count) => {
+      if (prevPending.current >= 0 && count > prevPending.current) {
+        notify('Memory', `${count} proposal${count > 1 ? 's' : ''} awaiting approval`);
       }
-      prevPending.current = list.length;
-      setPendingMemoryCount(list.length);
+      prevPending.current = count;
+      setPendingMemoryCount(count);
     }).catch(() => {});
   }, []);
   useEffect(() => {

@@ -1,4 +1,4 @@
-import type { AssetKind, AuthStatus, ChangeList, ChangedFileView, FilledMeta, ImportItemResult, LibraryAsset, LibraryAssetContent, LibrarySearchHit, LibrarySource, MemoryDoc, MemoryDocDetail, MemoryEpisode, MemoryProposal, MemoryProposedOp, MemorySearchHit, PrInfo, ProviderView, ScanResult, ServiceProfileView, ServicesResponse, SessionDetail, SessionEntity, SessionSummary, Settings, SlackStatus, StaleSession, Template, TicketList, TurnUsage } from '../protocol';
+import type { AssetKind, AuthStatus, ChangeList, ChangedFileView, FilledMeta, ImportItemResult, LibraryAsset, LibraryAssetContent, LibrarySearchHit, LibrarySource, MemoryDoc, MemoryDocDetail, MemoryEpisode, MemoryProposal, MemoryProposedOp, MemorySearchHit, PrInfo, ProviderView, ScanResult, ServiceProfileView, ServicesResponse, SessionDetail, SessionEntity, SessionSummary, Settings, SkillProposalMeta, SlackStatus, StaleSession, Template, TicketList, TurnUsage } from '../protocol';
 
 let authToken: string | null = localStorage.getItem('artus.token');
 
@@ -74,6 +74,13 @@ export const api = {
   patchSession: (id: string, body: { costBudgetUsd?: number; name?: string; reflectionEnabled?: boolean }) =>
     request<SessionEntity>('PATCH', `/api/sessions/${id}`, body),
   reflectSession: (id: string) => request<null>('POST', `/api/sessions/${id}/reflect`),
+  /** phase 21: distill the session's demonstrated procedure into a pending skill proposal */
+  extractSkill: (id: string) => request<null>('POST', `/api/sessions/${id}/extract-skill`),
+  /** phase 21: turn one marked block into a small pending memory proposal */
+  rememberBlock: (id: string, targetSeq: number) => request<null>('POST', `/api/sessions/${id}/remember`, { targetSeq }),
+  /** phase 21: mark a user/assistant block important/excluded for memory curation; null clears */
+  setMark: (id: string, targetSeq: number, mark: 'important' | 'excluded' | null) =>
+    request<null>('POST', `/api/sessions/${id}/marks`, { targetSeq, mark }),
   compactSession: (id: string) => request<null>('POST', `/api/sessions/${id}/compact`),
   exportTranscript: (id: string) => requestText(`/api/sessions/${id}/export.md`),
   handoffSummary: (id: string) => requestText(`/api/sessions/${id}/handoff-summary`, 'POST'),
@@ -175,8 +182,10 @@ export const api = {
   memoryRestoreDoc: (id: string) => request<MemoryDoc>('POST', `/api/memory/docs/${id}/restore`),
   memoryProposals: (status: 'PENDING' | 'APPROVED' | 'DISCARDED' = 'PENDING') =>
     request<MemoryProposal[]>('GET', `/api/memory/proposals?status=${status}`),
-  memoryApproveProposal: (id: string, edited?: { episode?: string; ops?: MemoryProposedOp[] }) =>
+  memoryApproveProposal: (id: string, edited?: { episode?: string; ops?: MemoryProposedOp[] | SkillProposalMeta }) =>
     request<null>('POST', `/api/memory/proposals/${id}/approve`, edited ?? {}),
+  /** the topbar badge's cheap poll — no evidence resolution (phase 21 F6) */
+  memoryPendingCount: () => request<{ count: number }>('GET', '/api/memory/proposals/pending-count').then((r) => r.count),
   memoryDiscardProposal: (id: string) => request<null>('POST', `/api/memory/proposals/${id}/discard`),
   memoryEpisodes: (servicePath: string, limit?: number, offset?: number) => {
     const params = new URLSearchParams({ servicePath });

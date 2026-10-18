@@ -3,6 +3,7 @@ package de.pamir.agentic.ui.web;
 import tools.jackson.databind.JsonNode;
 import de.pamir.agentic.ui.journal.EventJournal;
 import de.pamir.agentic.ui.journal.TranscriptDigest;
+import de.pamir.agentic.ui.memory.BlockMarkService;
 import de.pamir.agentic.ui.memory.ReflectionService;
 import de.pamir.agentic.ui.session.HandoffService;
 import de.pamir.agentic.ui.session.SessionEntity;
@@ -56,14 +57,16 @@ public class SessionController {
 	private final EventJournal journal;
 	private final ReflectionService reflection;
 	private final HandoffService handoff;
+	private final BlockMarkService blockMarks;
 
 	public SessionController(SessionService service, SessionRepository sessions, EventJournal journal,
-							  ReflectionService reflection, HandoffService handoff) {
+							  ReflectionService reflection, HandoffService handoff, BlockMarkService blockMarks) {
 		this.service = service;
 		this.sessions = sessions;
 		this.journal = journal;
 		this.reflection = reflection;
 		this.handoff = handoff;
+		this.blockMarks = blockMarks;
 	}
 
 	@PostMapping
@@ -190,6 +193,39 @@ public class SessionController {
 	@PostMapping("/{id}/reflect")
 	public ResponseEntity<Void> reflect(@PathVariable UUID id) {
 		reflection.reflect(id);
+		return ResponseEntity.noContent().build();
+	}
+
+	/** Distills the session's demonstrated procedure into a pending skill proposal (phase 21). */
+	@PostMapping("/{id}/extract-skill")
+	public ResponseEntity<Void> extractSkill(@PathVariable UUID id) {
+		reflection.extractSkill(id);
+		return ResponseEntity.noContent().build();
+	}
+
+	public record RememberRequest(Long targetSeq) {
+	}
+
+	/** Turns one marked block into a small pending memory proposal — no episode, session not marked reflected (phase 21). */
+	@PostMapping("/{id}/remember")
+	public ResponseEntity<Void> remember(@PathVariable UUID id, @RequestBody RememberRequest request) {
+		if (request.targetSeq() == null) {
+			throw new IllegalArgumentException("targetSeq is required");
+		}
+		reflection.remember(id, request.targetSeq());
+		return ResponseEntity.noContent().build();
+	}
+
+	public record MarkRequest(Long targetSeq, String mark) {
+	}
+
+	/** Marks a user/assistant block important or excluded for memory curation; a null mark clears it (phase 21). */
+	@PostMapping("/{id}/marks")
+	public ResponseEntity<Void> mark(@PathVariable UUID id, @RequestBody MarkRequest request) {
+		if (request.targetSeq() == null) {
+			throw new IllegalArgumentException("targetSeq is required");
+		}
+		blockMarks.mark(id, request.targetSeq(), request.mark());
 		return ResponseEntity.noContent().build();
 	}
 

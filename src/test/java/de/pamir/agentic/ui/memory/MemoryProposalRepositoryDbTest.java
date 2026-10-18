@@ -95,4 +95,18 @@ class MemoryProposalRepositoryDbTest {
 		assertThat(proposals.findPendingForSession(sessionA)).contains(a);
 		assertThat(proposals.findPendingForSession(sessionB)).contains(b);
 	}
+
+	@Test
+	void aSkillAndAMemoryProposalCanBePendingTogetherButNotTwoOfAKind() {
+		UUID sessionId = newSession();
+		var memory = proposals.insert(sessionId, "s1", "/repo", 10L, "episode", emptyOps());
+		var skill = proposals.insert(MemoryProposalRepository.KIND_SKILL, sessionId, "s1", "/repo", null,
+				"# body", emptyOps());
+
+		assertThat(proposals.findPendingForSession(sessionId)).contains(memory);
+		assertThat(proposals.findPendingForSession(sessionId, MemoryProposalRepository.KIND_SKILL)).contains(skill);
+		assertThat(skill.reflectedSeq()).isNull();
+		assertThatThrownBy(() -> proposals.insert(MemoryProposalRepository.KIND_SKILL, sessionId, "s1", "/repo", null,
+				"# other", emptyOps())).isInstanceOf(IllegalStateException.class);
+	}
 }

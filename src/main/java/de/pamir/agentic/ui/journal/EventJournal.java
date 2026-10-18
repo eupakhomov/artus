@@ -129,6 +129,56 @@ public class EventJournal {
 				.optional();
 	}
 
+	/** Whether any event of one of the given types exists after {@code afterSeq} — no row materialization. */
+	public boolean hasEventsAfter(UUID sessionId, long afterSeq, java.util.Collection<String> types) {
+		if (types.isEmpty()) {
+			return false;
+		}
+		flush(sessionId);
+		String placeholders = String.join(", ", java.util.Collections.nCopies(types.size(), "?"));
+		List<Object> params = new ArrayList<>(List.of(sessionId, afterSeq));
+		params.addAll(types);
+		return Boolean.TRUE.equals(jdbc.sql("SELECT EXISTS(SELECT 1 FROM session_event WHERE session_id = ? AND seq > ? "
+						+ "AND type IN (" + placeholders + "))")
+				.params(params)
+				.query(Boolean.class).single());
+	}
+
+	/** One event by its seq, if it exists (and has not been pruned). */
+	public Optional<JournalEvent> findBySeq(UUID sessionId, long seq) {
+		flush(sessionId);
+		return jdbc.sql("SELECT seq, ts, type, payload FROM session_event WHERE session_id = ? AND seq = ?")
+				.params(sessionId, seq)
+				.query((rs, i) -> new JournalEvent(
+						rs.getLong("seq"),
+						rs.getTimestamp("ts").toInstant(),
+						rs.getString("type"),
+						readNode(rs.getString("payload"))))
+				.optional();
+	}
+
+	/** Several events by seq in one query — missing/pruned seqs are simply absent from the result. */
+	public Map<Long, JournalEvent> findBySeqs(UUID sessionId, java.util.Collection<Long> seqs) {
+		if (seqs.isEmpty()) {
+			return Map.of();
+		}
+		flush(sessionId);
+		String placeholders = String.join(", ", java.util.Collections.nCopies(seqs.size(), "?"));
+		List<Object> params = new ArrayList<>(List.of(sessionId));
+		params.addAll(seqs);
+		Map<Long, JournalEvent> found = new java.util.LinkedHashMap<>();
+		jdbc.sql("SELECT seq, ts, type, payload FROM session_event WHERE session_id = ? AND seq IN (" + placeholders + ")")
+				.params(params)
+				.query((rs, i) -> new JournalEvent(
+						rs.getLong("seq"),
+						rs.getTimestamp("ts").toInstant(),
+						rs.getString("type"),
+						readNode(rs.getString("payload"))))
+				.list()
+				.forEach(e -> found.put(e.seq(), e));
+		return found;
+	}
+
 	public List<JournalEvent> readAfter(UUID sessionId, long afterSeq) {
 		flush(sessionId);
 		return jdbc.sql("SELECT seq, ts, type, payload FROM session_event WHERE session_id = ? AND seq > ? ORDER BY seq")

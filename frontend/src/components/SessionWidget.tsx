@@ -8,7 +8,7 @@ import { notify, notificationForEvent } from '../notify';
 import { registerWidget, unregisterWidget } from '../hotkeys/widgetRegistry';
 import {
   ChildOf, Close, ContinuedFrom, DownloadIcon, Duplicate, EcosystemContext, GitPanelIcon,
-  ChangesIcon, InfoTag, Interrupt, LinkedTicket, Maximize, Memory, MinimizeToDock, PullRequest, Restore, SystemSession,
+  ChangesIcon, ExtractSkill, InfoTag, Interrupt, LinkedTicket, Maximize, Memory, MinimizeToDock, PullRequest, Restore, SystemSession,
 } from '../icons';
 import Transcript from './Transcript';
 import CloseDialog from './CloseDialog';
@@ -84,8 +84,11 @@ export default function SessionWidget({
   const changesSeq = useRef(0);
   const [actionError, setActionError] = useState('');
   const [reflecting, setReflecting] = useState(false);
+  const [extractingSkill, setExtractingSkill] = useState(false);
+  const [remembering, setRemembering] = useState<ReadonlySet<number>>(new Set());
   const [compacting, setCompacting] = useState(false);
   const [contextWarnPercent, setContextWarnPercent] = useState(70);
+  const [memoryEnabled, setMemoryEnabled] = useState(false);
   const wsRef = useRef<WsSession | null>(null);
   const nameRef = useRef<string>('');
   const focusedRef = useRef<string | null>(null);
@@ -147,7 +150,10 @@ export default function SessionWidget({
   const send = useCallback((cmd: Record<string, unknown>) => wsRef.current?.send(cmd), []);
 
   useEffect(() => {
-    api.getSettings().then((s) => setContextWarnPercent(s.contextWarnPercent)).catch(() => {});
+    api.getSettings().then((s) => {
+      setContextWarnPercent(s.contextWarnPercent);
+      setMemoryEnabled(s.memoryEnabled);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -493,6 +499,21 @@ export default function SessionWidget({
             title={reflecting ? 'reflecting — distilling this conversation (can take up to 45s)…' : 'reflect now — distill this conversation into long-term memory'}
           ><Memory /></button>
         )}
+        {entity?.kind !== 'system' && (
+          <button
+            className={`icon-btn${extractingSkill ? ' pulse' : ''}`}
+            disabled={extractingSkill}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => {
+              setActionError('');
+              setExtractingSkill(true);
+              api.extractSkill(sessionId)
+                .catch((e) => setActionError(e instanceof ApiError ? e.message : String(e)))
+                .finally(() => setExtractingSkill(false));
+            }}
+            title={extractingSkill ? 'extracting — distilling a reusable skill (can take up to 3 min)…' : 'extract skill — turn the procedure this session followed into a reusable skill (opens a proposal to approve)'}
+          ><ExtractSkill /></button>
+        )}
         <button
           className="icon-btn"
           onMouseDown={(e) => e.stopPropagation()}
@@ -522,7 +543,25 @@ export default function SessionWidget({
             onPrCreated={(url) => seed(sessionId, (v) => ({ ...v, prUrl: url, prCheckStatus: 'PENDING' }))}
           />
         )}
-        <Transcript items={view.transcript} onPermission={(requestId, response) => send({ type: 'permission_response', requestId, ...response })} />
+        <Transcript
+          items={view.transcript}
+          onPermission={(requestId, response) => send({ type: 'permission_response', requestId, ...response })}
+          markCtx={memoryEnabled && entity?.kind !== 'system' ? {
+            marks: view.marks,
+            onMark: (seq, mark) => {
+              setActionError('');
+              api.setMark(sessionId, seq, mark).catch((e) => setActionError(e instanceof ApiError ? e.message : String(e)));
+            },
+            remembering,
+            onRemember: (seq) => {
+              setActionError('');
+              setRemembering((prev) => new Set(prev).add(seq));
+              api.rememberBlock(sessionId, seq)
+                .catch((e) => setActionError(e instanceof ApiError ? e.message : String(e)))
+                .finally(() => setRemembering((prev) => { const next = new Set(prev); next.delete(seq); return next; }));
+            },
+          } : undefined}
+        />
         {view.ctxSuggestionVisible && (
           <ContextSuggestionCard
             percentage={ctxPercent}

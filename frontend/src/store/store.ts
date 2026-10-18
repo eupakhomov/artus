@@ -9,9 +9,9 @@ import type { WsStatus } from '../api/ws';
 // ---------------------------------------------------------------------------
 
 export type TranscriptItem =
-  | { kind: 'user'; text: string }
+  | { kind: 'user'; text: string; /** journal seq — the identity a memory mark points at (phase 21) */ seq?: number }
   | { kind: 'thinking'; text: string; estimatedTokens: number; done: boolean }
-  | { kind: 'text'; text: string; done: boolean }
+  | { kind: 'text'; text: string; done: boolean; /** set once the finalizing assistant_message is journaled */ seq?: number }
   | {
       kind: 'tool'; toolUseId: string; name: string; input: unknown; output?: string; isError?: boolean; truncated?: boolean;
       /** a Task call's own subagent activity (thinking/text/tool calls), nested one level — see reduce()'s parentToolUseId routing */
@@ -21,6 +21,8 @@ export type TranscriptItem =
   | { kind: 'turn_footer'; stopReason: string; costUsd: number; durationMs: number; model: string | null }
   | { kind: 'note'; level: 'info' | 'warn' | 'error'; text: string }
   | { kind: 'context_compacted'; preTokens: number; postTokens: number; trigger: 'manual' | 'auto' };
+
+export type BlockMark = 'important' | 'excluded';
 
 export interface SessionView {
   state: SessionState;
@@ -32,6 +34,8 @@ export interface SessionView {
   name: string | null;
   costBudgetUsd: number | null;
   transcript: TranscriptItem[];
+  /** memory-curation marks by target journal seq, folded from block_marked events (phase 21) */
+  marks: Record<number, BlockMark>;
   queued: QueuedMessage[];
   costToDate: number;
   wsStatus: WsStatus;
@@ -83,6 +87,7 @@ const emptyView = (): SessionView => ({
   name: null,
   costBudgetUsd: null,
   transcript: [],
+  marks: {},
   queued: [],
   costToDate: 0,
   wsStatus: 'connecting',
@@ -113,7 +118,7 @@ function last<T>(arr: T[]): T | undefined {
  * parentToolUseId) a Task call's nested subagent activity. Shared here so both scopes
  * get identical behavior; mutates and returns `arr`.
  */
-function applyBranchEvent(arr: TranscriptItem[], type: string, p: Record<string, unknown>): TranscriptItem[] {
+function applyBranchEvent(arr: TranscriptItem[], type: string, p: Record<string, unknown>, seq?: number): TranscriptItem[] {
   switch (type) {
     case 'stream_delta': {
       const deltaType = p['deltaType'] as 'text' | 'thinking';
@@ -134,13 +139,13 @@ function applyBranchEvent(arr: TranscriptItem[], type: string, p: Record<string,
     case 'assistant_message': {
       // close the streamed text block; recover content when deltas were coalesced away
       const tail = last(arr);
-      if (tail?.kind === 'text' && !tail.done) arr[arr.length - 1] = { ...tail, done: true };
+      if (tail?.kind === 'text' && !tail.done) arr[arr.length - 1] = { ...tail, done: true, seq };
       else {
         const blocks = (p['content'] as { type: string; text?: string; thinking?: string }[] | undefined) ?? [];
         const thinkingText = blocks.filter((b) => b.type === 'thinking' && b.thinking).map((b) => b.thinking).join('');
         if (thinkingText) arr.push({ kind: 'thinking', text: thinkingText, estimatedTokens: 0, done: true });
         const text = blocks.filter((b) => b.type === 'text' && b.text).map((b) => b.text).join('');
-        if (text) arr.push({ kind: 'text', text, done: true });
+        if (text) arr.push({ kind: 'text', text, done: true, seq });
       }
       markThinkingDone(arr);
       return arr;
@@ -193,8 +198,17 @@ function reduce(view: SessionView, e: Envelope): SessionView {
       v.model = (p['model'] as string) ?? v.model;
       break;
     case 'user_message':
-      t.push({ kind: 'user', text: p['text'] as string });
+      t.push({ kind: 'user', text: p['text'] as string, seq: e.seq });
       break;
+    case 'block_marked': {
+      const marks = { ...v.marks };
+      const target = p['targetSeq'] as number;
+      const mark = p['mark'];
+      if (mark === 'important' || mark === 'excluded') marks[target] = mark;
+      else delete marks[target];
+      v.marks = marks;
+      break;
+    }
     case 'stream_delta':
     case 'assistant_message':
     case 'tool_started':
@@ -207,10 +221,10 @@ function reduce(view: SessionView, e: Envelope): SessionView {
       const parentIdx = parentToolUseId ? findTopLevelToolIndex(t, parentToolUseId) : -1;
       if (parentIdx !== -1) {
         const parent = t[parentIdx] as Extract<TranscriptItem, { kind: 'tool' }>;
-        const items = applyBranchEvent(parent.items ? [...parent.items] : [], e.type, p);
+        const items = applyBranchEvent(parent.items ? [...parent.items] : [], e.type, p, e.seq);
         t[parentIdx] = { ...parent, items };
       } else {
-        applyBranchEvent(t, e.type, p);
+        applyBranchEvent(t, e.type, p, e.seq);
       }
       break;
     }
@@ -289,7 +303,15 @@ function reduce(view: SessionView, e: Envelope): SessionView {
       t.push({ kind: 'note', level: 'info', text: 'interrupted by user' });
       break;
     case 'reflection_proposed':
-      t.push({ kind: 'note', level: 'info', text: `reflection proposed — pending approval: ${p['episode']}` });
+      t.push({
+        kind: 'note', level: 'info',
+        text: p['kind'] === 'skill' || p['kind'] === 'remember'
+          ? `${p['episode']} — pending approval`
+          : `reflection proposed — pending approval: ${p['episode']}`,
+      });
+      break;
+    case 'skill_extracted':
+      t.push({ kind: 'note', level: 'info', text: `skill added to the library: ${p['name']}` });
       break;
     case 'reflection_complete': {
       const created = (p['created'] as string[]) ?? [];
@@ -301,11 +323,14 @@ function reduce(view: SessionView, e: Envelope): SessionView {
         archived.length ? `${archived.length} archived` : null,
       ].filter(Boolean);
       const detail = parts.length ? ` (${parts.join(', ')})` : '';
-      t.push({ kind: 'note', level: 'info', text: `reflection applied${detail}: ${p['episode']}` });
+      t.push({
+        kind: 'note', level: 'info',
+        text: p['episode'] ? `reflection applied${detail}: ${p['episode']}` : `memory saved${detail}`,
+      });
       break;
     }
     case 'reflection_discarded':
-      t.push({ kind: 'note', level: 'info', text: 'reflection discarded' });
+      t.push({ kind: 'note', level: 'info', text: p['reason'] ? `reflection discarded (${p['reason']})` : 'reflection discarded' });
       break;
     case 'session_renamed':
       v.name = p['name'] as string;

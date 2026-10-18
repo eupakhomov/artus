@@ -545,7 +545,18 @@ effect on the next use with no backend restart.
   immediately; turn off to restore straight auto-apply. The topbar memory dialog
   searches (hybrid dense+sparse) and browses/edits/archives memory across services,
   plus a "Pending" tab (topbar badge count) for approving/discarding proposals; the
-  widget's reflect button triggers an immediate reflection on that session.
+  widget's reflect button triggers an immediate reflection on that session. **Curation**
+  (phase 21, `docs/plan/phase-21-memory-curation.md`; marks and remember-this only while `memory.enabled`, extract-skill always): hover a
+  user/assistant block to mark it *important* (pin — starred and kept verbatim in the
+  digest even past its 100k cap) or *excluded* (eye-off — its text never reaches the
+  reflection model); marks are `block_marked` journal events (`POST /api/sessions/{id}/marks`),
+  so they replay and sync across tabs. Marking after a reflection re-arms the reflect button
+  (a refresh knows the earlier episodes and supersedes a pending proposal); the widget's
+  extract-skill button distils the session's procedure into a pending **skill** proposal
+  (always approval-gated, editable; approving writes `SKILL.md` into the managed skills root
+  and registers it in the library); an important block's "remember this" action turns just
+  that block into a small memory proposal. Proposals show the transcript blocks they cite
+  ("based on N blocks").
 
 **MCP tool search**: every sidecar is spawned with `ENABLE_TOOL_SEARCH=true`
 (`SidecarManager.applySidecarEnvironment`) so MCP tool schemas (Linear alone is ~80 tools) are

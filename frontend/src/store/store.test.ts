@@ -345,3 +345,61 @@ describe('phase 16 sidebar fields', () => {
     expect(v.prUrl).toBe('https://github.com/o/r/pull/1');
   });
 });
+
+// phase 21: memory-curation marks — seq identity on markable blocks and the block_marked fold.
+describe('block marks', () => {
+  it('stamps the journal seq on user messages', () => {
+    useStore.getState().apply(SID, env('user_message', { text: 'hi' }, 7));
+    expect(useStore.getState().views[SID]?.transcript[0]).toMatchObject({ kind: 'user', seq: 7 });
+  });
+
+  it('gives a streamed text block its seq when the assistant_message finalizes it', () => {
+    useStore.getState().apply(SID, env('stream_delta', { deltaType: 'text', text: 'partial' }, 2));
+    expect(useStore.getState().views[SID]?.transcript[0]).toMatchObject({ kind: 'text', done: false });
+    expect((useStore.getState().views[SID]?.transcript[0] as { seq?: number }).seq).toBeUndefined();
+
+    useStore.getState().apply(SID, env('assistant_message', { content: [{ type: 'text', text: 'partial' }] }, 3));
+
+    expect(useStore.getState().views[SID]?.transcript[0]).toMatchObject({ kind: 'text', done: true, seq: 3 });
+  });
+
+  it('gives coalesced assistant text (no deltas) its seq too', () => {
+    useStore.getState().apply(SID, env('assistant_message', { content: [{ type: 'text', text: 'whole' }] }, 4));
+    expect(useStore.getState().views[SID]?.transcript[0]).toMatchObject({ kind: 'text', seq: 4 });
+  });
+
+  it('folds block_marked events: last wins, null clears', () => {
+    const { apply } = useStore.getState();
+    apply(SID, env('block_marked', { targetSeq: 1, mark: 'important' }, 5));
+    apply(SID, env('block_marked', { targetSeq: 2, mark: 'excluded' }, 6));
+    expect(useStore.getState().views[SID]?.marks).toEqual({ 1: 'important', 2: 'excluded' });
+
+    apply(SID, env('block_marked', { targetSeq: 1, mark: 'excluded' }, 7));
+    apply(SID, env('block_marked', { targetSeq: 2, mark: null }, 8));
+    expect(useStore.getState().views[SID]?.marks).toEqual({ 1: 'excluded' });
+  });
+});
+
+describe('phase 21 reflection notes', () => {
+  const notes = () => (useStore.getState().views[SID]?.transcript ?? []).filter((i) => i.kind === 'note') as { text: string }[];
+
+  it('a skill proposal and a remember proposal read as pending approval', () => {
+    useStore.getState().apply(SID, env('reflection_proposed', { kind: 'skill', episode: 'skill proposed: deploy-checklist' }, 1));
+    useStore.getState().apply(SID, env('reflection_proposed', { kind: 'remember', episode: 'remember block #4: 1 memory op(s) proposed' }, 2));
+    expect(notes().map((n) => n.text)).toEqual([
+      'skill proposed: deploy-checklist — pending approval',
+      'remember block #4: 1 memory op(s) proposed — pending approval',
+    ]);
+  });
+
+  it('skill_extracted names the new library skill', () => {
+    useStore.getState().apply(SID, env('skill_extracted', { name: 'deploy-checklist' }));
+    expect(notes()[0]?.text).toBe('skill added to the library: deploy-checklist');
+  });
+
+  it('a superseded reflection says why; an episode-less apply reads as a saved memory', () => {
+    useStore.getState().apply(SID, env('reflection_discarded', { reason: 'superseded by refresh' }, 1));
+    useStore.getState().apply(SID, env('reflection_complete', { episode: '', created: ['a-note'] }, 2));
+    expect(notes().map((n) => n.text)).toEqual(['reflection discarded (superseded by refresh)', 'memory saved (1 created)']);
+  });
+});

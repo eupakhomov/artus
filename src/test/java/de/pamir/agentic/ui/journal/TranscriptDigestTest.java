@@ -91,4 +91,107 @@ class TranscriptDigestTest {
 		assertThat(markdown).contains("last model `claude-sonnet-5`");
 		assertThat(markdown).contains("total cost $0.10");
 	}
+
+	private EventJournal.JournalEvent userMsg(long seq, String text) {
+		return new EventJournal.JournalEvent(seq, t0, "user_message", mapper.createObjectNode().put("text", text));
+	}
+
+	private EventJournal.JournalEvent assistantMsg(long seq, String text) {
+		ObjectNode payload = mapper.createObjectNode();
+		ArrayNode content = mapper.createArrayNode();
+		content.add(mapper.createObjectNode().put("type", "text").put("text", text));
+		payload.set("content", content);
+		return new EventJournal.JournalEvent(seq, t0, "assistant_message", payload);
+	}
+
+	private EventJournal.JournalEvent mark(long seq, long target, String mark) {
+		ObjectNode payload = mapper.createObjectNode().put("targetSeq", target);
+		if (mark == null) {
+			payload.putNull("mark");
+		} else {
+			payload.put("mark", mark);
+		}
+		return new EventJournal.JournalEvent(seq, t0, "block_marked", payload);
+	}
+
+	@Test
+	void markFoldLetsTheLastMarkWinAndNullClears() {
+		var marks = TranscriptDigest.marks(List.of(
+				mark(3, 1, "important"), mark(4, 1, "excluded"), mark(5, 2, "important"), mark(6, 2, null)));
+
+		assertThat(marks).containsOnlyKeys(1L).containsEntry(1L, "excluded");
+	}
+
+	@Test
+	void unmarkedDigestOnlyGainsSeqAnchors() {
+		String digest = TranscriptDigest.render(List.of(userMsg(1, "hello"), assistantMsg(2, "hi")));
+
+		assertThat(digest).contains("[#1] User: hello").contains("[#2] Assistant: hi");
+		assertThat(digest).doesNotContain("MARKED").doesNotContain("Marked as important");
+	}
+
+	@Test
+	void excludedBlockContentNeverReachesTheDigest() {
+		String digest = TranscriptDigest.render(List.of(
+				userMsg(1, "my password is hunter2"), assistantMsg(2, "noted"), mark(3, 1, "excluded")));
+
+		assertThat(digest).doesNotContain("hunter2");
+		assertThat(digest).contains("[#1] User: [excluded from memory by the user]").contains("[#2] Assistant: noted");
+	}
+
+	@Test
+	void importantBlockIsStarredAndSurvivesTheCapInAnAppendix() {
+		List<EventJournal.JournalEvent> events = new java.util.ArrayList<>();
+		events.add(userMsg(1, "the key insight: use approach B"));
+		events.add(userMsg(2, "y".repeat(150_000)));
+		events.add(mark(3, 1, "important"));
+
+		String digest = TranscriptDigest.render(events);
+
+		assertThat(digest).contains("[#1] ★ MARKED User: the key insight");
+		assertThat(digest).contains("## Marked as important by the user");
+		assertThat(digest.substring(digest.indexOf("## Marked as important"))).contains("the key insight: use approach B");
+	}
+
+	@Test
+	void importantBlockLongerThanTheAppendixCapIsTruncated() {
+		String digest = TranscriptDigest.render(List.of(userMsg(1, "z".repeat(10_000)), mark(2, 1, "important")));
+
+		String appendix = digest.substring(digest.indexOf("## Marked as important"));
+		assertThat(appendix.length()).isLessThan(5_000);
+	}
+
+	@Test
+	void markdownExportAnnotatesMarksButHidesNothing() {
+		String md = TranscriptDigest.renderMarkdown("s", List.of(
+				userMsg(1, "keep me"), userMsg(2, "secret thing"), mark(3, 1, "important"), mark(4, 2, "excluded")));
+
+		assertThat(md).contains("★ marked important").contains("(excluded from memory)");
+		assertThat(md).contains("keep me").contains("secret thing");
+	}
+
+	@Test
+	void manyImportantBlocksStayWithinTheAppendixBudget() {
+		List<EventJournal.JournalEvent> events = new java.util.ArrayList<>();
+		for (int i = 1; i <= 50; i++) {
+			events.add(userMsg(i, "w".repeat(3_000)));
+		}
+		for (int i = 1; i <= 50; i++) {
+			events.add(mark(100 + i, i, "important"));
+		}
+
+		String digest = TranscriptDigest.render(events);
+		String appendix = digest.substring(digest.indexOf("## Marked as important"));
+
+		assertThat(appendix.length()).isLessThanOrEqualTo(TranscriptDigest.MARKED_APPENDIX_CHARS + 200);
+		assertThat(appendix).contains("more marked block(s) omitted");
+	}
+
+	@Test
+	void aFewImportantBlocksAreAllKeptWithNoOmissionNote() {
+		String digest = TranscriptDigest.render(List.of(userMsg(1, "one"), userMsg(2, "two"),
+				mark(3, 1, "important"), mark(4, 2, "important")));
+
+		assertThat(digest).contains("[#1] User: one").contains("[#2] User: two").doesNotContain("omitted");
+	}
 }

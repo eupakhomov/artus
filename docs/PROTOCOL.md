@@ -288,8 +288,16 @@ approval round-trip. Full mapping tables and rationale:
   turns this off), and `reflection_complete {episode, created[], updated[],
   archived[], warnings[]}` — emitted by `ReflectionService` once a reflection is
   actually applied (auto-apply, or an approved proposal), listing exactly what was
-  written to long-term memory. `reflection_discarded {episode}` marks a discarded
-  proposal — nothing was written. See docs/plan/phase-5.3-memory-reflection.md.
+  written to long-term memory. `reflection_discarded {episode, reason?}` marks a discarded
+  proposal — nothing was written (`reason: "superseded by refresh"` when a newer proposal
+  replaced it). See docs/plan/phase-5.3-memory-reflection.md. Phase 21
+  (docs/plan/phase-21-memory-curation.md) adds `block_marked {targetSeq, mark}` — `mark` is
+  `"important"`, `"excluded"` or `null` (clears); the current mark of a block is the last
+  `block_marked` for its `targetSeq`, and only `user_message`/`assistant_message` seqs are
+  markable — and `skill_extracted {name, assetId}` when an approved skill proposal lands in
+  the library. `reflection_proposed` gains `kind` (`memory` default, `skill`, `remember`;
+  non-memory kinds carry a self-describing `episode` line instead of `ops[]`), and
+  `reflection_complete.episode` is `""` for an applied "remember this" proposal.
   `child_reported {childId, childName, service, summary}` — journaled on *both* the
   child and the parent when the child calls the `report_result` MCP tool (7.4); the
   same payload also lands as a `user_message` in the parent's queue/transcript, tagged

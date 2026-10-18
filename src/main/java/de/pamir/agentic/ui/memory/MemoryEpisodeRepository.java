@@ -55,6 +55,11 @@ public class MemoryEpisodeRepository {
 				.params(servicePath, limit).query(rowMapper).list();
 	}
 
+	/** Every episode already recorded for one session, oldest first — fed to a re-reflection so it doesn't restate them. */
+	public List<Episode> findBySession(UUID sessionId) {
+		return jdbc.sql(SELECT + " WHERE session_id = ? ORDER BY ts").params(sessionId).query(rowMapper).list();
+	}
+
 	public List<Episode> findByService(String servicePath, Integer limit, Integer offset) {
 		StringBuilder sql = new StringBuilder(SELECT + " WHERE service_path = ? ORDER BY ts DESC");
 		List<Object> params = new ArrayList<>(List.of(servicePath));

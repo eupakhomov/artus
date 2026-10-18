@@ -183,4 +183,46 @@ class EventJournalDbTest {
 
 		assertThat(journal.readAfter(sessionId, 0).get(0).payload().path("text").asText()).isEqualTo(source);
 	}
+
+	@Test
+	void findBySeqReadsAcrossFlushAndBuffer() {
+		UUID sessionId = newSession();
+		journal.append(sessionId, "user_message", mapper.createObjectNode().put("text", "hi")); // flushes
+		journal.append(sessionId, "stream_delta", delta("buffered"));
+
+		assertThat(journal.findBySeq(sessionId, 1).orElseThrow().type()).isEqualTo("user_message");
+		assertThat(journal.findBySeq(sessionId, 2).orElseThrow().type()).isEqualTo("stream_delta");
+		assertThat(journal.findBySeq(sessionId, 99)).isEmpty();
+	}
+
+	@Test
+	void hasEventsAfterOnlyCountsTheGivenTypesPastTheCutoff() {
+		UUID sessionId = newSession();
+		journal.append(sessionId, "user_message", mapper.createObjectNode().put("text", "hi")); // 1
+		journal.append(sessionId, "reflection_complete", mapper.createObjectNode());            // 2
+		journal.append(sessionId, "state_changed", mapper.createObjectNode());                  // 3
+
+		var relevant = java.util.Set.of("user_message", "block_marked");
+		assertThat(journal.hasEventsAfter(sessionId, 0, relevant)).isTrue();
+		assertThat(journal.hasEventsAfter(sessionId, 1, relevant)).isFalse();
+
+		journal.append(sessionId, "block_marked", mapper.createObjectNode().put("targetSeq", 1).put("mark", "important")); // 4
+		assertThat(journal.hasEventsAfter(sessionId, 1, relevant)).isTrue();
+		assertThat(journal.hasEventsAfter(sessionId, 4, relevant)).isFalse();
+		assertThat(journal.hasEventsAfter(sessionId, 0, java.util.Set.of())).isFalse();
+	}
+
+	@Test
+	void findBySeqsFetchesSeveralInOneQueryAndOmitsMissingOnes() {
+		UUID sessionId = newSession();
+		journal.append(sessionId, "user_message", mapper.createObjectNode().put("text", "a")); // 1
+		journal.append(sessionId, "user_message", mapper.createObjectNode().put("text", "b")); // 2
+		journal.append(sessionId, "user_message", mapper.createObjectNode().put("text", "c")); // 3
+
+		var found = journal.findBySeqs(sessionId, java.util.List.of(1L, 3L, 99L));
+
+		assertThat(found).containsOnlyKeys(1L, 3L);
+		assertThat(found.get(3L).payload().path("text").asText()).isEqualTo("c");
+		assertThat(journal.findBySeqs(sessionId, java.util.List.of())).isEmpty();
+	}
 }

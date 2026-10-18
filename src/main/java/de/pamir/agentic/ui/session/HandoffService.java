@@ -39,7 +39,11 @@ public class HandoffService {
 				+ "write a concise Markdown brief (roughly 1-2 KB) covering: the overall goal, the current state "
 				+ "of the work, key decisions made and why, concrete next steps, and any gotchas or dead ends. "
 				+ "Write it as direct instructions to the next agent, not a narrative summary. Respond with ONLY "
-				+ "the Markdown brief — no commentary, no code fence around the whole thing.\n\n"
+				+ "the Markdown brief — no commentary, no code fence around the whole thing. Digest notes: lines "
+				+ "start with a [#N] block anchor (do not copy anchors into the brief); blocks marked \"★ MARKED\" "
+				+ "(repeated under \"Marked as important by the user\") were flagged by the user as the part that "
+				+ "matters — make sure the brief carries their substance; lines reading \"[excluded from memory by "
+				+ "the user]\" were withheld on purpose — do not guess their content.\n\n"
 				+ "Transcript digest:\n%s").formatted(session.name(), session.branch(), digest);
 		String summary = systemTurnClient.text(prompt, SystemTurnLane.INTERACTIVE, TIMEOUT);
 		if (summary.isBlank()) {

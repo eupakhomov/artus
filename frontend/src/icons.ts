@@ -66,7 +66,15 @@ export {
   TriangleAlert as Warning,
   ArrowDown as PullChanges,
 
+  // extract a reusable skill from the session — beside the reflect (Memory) button
+  BookPlus as ExtractSkill,
+
   // transcript
+  // memory curation marks (phase 21) — Pin: "this block matters"; EyeOff: "keep this out of memory"
+  Pin as MarkImportant,
+  EyeOff as ExcludeFromMemory,
+  // turn one important block into a memory proposal right now (distinct from the whole-session Memory/reflect brain)
+  BookmarkPlus as RememberBlock,
   Check as ToolOk,
   X as ToolFailed,
   LoaderCircle as ToolRunning,
