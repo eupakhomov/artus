@@ -433,6 +433,11 @@ interface Store {
   dismissContextWarn: (sessionId: string) => void;
 }
 
+/** Folds a journal's events into transcript items, as the live reducer would (read-only history view). */
+export function transcriptFromEvents(events: Envelope[]): TranscriptItem[] {
+  return events.reduce(reduce, emptyView()).transcript;
+}
+
 export const useStore = create<Store>((set) => ({
   views: {},
   apply: (sessionId, e) =>

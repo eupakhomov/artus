@@ -1,3 +1,4 @@
+import type { SessionSummary } from './protocol';
 import type { SessionView } from './store/store';
 
 export interface NeedsYouItem {
@@ -93,6 +94,23 @@ export function buildSidebarModel(
 
 function sinceMs(v: SessionView | undefined): number {
   return v?.stateSince ? new Date(v.stateSince).getTime() : Number.MAX_SAFE_INTEGER;
+}
+
+/**
+ * Sidebar History (phase 23): the newest-closed sessions, minus the ones this browser hid.
+ * The backend already orders and caps; re-sorting and re-capping here keeps the section right
+ * when a just-closed row is merged in locally and when hiding one should pull the next one up.
+ */
+export function selectHistory(
+  summaries: SessionSummary[],
+  hiddenIds: ReadonlySet<string>,
+  limit: number,
+): SessionSummary[] {
+  const closedMs = (s: SessionSummary) => new Date(s.closedAt ?? s.updatedAt).getTime();
+  return summaries
+    .filter((s) => s.kind !== 'system' && !hiddenIds.has(s.id))
+    .sort((a, b) => closedMs(b) - closedMs(a))
+    .slice(0, limit);
 }
 
 /** Compact relative age for the sidebar: <1m, 4m, 2h, 3d. */

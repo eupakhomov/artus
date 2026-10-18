@@ -73,7 +73,7 @@ function markClass(seq: number | undefined, ctx: MarkContext | undefined): strin
 function renderItem(
   item: TranscriptItem,
   key: React.Key,
-  onPermission: (requestId: string, response: PermissionResponse) => void,
+  onPermission: ((requestId: string, response: PermissionResponse) => void) | undefined,
   markCtx?: MarkContext,
 ): React.ReactNode {
   switch (item.kind) {
@@ -135,6 +135,14 @@ function renderItem(
       );
     }
     case 'permission':
+      if (!onPermission) {
+        // read-only (closed-session dialog): nobody can answer, so just record what was asked
+        return (
+          <div key={key} className="t-note info">
+            {item.decision ? `${item.decision === 'allow' ? 'allowed' : 'denied'}: ` : 'unanswered: '}{item.toolName}
+          </div>
+        );
+      }
       return (
         <PermissionCard
           key={item.requestId}
@@ -166,7 +174,8 @@ export default function Transcript({
   markCtx,
 }: {
   items: TranscriptItem[];
-  onPermission: (requestId: string, response: PermissionResponse) => void;
+  /** omit for a read-only transcript (no permission buttons) */
+  onPermission?: (requestId: string, response: PermissionResponse) => void;
   markCtx?: MarkContext;
 }) {
   const ref = useRef<HTMLDivElement>(null);

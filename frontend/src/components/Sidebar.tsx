@@ -3,7 +3,8 @@ import { useStore, type SessionView } from '../store/store';
 import { getWidget } from '../hotkeys/widgetRegistry';
 import { needsFullCard, permissionResponseFor, permissionSummary, toolLabel } from '../permissions';
 import { shortAge, type NeedsYouItem, type SidebarModel, type SidebarRow } from '../sidebarModel';
-import { MinimizeToDock, NeedsYou, PullRequest } from '../icons';
+import type { SessionSummary } from '../protocol';
+import { Close, ContinuedFrom, MinimizeToDock, NeedsYou, PullRequest } from '../icons';
 import { PR_STATUS_LABEL } from './SessionWidget';
 
 export type SidebarFold = 'expanded' | 'rail';
@@ -25,12 +26,19 @@ export default function Sidebar({
   fold,
   showHints,
   onSelect,
+  history,
+  onOpenHistory,
+  onHideHistory,
 }: {
   model: SidebarModel;
   fold: SidebarFold;
   /** focus mode: show the 1–9 hotkey hint on the first nine rows */
   showHints: boolean;
   onSelect: (id: string) => void;
+  /** phase 23: most recently closed sessions, already filtered/capped */
+  history: SessionSummary[];
+  onOpenHistory: (session: SessionSummary) => void;
+  onHideHistory: (id: string) => void;
 }) {
   const views = useStore((s) => s.views);
   const focusedId = useStore((s) => s.focusedId);
@@ -147,6 +155,25 @@ export default function Sidebar({
           ))}
         </section>
       ))}
+      {history.length > 0 && (
+        <section className="sb-section sb-history">
+          <div className="sb-heading"><ContinuedFrom />History</div>
+          {history.map((s) => (
+            <div key={s.id} className="sb-row sb-history-row" title={`${s.name} · ${s.branch} — closed, click to open`}>
+              <button className="sb-history-main" onClick={() => onOpenHistory(s)}>
+                <span className="sb-name">{s.name}</span>
+                {s.sessionType === 'review' && <span className="chip">review</span>}
+                {s.prUrl && <span className="sb-pr pr-CLOSED"><PullRequest /></span>}
+                <span className="sb-age">{shortAge(s.closedAt ?? s.updatedAt, now)}</span>
+                <span className="sb-cost">${s.costToDate.toFixed(2)}</span>
+              </button>
+              <button className="icon-btn sb-history-hide" title="hide from History (this browser)" onClick={() => onHideHistory(s.id)}>
+                <Close />
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
     </aside>
   );
 }

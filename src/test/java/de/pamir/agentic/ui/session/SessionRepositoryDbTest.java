@@ -177,4 +177,27 @@ class SessionRepositoryDbTest {
 		assertThat(loaded.contextTokens()).isEqualTo(38000);
 		assertThat(loaded.contextWindow()).isEqualTo(200000);
 	}
+
+	@Test
+	void findRecentlyClosedOrdersByCloseTimeExcludesSystemAndHonoursLimit() throws Exception {
+		SessionEntity first = insertSession(SessionState.IDLE);
+		SessionEntity second = insertSession(SessionState.IDLE);
+		SessionEntity open = insertSession(SessionState.IDLE);
+		UUID systemId = UUID.randomUUID();
+		sessions.insert(SessionEntity.builder().id(systemId).name("sys-" + systemId).provider("claude").kind("system")
+				.repoPath("/repo").branch("b-" + systemId).baseBranch("main").worktreePath("/wt/" + systemId)
+				.state(SessionState.IDLE).build());
+
+		sessions.markClosed(first.id());
+		Thread.sleep(5);
+		sessions.markClosed(systemId);
+		sessions.markClosed(second.id());
+
+		List<UUID> recent = sessions.findRecentlyClosed(100).stream().map(SessionEntity::id).toList();
+
+		assertThat(recent).doesNotContain(systemId, open.id());
+		assertThat(recent.indexOf(second.id())).isLessThan(recent.indexOf(first.id()));
+		assertThat(sessions.findRecentlyClosed(1)).hasSize(1);
+		assertThat(sessions.get(first.id()).closedAt()).isNotNull();
+	}
 }

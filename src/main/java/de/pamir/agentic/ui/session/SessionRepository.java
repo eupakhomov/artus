@@ -85,6 +85,19 @@ public class SessionRepository {
 				.query(rowMapper).list();
 	}
 
+	/** Final CLOSED transition — state and {@code closed_at} in one statement (phase 23). */
+	public void markClosed(UUID id) {
+		jdbc.sql("UPDATE session SET state = 'CLOSED', closed_at = clock_timestamp(), updated_at = now() WHERE id = ?")
+				.params(id).update();
+	}
+
+	/** The most recently closed user-facing sessions, newest close first (sidebar History). */
+	public List<SessionEntity> findRecentlyClosed(int limit) {
+		return jdbc.sql("SELECT * FROM session WHERE state = 'CLOSED' AND kind <> 'system' "
+						+ "ORDER BY closed_at DESC NULLS LAST, updated_at DESC LIMIT ?")
+				.param(limit).query(rowMapper).list();
+	}
+
 	public void updateState(UUID id, SessionState state) {
 		jdbc.sql("UPDATE session SET state = ?, updated_at = now() WHERE id = ?")
 				.params(state.name(), id).update();
@@ -313,6 +326,7 @@ public class SessionRepository {
 				rs.getString("slack_channel"),
 				rs.getString("slack_thread_ts"),
 				rs.getTimestamp("created_at").toInstant(),
-				rs.getTimestamp("updated_at").toInstant());
+				rs.getTimestamp("updated_at").toInstant(),
+				rs.getTimestamp("closed_at") == null ? null : rs.getTimestamp("closed_at").toInstant());
 	}
 }

@@ -331,5 +331,8 @@ approval round-trip. Full mapping tables and rationale:
   `POST /api/sessions/{id}/compact` instead, so a synchronous 409 can refuse it
   outright for a non-IDLE/PARKED session (`SessionService.compact`) rather than
   round-tripping a `command_error` frame.
+- **REST, closed-session history** (phase 23): `GET /api/sessions/history?limit=5` (limit clamped 1-20)
+  returns the same `SessionSummary` objects as `GET /api/sessions` (plus `closedAt` and `prUrl`) for
+  `state = CLOSED`, `kind <> system` sessions, newest `closed_at` first. `closedAt` is null on open sessions.
 - Slow consumers are disconnected (close code 1013); reconnect with the last seen
   `afterSeq` to catch up losslessly from the journal.

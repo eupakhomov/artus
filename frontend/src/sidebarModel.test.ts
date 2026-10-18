@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useStore, type SessionView } from './store/store';
-import { buildSidebarModel, normalizeFold, shortAge } from './sidebarModel';
+import { buildSidebarModel, normalizeFold, selectHistory, shortAge } from './sidebarModel';
+import type { SessionSummary } from './protocol';
 
 // views are built through the store's own seed(), so they start from the real emptyView()
 function view(id: string, patch: Partial<SessionView>): void {
@@ -92,5 +93,26 @@ describe('normalizeFold', () => {
     expect(normalizeFold(null, 1000)).toBe('rail');
     expect(normalizeFold(null, 1400)).toBe('expanded');
     expect(normalizeFold('garbage', 1400)).toBe('expanded');
+  });
+});
+
+describe('selectHistory', () => {
+  const s = (id: string, closedAt: string | null, kind: 'user' | 'system' = 'user') =>
+    ({ id, kind, closedAt, updatedAt: '2026-01-01T00:00:00Z' }) as SessionSummary;
+
+  it('sorts newest close first, drops system and hidden ones, and caps', () => {
+    const list = [
+      s('a', '2026-10-01T10:00:00Z'),
+      s('b', '2026-10-01T12:00:00Z'),
+      s('sys', '2026-10-01T13:00:00Z', 'system'),
+      s('c', '2026-10-01T11:00:00Z'),
+      s('d', '2026-10-01T09:00:00Z'),
+    ];
+    expect(selectHistory(list, new Set(['c']), 2).map((x) => x.id)).toEqual(['b', 'a']);
+  });
+
+  it('falls back to updatedAt for rows closed before closedAt existed', () => {
+    const list = [s('old', null), s('new', '2026-10-01T10:00:00Z')];
+    expect(selectHistory(list, new Set(), 5).map((x) => x.id)).toEqual(['new', 'old']);
   });
 });

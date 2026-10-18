@@ -13,8 +13,10 @@ import MemoryDialog from './MemoryDialog';
 import ServiceDiscoveryDialog from './ServiceDiscoveryDialog';
 import HotkeyCheatsheet from './HotkeyCheatsheet';
 import ExposeOverlay from './ExposeOverlay';
+import ClosedSessionDialog from './ClosedSessionDialog';
 import Sidebar, { type SidebarFold } from './Sidebar';
-import { buildSidebarModel, normalizeFold } from '../sidebarModel';
+import { buildSidebarModel, normalizeFold, selectHistory } from '../sidebarModel';
+import { getHiddenHistory, hideHistoryEntry } from '../prefs';
 import { useStore } from '../store/store';
 import { notificationsEnabled, notify, toggleNotifications } from '../notify';
 import { useHotkeys } from '../hotkeys/useHotkeys';
@@ -101,6 +103,11 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
   const [pendingMemoryCount, setPendingMemoryCount] = useState(0);
   const [width, setWidth] = useState(window.innerWidth - 24);
   const [fold, setFold] = useState<SidebarFold>(loadFold);
+  const [historyRaw, setHistoryRaw] = useState<SessionSummary[]>([]);
+  const [hiddenHistory, setHiddenHistory] = useState<string[]>(getHiddenHistory);
+  const [openHistory, setOpenHistory] = useState<SessionSummary | null>(null);
+  const [continueFrom, setContinueFrom] = useState<SessionSummary | null>(null);
+  const history = useMemo(() => selectHistory(historyRaw, new Set(hiddenHistory), 5), [historyRaw, hiddenHistory]);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(loadLayoutMode);
   const layoutModeRef = useRef(layoutMode);
   layoutModeRef.current = layoutMode;
@@ -239,18 +246,27 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
     });
   }, [setFocused]);
 
+  const loadHistory = useCallback(() => {
+    // fetched a bit past the display cap so hiding an entry pulls the next-oldest one up
+    void api.sessionHistory(20).then(setHistoryRaw).catch(() => { /* sidebar nicety: stay with the last list */ });
+  }, []);
+
+  useEffect(() => loadHistory(), [loadHistory]);
+
   const onClosed = useCallback((id: string) => {
     setSessionIds((ids) => ids.filter((x) => x !== id));
     setSystemSessions((list) => list.filter((s) => s.id !== id));
     removeView(id);
-  }, [removeView]);
+    loadHistory();
+  }, [removeView, loadHistory]);
 
   const refresh = useCallback(async () => {
     const list = await api.listSessions();
     const live = list.filter((s) => s.state !== 'CLOSED');
     setSessionIds(live.filter((s) => s.kind !== 'system').map((s) => s.id).reverse());
     setSystemSessions(live.filter((s) => s.kind === 'system'));
-  }, []);
+    loadHistory();
+  }, [loadHistory]);
 
   const closeTopDialog = useCallback((): boolean => {
     if (showCheatsheet) { setShowCheatsheet(false); return true; }
@@ -454,7 +470,15 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
         <button className="primary with-icon" onClick={() => setShowCreate(true)}><New />New Session</button>
       </div>
       <div className={`shell sidebar-${fold}`}>
-      <Sidebar model={sidebarModel} fold={fold} showHints={layoutMode === 'focus'} onSelect={restoreAndFocus} />
+      <Sidebar
+        model={sidebarModel}
+        fold={fold}
+        showHints={layoutMode === 'focus'}
+        onSelect={restoreAndFocus}
+        history={history}
+        onOpenHistory={setOpenHistory}
+        onHideHistory={(id) => setHiddenHistory(hideHistoryEntry(id))}
+      />
       <div className={`grid-wrap${layoutMode === 'focus' ? ' focus-mode' : ''}`} ref={gridWrapRef}>
         <GridLayout
           className="layout"
@@ -488,6 +512,16 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
       </div>
       </div>
       {showCreate && <CreateSessionDialog onCreated={onCreated} onCancel={() => setShowCreate(false)} />}
+      {continueFrom && (
+        <CreateSessionDialog onCreated={(id, draft) => { setContinueFrom(null); onCreated(id, draft); }} onCancel={() => setContinueFrom(null)} continueFrom={continueFrom} />
+      )}
+      {openHistory && (
+        <ClosedSessionDialog
+          session={openHistory}
+          onContinue={(s) => { setOpenHistory(null); setContinueFrom(s); }}
+          onClose={() => setOpenHistory(null)}
+        />
+      )}
       {showQuickCreate && <QuickSessionDialog onCreated={onCreated} onCancel={() => setShowQuickCreate(false)} />}
       {showTemplates && <TemplateManager onClose={() => setShowTemplates(false)} />}
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}

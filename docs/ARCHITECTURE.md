@@ -561,6 +561,16 @@ if that throws, asks `POST …/visualize/repair` once before showing the raw sou
 | `BACKGROUND` | `system-background` | the caller's own timeout | none |
 | `VISUALIZE` | `system-visualize` | 20 s, then "busy" (only vs. another diagram request) | none |
 
+## 3k. Closed-session history (Phase 23)
+
+`session.closed_at` (V21) is set by `SessionRepository.markClosed` from `SessionService.transition(id, CLOSED)`;
+`updated_at` can't serve because PR polling, reflection and retention bump it. `GET /api/sessions/history`
+reads `findRecentlyClosed` (no full-table scan). The dashboard fetches on mount, on `refresh()` and in
+`onClosed`; the sidebar's History section shows `selectHistory(...)` (top 5, minus ids hidden in
+`localStorage` `artus.hiddenHistory`) and is absent in the rail fold. Clicking a row opens the read-only
+`ClosedSessionDialog` (transcript rebuilt with `transcriptFromEvents`, `Transcript` without `onPermission`);
+"Continue from this" mounts `CreateSessionDialog` with `continueFrom`, reusing the phase 7.3 handoff path.
+
 ## 4. Backlog implementation sketches (remaining: 5.4, 5.6–5.8, 5.10–5.11)
 
 ### 5.4 Templates v2 — remaining gap

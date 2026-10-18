@@ -668,7 +668,11 @@ public class SessionService {
 
 	/** Package-private: also called by {@link SystemSessionService#createSystemSession} and {@link SessionHousekeeping}. */
 	void transition(UUID id, SessionState state) {
-		sessions.updateState(id, state);
+		if (state == SessionState.CLOSED) {
+			sessions.markClosed(id);
+		} else {
+			sessions.updateState(id, state);
+		}
 		record(id, "state_changed", mapper.createObjectNode().put("state", state.name()));
 	}
 

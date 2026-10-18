@@ -28,9 +28,12 @@ const MODE_DESCRIPTION: Record<PermissionMode, string> = {
 export default function CreateSessionDialog({
   onCreated,
   onCancel,
+  continueFrom,
 }: {
   onCreated: (id: string, draftInput?: string) => void;
   onCancel: () => void;
+  /** open already continuing from this session (phase 23 History) — same path as the "Continue from…" picker */
+  continueFrom?: SessionSummary;
 }) {
   const [servicesInfo, setServicesInfo] = useState<ServicesResponse | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
@@ -217,6 +220,12 @@ export default function CreateSessionDialog({
       setApplyingContinuation(false);
     }
   };
+
+  // runs once at mount (the dialog is mounted fresh per open); a failure surfaces via continuationError
+  useEffect(() => {
+    if (continueFrom) void pickContinuation(continueFrom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!selectedRepoPath) return;

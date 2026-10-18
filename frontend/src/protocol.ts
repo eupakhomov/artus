@@ -148,6 +148,9 @@ export interface SessionSummary {
   costToDate: number;
   updatedAt: string;
   lastSeq: number;
+  /** set once a session is closed (phase 23); null while open */
+  closedAt: string | null;
+  prUrl: string | null;
 }
 
 export interface QueuedMessage {

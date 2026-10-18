@@ -49,7 +49,9 @@ public class SessionController {
 
 	public record SessionSummary(UUID id, String name, String provider, String repoPath, String servicePath,
 								 String branch, String model, String permissionMode, String state, String kind,
-								 String sessionType, BigDecimal costToDate, Instant updatedAt, long lastSeq) {
+								 String sessionType, BigDecimal costToDate, Instant updatedAt, long lastSeq,
+								 /** Null for open sessions (phase 23) */
+								 Instant closedAt, String prUrl) {
 	}
 
 	private final SessionService service;
@@ -101,8 +103,24 @@ public class SessionController {
 					EventJournal.SessionStats st = stats.getOrDefault(s.id(), NO_EVENTS);
 					return new SessionSummary(s.id(), s.name(), s.provider(), s.repoPath(), s.servicePath(), s.branch(),
 							s.model(), s.permissionMode(), s.state().name(), s.kind(), s.sessionType(), st.costToDate(),
-							s.updatedAt(), st.lastSeq());
+							s.updatedAt(), st.lastSeq(), s.closedAt(), s.prUrl());
 				})
+				.toList();
+	}
+
+	static final int HISTORY_MAX = 20;
+
+	static int clampHistoryLimit(int limit) {
+		return Math.max(1, Math.min(HISTORY_MAX, limit));
+	}
+
+	/** Sidebar History (phase 23): the most recently closed user sessions. Declared before {@code /{id}}. */
+	@GetMapping("/history")
+	public List<SessionSummary> history(@RequestParam(defaultValue = "5") int limit) {
+		return sessions.findRecentlyClosed(clampHistoryLimit(limit)).stream()
+				.map(s -> new SessionSummary(s.id(), s.name(), s.provider(), s.repoPath(), s.servicePath(), s.branch(),
+						s.model(), s.permissionMode(), s.state().name(), s.kind(), s.sessionType(),
+						journal.costToDate(s.id()), s.updatedAt(), journal.lastSeq(s.id()), s.closedAt(), s.prUrl()))
 				.toList();
 	}
 

@@ -1,4 +1,4 @@
-import type { AssetKind, AuthStatus, ChangeList, ChangedFileView, DiagramStatus, DiagramType, DiagramView, FilledMeta, ImportItemResult, LibraryAsset, LibraryAssetContent, LibrarySearchHit, LibrarySource, MemoryDoc, MemoryDocDetail, MemoryEpisode, MemoryProposal, MemoryProposedOp, MemorySearchHit, PrInfo, ProviderView, ScanResult, ServiceProfileView, ServicesResponse, SessionDetail, SessionEntity, SessionSummary, Settings, SkillProposalMeta, SlackStatus, StaleSession, Template, TicketList, TurnUsage } from '../protocol';
+import type { Envelope, AssetKind, AuthStatus, ChangeList, ChangedFileView, DiagramStatus, DiagramType, DiagramView, FilledMeta, ImportItemResult, LibraryAsset, LibraryAssetContent, LibrarySearchHit, LibrarySource, MemoryDoc, MemoryDocDetail, MemoryEpisode, MemoryProposal, MemoryProposedOp, MemorySearchHit, PrInfo, ProviderView, ScanResult, ServiceProfileView, ServicesResponse, SessionDetail, SessionEntity, SessionSummary, Settings, SkillProposalMeta, SlackStatus, StaleSession, Template, TicketList, TurnUsage } from '../protocol';
 
 let authToken: string | null = localStorage.getItem('artus.token');
 
@@ -62,6 +62,8 @@ async function request<T>(method: string, path: string, body?: unknown, signal?:
 export const api = {
   raw: <T>(method: string, path: string, body?: unknown) => request<T>(method, path, body),
   listSessions: () => request<SessionSummary[]>('GET', '/api/sessions'),
+  sessionHistory: (limit = 5) => request<SessionSummary[]>('GET', `/api/sessions/history?limit=${limit}`),
+  sessionEvents: (id: string) => request<Envelope[]>('GET', `/api/sessions/${id}/events`),
   sessionDetail: (id: string) => request<SessionDetail>('GET', `/api/sessions/${id}`),
   createSession: (body: unknown) => request<SessionEntity>('POST', '/api/sessions', body),
   resumeSession: (id: string) => request<SessionEntity>('POST', `/api/sessions/${id}/resume`),

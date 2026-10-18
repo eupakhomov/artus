@@ -27,6 +27,27 @@ export function setFontSize(size: FontSize): void {
   applyPrefs();
 }
 
+const HIDDEN_HISTORY_KEY = 'artus.hiddenHistory';
+
+/** Closed sessions the user dismissed from the sidebar History (this browser only; nothing server-side). */
+export function getHiddenHistory(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(HIDDEN_HISTORY_KEY) ?? '[]');
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function hideHistoryEntry(id: string): string[] {
+  // capped so the list can't grow without bound; History only ever shows the newest few anyway
+  const next = [id, ...getHiddenHistory().filter((x) => x !== id)].slice(0, 200);
+  try {
+    localStorage.setItem(HIDDEN_HISTORY_KEY, JSON.stringify(next));
+  } catch { /* storage full/blocked: hiding just lasts until reload */ }
+  return next;
+}
+
 /** Stamps data-theme / data-font-size onto <html>; call once at startup and after any change. */
 export function applyPrefs(): void {
   const root = document.documentElement;

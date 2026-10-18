@@ -71,6 +71,11 @@ final class FakeSessionRepository extends SessionRepository {
 	}
 
 	@Override
+	public void markClosed(UUID id) {
+		byId.computeIfPresent(id, (k, e) -> e.toBuilder().state(SessionState.CLOSED).closedAt(java.time.Instant.now()).build());
+	}
+
+	@Override
 	public void updateCapabilities(UUID id, tools.jackson.databind.JsonNode capabilities) {
 		byId.computeIfPresent(id, (k, e) -> e.toBuilder().capabilities(capabilities).build());
 	}
