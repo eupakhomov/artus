@@ -49,3 +49,6 @@ application-local.yaml
 ### Log files ###
 /logs/
 /.playwright-mcp/
+
+# demo screencast (release asset, not committed)
+demo-media/

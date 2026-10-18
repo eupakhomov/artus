@@ -1,10 +1,10 @@
 # Phase 24 — Demo mode (replay build of the dashboard)
 
-Status: **implemented (2026-10-18)** — steps 1-5 and 7 done; **real fixtures recorded** on the public
+Status: **implemented (2026-10-18)** — steps 1-7 done; **real fixtures recorded** on the public
 `eupakhomov/artus-demo-repo` (7 sessions: dev, review of PR #1, Codex, parent + child, two closed; 83 KB gzipped) and
 scrubbed, playback scripted in `frontend/demo/scripts.json` (workflow: `frontend/demo/SCENARIOS.md`). `vitest`, `tsc`,
-`npm run build`/`build:demo` pass and the demo build was driven in a browser. **Not done:** step 6 media (screenshots,
-screencast). Edit sites verified against the code as of commit `97832c3`.
+`npm run build`/`build:demo` pass and the demo build was driven in a browser. Step 6 media done (dark theme only): `docs/images/` screenshots + `scripts/shoot-demo.mjs`;
+the 75 s screencast (mp4+webm) is generated into gitignored `demo-media/` for upload as a release asset. Edit sites verified against the code as of commit `97832c3`.
 
 ### Deviations from the plan as written
 - `rest.demo.ts` exposes the client through a `Proxy` whose default is the 501 `ApiError`, instead of `satisfies typeof api`: a new real

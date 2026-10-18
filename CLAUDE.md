@@ -21,7 +21,8 @@ else (config prefix, package, DB name, file names) uses the new name only.
 │  ├─ PROTOCOL.md          # Sidecar/WS message contracts
 │  ├─ ARCHITECTURE.md      # As-built architecture + backlog implementation sketches
 │  ├─ DEPLOY.md            # Deploying on macOS — prereqs, run, update, optional integrations
-│  └─ SLACK.md             # Slack app setup, tokens, env vars, troubleshooting (phase 18)
+│  ├─ SLACK.md             # Slack app setup, tokens, env vars, troubleshooting (phase 18)
+│  └─ DEMO-MEDIA.md        # Re-shooting the demo screenshots + screencast (phase 24)
 └─ CLAUDE.md               # this file
 ```
 
