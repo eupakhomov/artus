@@ -70,6 +70,10 @@ public class SessionService {
 	 * {@link #becomeIdleAndDrainQueue} sees the freshly-spawned sidecar report ready, ahead of
 	 * any queued text turn. */
 	private final Set<UUID> pendingCompactAfterWake = ConcurrentHashMap.newKeySet();
+	/** Live provider background tasks per session, from the latest {@code background_tasks} event (phase 25). */
+	private final Map<UUID, Integer> backgroundTaskCounts = new ConcurrentHashMap<>();
+	/** Per child: the state its parent was last told about ({@code child_attention}), until the child's turn settles (phase 25). */
+	private final Map<UUID, SessionState> childAttentionNoted = new ConcurrentHashMap<>();
 
 	public SessionService(AppProperties props, SettingsService settings, SessionRepository sessions,
 						  GitWorktreeService worktrees, GitCommandRunner git,
@@ -486,6 +490,8 @@ public class SessionService {
 		}
 		if ("turn_complete".equals(type) && event instanceof ObjectNode turnComplete) {
 			applyEstimatedCost(id, turnComplete);
+		} else if ("turn_usage".equals(type) && event instanceof ObjectNode turnUsage) {
+			applyLiveEstimate(id, turnUsage);
 		}
 		record(id, type, event);
 		switch (type) {
@@ -501,12 +507,28 @@ public class SessionService {
 			case "system_init" -> {
 				sessions.updateProviderSessionId(id, event.path("providerSessionId").asText());
 				sessions.updateModel(id, event.path("model").asText());
+				// system_init opens every turn. Arriving while IDLE, nobody sent a message: the
+				// provider started the turn itself, e.g. to read a finished background task's
+				// result (phase 25 step 4) — so the session is running again.
+				synchronized (lock(id)) {
+					if (sessions.get(id).state() == SessionState.IDLE) {
+						transition(id, SessionState.RUNNING);
+					}
+				}
 			}
 			case "permission_request" -> transition(id, SessionState.WAITING_INPUT);
 			case "permission_mode_changed" -> sessions.updatePermissionMode(id, event.path("mode").asText());
 			case "model_changed" -> sessions.updateModel(id, event.path("model").asText());
 			case "context_usage" -> sessions.updateContextUsage(id, event.path("tokens").asInt(), event.path("window").asInt());
 			case "assistant_message" -> systemSessionService.onAssistantMessage(id, event.get("content"));
+			case "background_tasks" -> {
+				int count = event.path("tasks").size();
+				if (count > 0) {
+					backgroundTaskCounts.put(id, count);
+				} else {
+					backgroundTaskCounts.remove(id);
+				}
+			}
 			case "turn_complete" -> {
 				// drain first: best-effort housekeeping below must never be able to block it
 				synchronized (lock(id)) {
@@ -535,6 +557,7 @@ public class SessionService {
 	// package-private (not private): unit-tested directly — see docs/plan/phase-9-production-hardening.md T2
 	void onSidecarExit(UUID id, int code, List<String> stderrTail, boolean shutdownRequested) {
 		pendingPermissions.clear(id);
+		backgroundTaskCounts.remove(id); // they died with the process
 		synchronized (lock(id)) {
 			SessionEntity session = sessions.find(id).orElse(null);
 			if (session == null) {
@@ -647,6 +670,32 @@ public class SessionService {
 		}
 	}
 
+	/**
+	 * Prices a {@code turn_usage} event's per-model token counts into {@code estimatedCostUsd}
+	 * (phase 25 step 3) — the live, mid-turn "~$" the widget shows until {@code turn_complete}
+	 * brings the real figure. Best effort: a broken price table only loses the estimate.
+	 */
+	private void applyLiveEstimate(UUID id, ObjectNode turnUsage) {
+		SessionEntity session = sessions.find(id).orElse(null);
+		if (session == null) {
+			return;
+		}
+		try {
+			JsonNode pricing = mapper.readTree(settings.pricingFor(session.provider()));
+			turnUsage.put("estimatedCostUsd", TokenCostEstimator.estimate(pricing, turnUsage.path("byModel")));
+		} catch (RuntimeException e) {
+			log.warn("live cost estimate failed for session {}: {}", id, e.getMessage());
+		}
+	}
+
+	/**
+	 * Whether the session's provider still runs background work (a backgrounded subagent or shell
+	 * command) — idle parking must not kill it; the provider starts a turn of its own when it ends.
+	 */
+	public boolean hasBackgroundTasks(UUID id) {
+		return backgroundTaskCounts.containsKey(id);
+	}
+
 	private boolean budgetExhausted(SessionEntity session) {
 		return session.costBudgetUsd() != null
 				&& journal.costToDate(session.id()).compareTo(session.costBudgetUsd()) >= 0;
@@ -674,6 +723,55 @@ public class SessionService {
 			sessions.updateState(id, state);
 		}
 		record(id, "state_changed", mapper.createObjectNode().put("state", state.name()));
+		if (state == SessionState.WAITING_INPUT || state == SessionState.CRASHED) {
+			noteChildAttention(id, state);
+			unhide(id); // it needs the user now — hidden would mean nobody sees it
+		} else if (state != SessionState.RUNNING) {
+			childAttentionNoted.remove(id); // RUNNING keeps it: several prompts in one turn are one stall
+		}
+	}
+
+	/**
+	 * Phase 25: keep a session off the dashboard (or bring it back). Nothing else about it changes —
+	 * it still runs, parks, resumes and mirrors to Slack. Journaled so open tabs follow.
+	 */
+	public void setHidden(UUID id, boolean hidden) {
+		SessionEntity session = sessions.get(id);
+		if (session.hidden() == hidden) {
+			return;
+		}
+		sessions.updateHidden(id, hidden);
+		record(id, "visibility_changed", mapper.createObjectNode().put("hidden", hidden));
+	}
+
+	/** Brings a hidden session back onto the dashboard; no-op when it is not hidden. */
+	public void unhide(UUID id) {
+		sessions.find(id).filter(SessionEntity::hidden).ifPresent(s -> setHidden(id, false));
+	}
+
+	/** Called by idle parking once a session is PARKED: the "Hide sessions when they park" setting (phase 25). */
+	void onParked(UUID id) {
+		if (settings.current().hideOnPark()) {
+			sessions.find(id).filter(s -> "user".equals(s.kind())).ifPresent(s -> setHidden(id, true));
+		}
+	}
+
+	/**
+	 * A spawned child that stops for a human (an approval prompt) or dies leaves its parent waiting
+	 * on a report that may never come — say so on the parent's transcript (phase 25). A note only:
+	 * nothing is sent to the parent's model, the human decides what to do.
+	 */
+	private void noteChildAttention(UUID childId, SessionState state) {
+		SessionEntity child = sessions.find(childId).orElse(null);
+		if (child == null || child.parentSessionId() == null
+				// once reported, the parent no longer waits on it — the human is now driving the child
+				|| journal.hasEventType(childId, "child_reported")
+				// one note per stall: a child asking for several approvals in one turn is one stall
+				|| childAttentionNoted.put(childId, state) == state) {
+			return;
+		}
+		record(child.parentSessionId(), "child_attention", mapper.createObjectNode()
+				.put("childId", childId.toString()).put("childName", child.name()).put("state", state.name()));
 	}
 
 	/** Journal + fan out. The journal assigns seq; subscribers see exactly what replay will. */

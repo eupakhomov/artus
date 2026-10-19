@@ -87,7 +87,9 @@ public record SessionEntity(
 		Instant createdAt,
 		Instant updatedAt,
 		/** When the user-facing close finished (phase 23); null while open and for rows closed before V21 had no source. */
-		Instant closedAt
+		Instant closedAt,
+		/** Phase 25: kept off the dashboard (no widget; the sidebar's Hidden section lists it). */
+		boolean hidden
 ) {
 
 	/**
@@ -141,7 +143,7 @@ public record SessionEntity(
 				.prCheckedAt(prCheckedAt).reflectionEnabled(reflectionEnabled).reflectedSeq(reflectedSeq)
 				.codeIntel(codeIntel).contextTokens(contextTokens).contextWindow(contextWindow)
 				.slackEnabled(slackEnabled).slackChannel(slackChannel).slackThreadTs(slackThreadTs)
-				.createdAt(createdAt).updatedAt(updatedAt).closedAt(closedAt);
+				.createdAt(createdAt).updatedAt(updatedAt).closedAt(closedAt).hidden(hidden);
 	}
 
 	/**
@@ -205,6 +207,7 @@ public record SessionEntity(
 		private Instant createdAt;
 		private Instant updatedAt;
 		private Instant closedAt;
+		private boolean hidden;
 
 		private Builder() {
 		}
@@ -258,6 +261,7 @@ public record SessionEntity(
 		public Builder createdAt(Instant v) { this.createdAt = v; return this; }
 		public Builder updatedAt(Instant v) { this.updatedAt = v; return this; }
 		public Builder closedAt(Instant v) { this.closedAt = v; return this; }
+		public Builder hidden(boolean v) { this.hidden = v; return this; }
 
 		public SessionEntity build() {
 			return new SessionEntity(id, name, provider, providerConfig, repoPath, servicePath, ecosystemPath, contextDirs,
@@ -265,7 +269,7 @@ public record SessionEntity(
 					allowedTools, disallowedTools, mcpConfig, envVars, skillSources, agentSources, instructions,
 					thinking, effort, maxTurns, fallbackModel, costBudgetUsd, kickoffPrompt, state, kind, sessionType,
 					ticketRef, continuedFromId, parentSessionId, prUrl, prHeadSha, prCheckStatus, prCheckedAt,
-					reflectionEnabled, reflectedSeq, codeIntel, contextTokens, contextWindow, slackEnabled, slackChannel, slackThreadTs, createdAt, updatedAt, closedAt);
+					reflectionEnabled, reflectedSeq, codeIntel, contextTokens, contextWindow, slackEnabled, slackChannel, slackThreadTs, createdAt, updatedAt, closedAt, hidden);
 		}
 	}
 }

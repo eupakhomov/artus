@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { classifyStreamFailure, translateSdkMessage } from '../src/session.js';
+import { classifyStreamFailure, newTranslateState, translateSdkMessage } from '../src/session.js';
 
-function state(currentModel = '') {
-  return { currentModel };
+function state(currentModel = '', lastTotalCostUsd = 0) {
+  return { ...newTranslateState(currentModel), lastTotalCostUsd };
 }
 
 describe('translateSdkMessage', () => {
@@ -202,11 +202,83 @@ describe('translateSdkMessage', () => {
         stopReason: 'success',
         usage: { input_tokens: 1 },
         costUsd: 0.02,
+        sessionCostUsd: 0.02,
         durationMs: 500,
         numTurns: 3,
         model: 'opus',
       },
     ]);
+  });
+
+  it('reports each turn its own cost, not the SDK running total', () => {
+    const s = state('opus');
+    const costs = [1, 2, 4, 5].map((total) => {
+      const { events } = translateSdkMessage({ type: 'result', subtype: 'success', usage: {}, total_cost_usd: total, duration_ms: 1, num_turns: 1 }, s);
+      return (events[0] as { costUsd: number }).costUsd;
+    });
+    expect(costs).toEqual([1, 1, 2, 1]);
+    expect(s.lastTotalCostUsd).toBe(5);
+  });
+
+  it('counts each model call once although the SDK repeats its usage per content block', () => {
+    const s = state('sonnet');
+    const usage = { input_tokens: 10, output_tokens: 3, cache_read_input_tokens: 100, cache_creation_input_tokens: 50, cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 50 } };
+    const start = translateSdkMessage({ type: 'stream_event', event: { type: 'message_start', message: { id: 'm1', model: 'claude-sonnet-5', usage } } }, s);
+    expect(start.events).toEqual([
+      { type: 'turn_usage', byModel: { 'claude-sonnet-5': { input: 10, output: 3, cacheRead: 100, cacheWrite5m: 0, cacheWrite1h: 50 } } },
+    ]);
+    // split assistant messages repeating the same partial usage add nothing — as seen live, they
+    // carry the cache-write total without the 5m/1h breakdown, which must not be re-counted as 5m
+    const { cache_creation: _, ...noBreakdown } = usage;
+    for (const block of ['thinking', 'tool_use']) {
+      const { events } = translateSdkMessage({ type: 'assistant', message: { id: 'm1', model: 'claude-sonnet-5', usage: noBreakdown, content: [{ type: block }] } }, s);
+      expect(events.some((e) => e.type === 'turn_usage')).toBe(false);
+    }
+    expect(s.usage.byModel()['claude-sonnet-5']).toMatchObject({ cacheWrite5m: 0, cacheWrite1h: 50 });
+    const delta = translateSdkMessage({ type: 'stream_event', event: { type: 'message_delta', usage: { ...usage, output_tokens: 400 } } }, s);
+    expect(delta.events).toEqual([
+      { type: 'turn_usage', byModel: { 'claude-sonnet-5': { input: 10, output: 400, cacheRead: 100, cacheWrite5m: 0, cacheWrite1h: 50 } } },
+    ]);
+    // a subagent call on another model is only seen as an assistant message
+    const sub = translateSdkMessage({ type: 'assistant', parent_tool_use_id: 'tu', message: { id: 'm2', model: 'claude-haiku-4-5', usage: { input_tokens: 8, output_tokens: 2, cache_creation_input_tokens: 900 }, content: [] } }, s);
+    expect(sub.events.at(-1)).toEqual({
+      type: 'turn_usage',
+      byModel: {
+        'claude-sonnet-5': { input: 10, output: 400, cacheRead: 100, cacheWrite5m: 0, cacheWrite1h: 50 },
+        'claude-haiku-4-5': { input: 8, output: 2, cacheRead: 0, cacheWrite5m: 900, cacheWrite1h: 0 },
+      },
+    });
+    translateSdkMessage({ type: 'result', subtype: 'success', usage: {}, total_cost_usd: 1, duration_ms: 1, num_turns: 1 }, s);
+    expect(s.usage.byModel()).toEqual({});
+  });
+
+  it('takes the cache-write split from a breakdown that arrives after the bare total', () => {
+    const s = state('sonnet');
+    translateSdkMessage({ type: 'assistant', message: { id: 'm1', model: 'claude-sonnet-5', usage: { input_tokens: 10, cache_creation_input_tokens: 8641 }, content: [] } }, s);
+    expect(s.usage.byModel()['claude-sonnet-5']).toMatchObject({ cacheWrite5m: 8641, cacheWrite1h: 0 });
+    translateSdkMessage({ type: 'stream_event', event: { type: 'message_start', message: { id: 'm1', model: 'claude-sonnet-5', usage: { input_tokens: 10, cache_creation_input_tokens: 8641, cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 8641 } } } } }, s);
+    expect(s.usage.byModel()['claude-sonnet-5']).toMatchObject({ cacheWrite5m: 0, cacheWrite1h: 8641 });
+  });
+
+  it('translates task lifecycle messages and hides housekeeping tasks', () => {
+    const s = state();
+    expect(translateSdkMessage({ type: 'system', subtype: 'task_started', task_id: 't1', tool_use_id: 'tu', description: 'List files', task_type: 'local_agent', subagent_type: 'Explore', is_backgrounded: true }, s).events)
+      .toEqual([{ type: 'task_started', taskId: 't1', toolUseId: 'tu', description: 'List files', kind: 'local_agent', subagentType: 'Explore', backgrounded: true }]);
+    expect(translateSdkMessage({ type: 'system', subtype: 'task_started', task_id: 't2', description: 'x', skip_transcript: true }, s).events).toEqual([]);
+    expect(translateSdkMessage({ type: 'system', subtype: 'task_progress', task_id: 't1', tool_use_id: 'tu', description: 'Running ls', last_tool_name: 'Bash', usage: { total_tokens: 900, tool_uses: 2, duration_ms: 1500 } }, s).events)
+      .toEqual([{ type: 'task_progress', taskId: 't1', toolUseId: 'tu', description: 'Running ls', lastTool: 'Bash', toolUses: 2, tokens: 900, durationMs: 1500 }]);
+    expect(translateSdkMessage({ type: 'system', subtype: 'task_notification', task_id: 't1', tool_use_id: 'tu', status: 'completed', summary: 'done', output_file: '/x' }, s).events)
+      .toEqual([{ type: 'task_done', taskId: 't1', toolUseId: 'tu', status: 'completed', summary: 'done' }]);
+    expect(translateSdkMessage({ type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 't1', task_type: 'local_bash', description: 'sleep' }] }, s).events)
+      .toEqual([{ type: 'background_tasks', tasks: [{ taskId: 't1', kind: 'local_bash', description: 'sleep' }] }]);
+  });
+
+  it('treats a running total that went down as a reset', () => {
+    const { events } = translateSdkMessage(
+      { type: 'result', subtype: 'success', usage: {}, total_cost_usd: 0.5, duration_ms: 1, num_turns: 1 },
+      state('opus', 3),
+    );
+    expect(events[0]).toMatchObject({ costUsd: 0.5, sessionCostUsd: 0.5 });
   });
 
   it('surfaces a non-nominal rate_limit_event as a non-fatal error', () => {

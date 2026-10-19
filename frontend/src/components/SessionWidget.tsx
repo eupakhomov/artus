@@ -1,14 +1,16 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api, ApiError } from '../api/rest';
 import { WsSession } from '../api/ws';
 import { contextUsageTitle } from '../protocol';
 import type { ChangeList, Envelope, PermissionMode, PrCheckStatus, SessionEntity } from '../protocol';
-import { type CodeIntelStatus, useStore } from '../store/store';
+import { type CodeIntelStatus, type LiveTurn, useStore } from '../store/store';
+import { describeActivity, formatDuration } from '../activity';
 import { notify, notificationForEvent } from '../notify';
 import { registerWidget, unregisterWidget } from '../hotkeys/widgetRegistry';
 import {
   ChildOf, Close, ContinuedFrom, DownloadIcon, Duplicate, EcosystemContext, GitPanelIcon,
-  ChangesIcon, Diagram, ExtractSkill, InfoTag, Interrupt, LinkedTicket, Maximize, Memory, MinimizeToDock, PullRequest, Restore, SystemSession,
+  BackgroundTasks, ChangesIcon, HideFromDashboard, Diagram, ExtractSkill, InfoTag, Interrupt, LinkedTicket, LiveActivity, Maximize, Memory, MinimizeToDock, PullRequest, Restore, SystemSession,
 } from '../icons';
 import Transcript from './Transcript';
 import CloseDialog from './CloseDialog';
@@ -48,6 +50,8 @@ export default function SessionWidget({
   onToggleMaximize,
   onToggleMinimize,
   onRequestFocus,
+  onOpenSession,
+  onHide,
 }: {
   sessionId: string;
   initialInput?: string;
@@ -60,8 +64,24 @@ export default function SessionWidget({
   onToggleMinimize: () => void;
   /** restore + focus this session — what a click on its desktop notification does (phase 16) */
   onRequestFocus: () => void;
+  /** restore + focus another session — the parent/children chips' jump (phase 25) */
+  onOpenSession: (id: string) => void;
+  /** keep this session off the dashboard; it stays alive in the sidebar's Hidden section (phase 25) */
+  onHide: () => void;
 }) {
   const view = useStore((s) => s.views[sessionId]);
+  // phase 25: the children this session spawned, as one string so an unrelated session's
+  // stream doesn't re-render this widget
+  const childrenKey = useStore((s) => Object.entries(s.views)
+    .filter(([, v]) => v.parentSessionId === sessionId)
+    .map(([id, v]) => [id, v.state, v.costToDate.toFixed(3), v.name ?? ''].join('\u0001'))
+    .join('\u0002'));
+  const children = useMemo(() => (childrenKey ? childrenKey.split('\u0002') : []).map((row) => {
+    const [id, state, cost, name] = row.split('\u0001') as [string, string, string, string];
+    return { id, state, cost, name: name || id.slice(0, 8) };
+  }), [childrenKey]);
+  /** where the children popover opens (viewport coords of the chip), null when closed */
+  const [childrenAnchor, setChildrenAnchor] = useState<{ top: number; left: number } | null>(null);
   const apply = useStore((s) => s.apply);
   const setWsStatus = useStore((s) => s.setWsStatus);
   const seed = useStore((s) => s.seed);
@@ -396,9 +416,35 @@ export default function SessionWidget({
             </span>
           )}
           {entity?.parentSessionId && (
-            <span className="chip" title={`child of: ${parentName ?? entity.parentSessionId}`}>
+            <span
+              className="chip clickable"
+              title={`child of: ${parentName ?? entity.parentSessionId} — click to open it`}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => onOpenSession(entity.parentSessionId!)}
+            >
               <ChildOf />{parentName ?? 'parent'}
             </span>
+          )}
+          {children.length > 0 && (
+            <span
+              className={`chip clickable${children.some((c) => c.state === 'WAITING_INPUT' || c.state === 'CRASHED') ? ' children-attention' : ''}`}
+              title="child sessions this session spawned — click for their state"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setChildrenAnchor((cur) => (cur ? null : { top: r.bottom + 4, left: r.left }));
+              }}
+            >
+              <ChildOf />{childrenSummary(children)}
+            </span>
+          )}
+          {childrenAnchor && children.length > 0 && (
+            <ChildrenPopover
+              anchor={childrenAnchor}
+              items={children}
+              onOpen={(id) => { setChildrenAnchor(null); onOpenSession(id); }}
+              onClose={() => setChildrenAnchor(null)}
+            />
           )}
           {view.prUrl && (
             <a
@@ -427,7 +473,9 @@ export default function SessionWidget({
           className={`chip${budget !== null ? ' clickable' : ''}${running ? ' pulse' : ''}`}
           title={
             (running
-              ? 'cost as of the last completed turn — updates once the current turn finishes. '
+              ? view.liveTurn?.estimatedCostUsd != null
+                ? `cost as of the last completed turn, plus ~$${view.liveTurn.estimatedCostUsd.toFixed(3)} estimated for the turn in flight (from token counts and the Settings price table; the real figure lands when it finishes). `
+                : 'cost as of the last completed turn — updates once the current turn finishes. '
               : '')
             + (budget !== null
               ? `$${view.costToDate.toFixed(3)} of $${budget} budget — click to change`
@@ -441,6 +489,7 @@ export default function SessionWidget({
           }}
         >
           ${view.costToDate.toFixed(3)}{budget !== null ? ` / $${budget}` : ''}
+          {running && view.liveTurn?.estimatedCostUsd != null && ` + ~$${view.liveTurn.estimatedCostUsd.toFixed(3)}`}
         </span>
         {view.contextTokens != null && view.contextWindow != null && view.contextWindow > 0 && (
           <span
@@ -469,6 +518,14 @@ export default function SessionWidget({
           onClick={onToggleMinimize}
           title="minimize (x)"
         ><MinimizeToDock /></button>
+        {entity?.kind !== 'system' && (
+          <button
+            className="icon-btn"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={onHide}
+            title="hide from dashboard (h) — keeps running; find it under Hidden in the sidebar. It comes back by itself when it needs you"
+          ><HideFromDashboard /></button>
+        )}
         {entity?.kind !== 'system' && (
           <button
             className={`icon-btn${showGit ? ' active' : ''}`}
@@ -570,6 +627,12 @@ export default function SessionWidget({
             onPrCreated={(url) => seed(sessionId, (v) => ({ ...v, prUrl: url, prCheckStatus: 'PENDING' }))}
           />
         )}
+        {view.backgroundTasks.length > 0 && (
+          <div className="bg-tasks" title="the agent started these and they are still running — it picks their results up when they finish">
+            <BackgroundTasks size={13} />
+            <span>{view.backgroundTasks.length} running in background: {view.backgroundTasks.map((b) => b.description || b.kind).join(' · ')}</span>
+          </div>
+        )}
         <Transcript
           items={view.transcript}
           onPermission={(requestId, response) => send({ type: 'permission_response', requestId, ...response })}
@@ -598,6 +661,7 @@ export default function SessionWidget({
             onDismiss={() => dismissContextWarn(sessionId)}
           />
         )}
+        {running && view.liveTurn && <LiveTurnLine turn={view.liveTurn} waiting={state === 'WAITING_INPUT'} />}
         <div className="inputbar">
           {actionError && <div className="error-text">{actionError}</div>}
           {view.queued.length > 0 && (
@@ -681,6 +745,70 @@ export default function SessionWidget({
 }
 
 /** phase 13: colour = state — pulse while the graph builds, plain when ready, --red on failure (no status yet = plain). */
+/**
+ * Portalled: the widget header clips overflow, and grid widgets are CSS-transformed, which would
+ * pin a fixed element to the widget instead of the viewport.
+ */
+function ChildrenPopover({ anchor, items, onOpen, onClose }: {
+  anchor: { top: number; left: number };
+  items: { id: string; state: string; cost: string; name: string }[];
+  onOpen: (id: string) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey); };
+  }, [onClose]);
+  return createPortal(
+    <div ref={ref} className="children-popover" style={{ top: anchor.top, left: anchor.left }}>
+      {items.map((c) => (
+        <button key={c.id} className="children-row" onClick={() => onOpen(c.id)} title="open this child session">
+          <span className={`dot ${c.state}`} />
+          <span className="children-name">{c.name}</span>
+          <span className="children-meta">{c.state.toLowerCase().replace('_', ' ')} · ${c.cost}</span>
+        </button>
+      ))}
+    </div>,
+    document.body,
+  );
+}
+
+function childrenSummary(children: { state: string }[]): string {
+  const live = children.filter((c) => c.state === 'RUNNING' || c.state === 'STARTING' || c.state === 'PROVISIONING').length;
+  const waiting = children.filter((c) => c.state === 'WAITING_INPUT').length;
+  const crashed = children.filter((c) => c.state === 'CRASHED').length;
+  const parts = [`${children.length} child${children.length === 1 ? '' : 'ren'}`];
+  if (live) parts.push(`${live} running`);
+  if (waiting) parts.push(`${waiting} waiting`);
+  if (crashed) parts.push(`${crashed} crashed`);
+  return parts.join(' · ');
+}
+
+/** What the turn in flight is doing, how long it has run, and what it has cost so far (phase 25). */
+function LiveTurnLine({ turn, waiting }: { turn: LiveTurn; waiting: boolean }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const label = waiting ? 'waiting for your approval' : describeActivity(turn.activity);
+  return (
+    <div className={`live-turn${waiting ? ' waiting' : ''}`} title={label}>
+      <LiveActivity size={13} className="live-icon" />
+      <span className="live-label">{label}</span>
+      <span className="live-meta">
+        {formatDuration(now - Date.parse(turn.startedAt))}
+        {turn.toolCount > 0 && ` · ${turn.toolCount} tool${turn.toolCount === 1 ? '' : 's'}`}
+        {turn.estimatedCostUsd != null && ` · ~$${turn.estimatedCostUsd.toFixed(3)}`}
+      </span>
+    </div>
+  );
+}
+
 function codeIntelChipClass(status: CodeIntelStatus | null): string {
   if (!status) return 'chip';
   if (status.status === 'BUILDING') return 'chip pulse';

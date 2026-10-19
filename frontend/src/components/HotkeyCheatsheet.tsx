@@ -13,6 +13,7 @@ const ROWS: [string, string][] = [
   ['c', 'toggle changes panel (diff vs base, ask about lines)'],
   ['f', 'maximize / restore widget (grid layout)'],
   ['x', 'minimize widget'],
+  ['h', 'hide session from the dashboard (sidebar → Hidden)'],
   ['e', 'Exposé (all sessions)'],
   ['b', 'sidebar: expanded ↔ rail'],
   ['v', 'grid ↔ focus layout'],

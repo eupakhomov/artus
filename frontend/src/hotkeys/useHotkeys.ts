@@ -16,6 +16,8 @@ export interface HotkeyActions {
   openCheatsheet: () => void;
   toggleMaximizeFocused: () => void;
   toggleMinimizeFocused: () => void;
+  /** phase 25: keep the focused session off the dashboard (sidebar → Hidden) */
+  hideFocused: () => void;
   openExpose: () => void;
   /** phase 16: sidebar expanded ↔ rail */
   cycleSidebar: () => void;
@@ -141,6 +143,9 @@ export function useHotkeys(actions: HotkeyActions): void {
           return;
         case 'x':
           if (focused) a.toggleMinimizeFocused();
+          return;
+        case 'h':
+          if (focused) a.hideFocused();
           return;
         case 'e':
           a.openExpose();

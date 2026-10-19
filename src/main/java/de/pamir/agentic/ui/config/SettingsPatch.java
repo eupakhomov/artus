@@ -2,8 +2,8 @@ package de.pamir.agentic.ui.config;
 
 /**
  * A partial update to {@link Settings}: every component is boxed/nullable, {@code null} meaning
- * "leave this setting alone" (mirrors {@link Settings} field-for-field). {@code codexPricing} rides
- * along as an extra field — pricing is provider-keyed, not part of {@link Settings} itself, but the
+ * "leave this setting alone" (mirrors {@link Settings} field-for-field). {@code codexPricing} (and
+ * phase 25's {@code claudePricing}) ride along as extra fields — pricing is provider-keyed, not part of {@link Settings} itself, but the
  * Settings dialog still edits it as one flat field (R1's decision to leave the UI un-generalized).
  * Bound straight from the {@code PATCH /api/settings} request body by Jackson; the nested
  * {@link Builder} exists purely so tests can construct a single-field patch without a 23-argument
@@ -25,6 +25,7 @@ public record SettingsPatch(
 		String defaultProvider,
 		String systemProvider,
 		String codexPricing,
+		String claudePricing,
 		String memoryRoot,
 		Boolean memoryEnabled,
 		Boolean memoryReflectionDefault,
@@ -44,7 +45,9 @@ public record SettingsPatch(
 		String linearAllowedTools,
 		Boolean authTokenRequired,
 		Boolean slackDefaultEnabled,
-		String visualizeModel) {
+		String visualizeModel,
+		Boolean hideOnPark,
+		Boolean autoTitle) {
 
 	public static Builder builder() {
 		return new Builder();
@@ -67,6 +70,7 @@ public record SettingsPatch(
 		private String defaultProvider;
 		private String systemProvider;
 		private String codexPricing;
+		private String claudePricing;
 		private String memoryRoot;
 		private Boolean memoryEnabled;
 		private Boolean memoryReflectionDefault;
@@ -86,6 +90,8 @@ public record SettingsPatch(
 		private String linearAllowedTools;
 		private Boolean authTokenRequired;
 		private Boolean slackDefaultEnabled;
+		private Boolean hideOnPark;
+		private Boolean autoTitle;
 		private String visualizeModel;
 
 		public Builder linearOAuthEnabled(Boolean v) {
@@ -160,6 +166,11 @@ public record SettingsPatch(
 
 		public Builder codexPricing(String v) {
 			this.codexPricing = v;
+			return this;
+		}
+
+		public Builder claudePricing(String v) {
+			this.claudePricing = v;
 			return this;
 		}
 
@@ -258,6 +269,16 @@ public record SettingsPatch(
 			return this;
 		}
 
+		public Builder hideOnPark(Boolean v) {
+			this.hideOnPark = v;
+			return this;
+		}
+
+		public Builder autoTitle(Boolean v) {
+			this.autoTitle = v;
+			return this;
+		}
+
 		public Builder visualizeModel(String v) {
 			this.visualizeModel = v;
 			return this;
@@ -267,12 +288,12 @@ public record SettingsPatch(
 			return new SettingsPatch(linearOAuthEnabled, ticketImportSpec, ecosystemRoot, monorepoServiceGlobs,
 					monorepoDetectionEnabled, prChecksEnabled,
 					prCheckPollIntervalSeconds, librarySkillsRoot, libraryAgentsRoot, libraryVectorize,
-					librarySyncEnabled, librarySyncIntervalMinutes, defaultProvider, systemProvider, codexPricing,
+					librarySyncEnabled, librarySyncIntervalMinutes, defaultProvider, systemProvider, codexPricing, claudePricing,
 					memoryRoot, memoryEnabled, memoryReflectionDefault, memoryReflectionModel,
 					memorySyncIntervalMinutes, memoryRetentionDays, memoryReflectionApprovalRequired,
 					serviceDiscoveryEnabled, serviceDiscoveryStalenessDays, serviceDiscoveryModel, contextWarnPercent,
 					mcpSerenaRoot, mcpUvPath, mcpGraphifyRoot, mcpCodegraphRoot, codeIntel, linearAllowedTools,
-					authTokenRequired, slackDefaultEnabled, visualizeModel);
+					authTokenRequired, slackDefaultEnabled, visualizeModel, hideOnPark, autoTitle);
 		}
 	}
 }

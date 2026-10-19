@@ -12,6 +12,7 @@ import {
   type ContextUsageEvent,
   type EffortLevel,
   type Event,
+  type ModelTokenUsage,
   type PermissionMode,
   type ThinkingSetting,
 } from './protocol.js';
@@ -144,7 +145,8 @@ export function enabledToolsHook(enabled: Map<string, Set<string>>) {
  * Pure(ish) translation of one SDK message into the zero-or-more protocol Events it
  * produces, plus any stderr-bound diagnostic lines. Mutates `modelState.currentModel`
  * on a `system/init` message (mirrors the pre-extraction inline `currentModel`
- * variable) so a later `result` message can stamp the model that produced the turn.
+ * variable) so a later `result` message can stamp the model that produced the turn,
+ * and `modelState.lastTotalCostUsd` on a `result` (see {@link turnCostDelta}).
  * Split out from {@link runSession}'s main loop so it's testable without a live SDK
  * query — feed it canned SDK message shapes directly.
  */
@@ -209,9 +211,126 @@ export function toContextUsageEvent(
   };
 }
 
+interface RawUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_creation?: { ephemeral_5m_input_tokens?: number; ephemeral_1h_input_tokens?: number };
+}
+
+/** One model call's counts as seen so far; the cache-write split is kept apart from its total. */
+interface CallUsage {
+  model: string;
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  /** the 1-hour share of cacheWrite, from the last message that carried a breakdown; null = none seen */
+  cacheWrite1h: number | null;
+}
+
+/**
+ * Token usage of the current turn, one entry per model call (phase 25 step 3). The SDK
+ * splits one API response into an `assistant` message per content block, each repeating the
+ * same partial usage, and only the main loop's `message_delta` stream event carries the final
+ * output count — so calls are keyed by message id and every field keeps its largest value.
+ * The `assistant` messages carry only `cache_creation_input_tokens`, while the stream's
+ * `message_start` also carries the 5m/1h breakdown: the total and the split are tracked
+ * separately, so the same tokens are never counted as both kinds. Subagent calls are only
+ * seen as `assistant` messages, so their output is undercounted and their cache writes are
+ * priced as 5-minute ones: this feeds an estimate, never the billed figure.
+ */
+export class TurnUsageTracker {
+  private readonly calls = new Map<string, CallUsage>();
+  private streamingId: string | null = null;
+
+  /** @returns whether any count grew */
+  record(id: string, model: string, raw: RawUsage | undefined): boolean {
+    if (!raw) return false;
+    const write1h = raw.cache_creation ? (raw.cache_creation.ephemeral_1h_input_tokens ?? 0) : null;
+    const next = {
+      input: raw.input_tokens ?? 0,
+      output: raw.output_tokens ?? 0,
+      cacheRead: raw.cache_read_input_tokens ?? 0,
+      cacheWrite: raw.cache_creation_input_tokens
+        ?? (raw.cache_creation ? (raw.cache_creation.ephemeral_5m_input_tokens ?? 0) + (write1h ?? 0) : 0),
+    };
+    const prev = this.calls.get(id);
+    if (!prev) {
+      this.calls.set(id, { model, ...next, cacheWrite1h: write1h });
+      return true;
+    }
+    let grew = false;
+    for (const k of Object.keys(next) as (keyof typeof next)[]) {
+      if (next[k] > prev[k]) {
+        prev[k] = next[k];
+        grew = true;
+      }
+    }
+    if (write1h !== null && write1h > (prev.cacheWrite1h ?? -1)) {
+      prev.cacheWrite1h = write1h;
+      grew = true;
+    }
+    return grew;
+  }
+
+  startStream(id: string, model: string, raw: RawUsage | undefined): boolean {
+    this.streamingId = id;
+    return this.record(id, model, raw);
+  }
+
+  endStream(raw: RawUsage | undefined): boolean {
+    const id = this.streamingId;
+    const call = id ? this.calls.get(id) : undefined;
+    return id && call ? this.record(id, call.model, raw) : false;
+  }
+
+  byModel(): Record<string, ModelTokenUsage> {
+    const out: Record<string, ModelTokenUsage> = {};
+    for (const c of this.calls.values()) {
+      const acc = (out[c.model] ??= { input: 0, output: 0, cacheRead: 0, cacheWrite5m: 0, cacheWrite1h: 0 });
+      // no breakdown seen = all of it is the 5-minute kind
+      const write1h = Math.min(c.cacheWrite1h ?? 0, c.cacheWrite);
+      acc.input += c.input;
+      acc.output += c.output;
+      acc.cacheRead += c.cacheRead;
+      acc.cacheWrite1h += write1h;
+      acc.cacheWrite5m += c.cacheWrite - write1h;
+    }
+    return out;
+  }
+
+  reset(): void {
+    this.calls.clear();
+    this.streamingId = null;
+  }
+}
+
+/** What {@link translateSdkMessage} carries from one SDK message to the next. */
+export interface TranslateState {
+  currentModel: string;
+  lastTotalCostUsd: number;
+  usage: TurnUsageTracker;
+}
+
+export function newTranslateState(currentModel = ''): TranslateState {
+  return { currentModel, lastTotalCostUsd: 0, usage: new TurnUsageTracker() };
+}
+
+/**
+ * The SDK's `result.total_cost_usd` is a running total for the whole `query()` — one per
+ * sidecar process — so a turn's own cost is the difference from the previous result. A
+ * total below the previous one means the CLI reset it (`/clear`, a crash result), and
+ * the total is then this turn's cost on its own (phase 25 step 1).
+ */
+export function turnCostDelta(total: number, lastTotal: number): number {
+  return total >= lastTotal ? total - lastTotal : total;
+}
+
 export function translateSdkMessage(
   message: { type: string } & Record<string, unknown>,
-  modelState: { currentModel: string },
+  modelState: TranslateState,
 ): { events: Event[]; logs: string[] } {
   const events: Event[] = [];
   const logs: string[] = [];
@@ -253,6 +372,54 @@ export function translateSdkMessage(
           postTokens: m.compact_metadata.post_tokens ?? m.compact_metadata.pre_tokens,
           trigger: m.compact_metadata.trigger,
         });
+      } else if (message['subtype'] === 'task_started') {
+        const m = message as unknown as {
+          task_id: string; tool_use_id?: string; description: string; task_type?: string;
+          subagent_type?: string; is_backgrounded?: boolean; skip_transcript?: boolean;
+        };
+        if (!m.skip_transcript) {
+          events.push({
+            type: 'task_started',
+            taskId: m.task_id,
+            ...(m.tool_use_id ? { toolUseId: m.tool_use_id } : {}),
+            description: m.description,
+            ...(m.task_type ? { kind: m.task_type } : {}),
+            ...(m.subagent_type ? { subagentType: m.subagent_type } : {}),
+            backgrounded: m.is_backgrounded === true,
+          });
+        }
+      } else if (message['subtype'] === 'task_progress') {
+        const m = message as unknown as {
+          task_id: string; tool_use_id?: string; description: string; last_tool_name?: string;
+          usage: { total_tokens: number; tool_uses: number; duration_ms: number };
+        };
+        events.push({
+          type: 'task_progress',
+          taskId: m.task_id,
+          ...(m.tool_use_id ? { toolUseId: m.tool_use_id } : {}),
+          description: m.description,
+          ...(m.last_tool_name ? { lastTool: m.last_tool_name } : {}),
+          toolUses: m.usage?.tool_uses ?? 0,
+          tokens: m.usage?.total_tokens ?? 0,
+          durationMs: m.usage?.duration_ms ?? 0,
+        });
+      } else if (message['subtype'] === 'task_notification') {
+        const m = message as unknown as {
+          task_id: string; tool_use_id?: string; status: 'completed' | 'failed' | 'stopped'; summary: string;
+        };
+        events.push({
+          type: 'task_done',
+          taskId: m.task_id,
+          ...(m.tool_use_id ? { toolUseId: m.tool_use_id } : {}),
+          status: m.status,
+          summary: m.summary ?? '',
+        });
+      } else if (message['subtype'] === 'background_tasks_changed') {
+        const m = message as unknown as { tasks: { task_id: string; task_type: string; description: string }[] };
+        events.push({
+          type: 'background_tasks',
+          tasks: (m.tasks ?? []).map((t) => ({ taskId: t.task_id, kind: t.task_type, description: t.description })),
+        });
       } else if (
         message['subtype'] === 'status' &&
         (message as unknown as { compact_result?: string }).compact_result === 'failed'
@@ -270,8 +437,18 @@ export function translateSdkMessage(
       const event = outer.event as {
         type: string;
         delta?: { type: string; text?: string; thinking?: string };
+        message?: { id?: string; model?: string; usage?: RawUsage };
+        usage?: RawUsage;
       };
-      if (event.type === 'content_block_delta' && event.delta) {
+      if (event.type === 'message_start' && event.message?.id) {
+        if (modelState.usage.startStream(event.message.id, event.message.model ?? modelState.currentModel, event.message.usage)) {
+          events.push({ type: 'turn_usage', byModel: modelState.usage.byModel() });
+        }
+      } else if (event.type === 'message_delta') {
+        if (modelState.usage.endStream(event.usage)) {
+          events.push({ type: 'turn_usage', byModel: modelState.usage.byModel() });
+        }
+      } else if (event.type === 'content_block_delta' && event.delta) {
         if (event.delta.type === 'text_delta' && event.delta.text) {
           events.push({ type: 'stream_delta', deltaType: 'text', text: event.delta.text, ...(parentToolUseId ? { parentToolUseId } : {}) });
         } else if (event.delta.type === 'thinking_delta' && event.delta.thinking) {
@@ -283,10 +460,16 @@ export function translateSdkMessage(
       break;
     }
     case 'assistant': {
-      const outer = message as unknown as { message: { content: unknown[] }; parent_tool_use_id?: string | null };
+      const outer = message as unknown as {
+        message: { id?: string; model?: string; usage?: RawUsage; content: unknown[] };
+        parent_tool_use_id?: string | null;
+      };
       const parentToolUseId = outer.parent_tool_use_id ?? undefined;
       const content = outer.message.content;
       events.push({ type: 'assistant_message', content, ...(parentToolUseId ? { parentToolUseId } : {}) });
+      if (outer.message.id && modelState.usage.record(outer.message.id, outer.message.model ?? modelState.currentModel, outer.message.usage)) {
+        events.push({ type: 'turn_usage', byModel: modelState.usage.byModel() });
+      }
       for (const block of content) {
         const b = block as { type: string; id?: string; name?: string; input?: Record<string, unknown> };
         if (b.type === 'tool_use' && b.id && b.name) {
@@ -330,11 +513,16 @@ export function translateSdkMessage(
         duration_ms: number;
         num_turns: number;
       };
+      const total = m.total_cost_usd ?? 0;
+      const costUsd = turnCostDelta(total, modelState.lastTotalCostUsd);
+      modelState.lastTotalCostUsd = total;
+      modelState.usage.reset();
       events.push({
         type: 'turn_complete',
         stopReason: m.subtype,
         usage: m.usage,
-        costUsd: m.total_cost_usd,
+        costUsd,
+        sessionCostUsd: total,
         durationMs: m.duration_ms,
         numTurns: m.num_turns,
         model: modelState.currentModel,
@@ -408,6 +596,8 @@ export async function runSession(config: SidecarConfig): Promise<never> {
     provider: 'claude',
     capabilities: { ...CLAUDE_CAPABILITIES, permissionModes },
   });
+  // the CLI sends nothing until membership changes, so a (re)spawn starts from a known-empty set
+  writeEvent({ type: 'background_tasks', tasks: [] });
 
   async function* userMessages(): AsyncGenerator<SDKUserMessage> {
     for (;;) {
@@ -468,7 +658,7 @@ export async function runSession(config: SidecarConfig): Promise<never> {
 
   const q = query({ prompt: userMessages(), options });
   // updated from system_init (which reports the concrete resolved id, even for an alias like "sonnet")
-  const modelState = { currentModel: '' };
+  const modelState = newTranslateState();
   // Belt-and-suspenders guard for 'compact' — the backend only sends it for an
   // IDLE/parked session, but the sidecar checks too (docs/plan/phase-12-linear-cache-
   // serena-context.md decision 9). Set on any pushed user message (including /compact

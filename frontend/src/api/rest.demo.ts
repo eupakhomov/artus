@@ -42,12 +42,12 @@ const SETTINGS: Settings = {
   linearOAuthEnabled: false, ticketImportSpec: '', linearApiKeyConfigured: false, ecosystemRoot: '',
   monorepoServiceGlobs: '', monorepoDetectionEnabled: false, prChecksEnabled: true, prCheckPollIntervalSeconds: 180,
   librarySkillsRoot: '', libraryAgentsRoot: '', libraryVectorize: false, librarySyncEnabled: true,
-  librarySyncIntervalMinutes: 60, voyageConfigured: false, defaultProvider: 'claude', systemProvider: '', codexPricing: '{}',
+  librarySyncIntervalMinutes: 60, voyageConfigured: false, defaultProvider: 'claude', systemProvider: '', codexPricing: '{}', claudePricing: '{}',
   memoryRoot: '', memoryEnabled: true, memoryReflectionDefault: false, memoryReflectionModel: 'cheap',
   memorySyncIntervalMinutes: 5, memoryRetentionDays: 0, memoryReflectionApprovalRequired: true,
   serviceDiscoveryEnabled: false, serviceDiscoveryStalenessDays: 14, serviceDiscoveryModel: 'cheap',
   visualizeModel: 'standard', contextWarnPercent: 70, mcpSerenaRoot: '', mcpUvPath: 'uv', mcpGraphifyRoot: '',
-  mcpCodegraphRoot: '', linearAllowedTools: '', codeIntel: 'none', authTokenRequired: false, slackDefaultEnabled: false,
+  mcpCodegraphRoot: '', linearAllowedTools: '', codeIntel: 'none', authTokenRequired: false, slackDefaultEnabled: false, hideOnPark: false, autoTitle: true,
 };
 
 const notInDemo = (): Promise<never> => Promise.reject(new ApiError(501, NOT_IN_DEMO, null));
@@ -92,6 +92,11 @@ const implemented: Partial<Api> = {
     if (body.costBudgetUsd !== undefined) {
       f.detail.session.costBudgetUsd = body.costBudgetUsd;
       player?.inject('budget_updated', { costBudgetUsd: body.costBudgetUsd });
+    }
+    if (body.hidden !== undefined) {
+      f.summary.hidden = body.hidden;
+      f.detail.session.hidden = body.hidden;
+      player?.inject('visibility_changed', { hidden: body.hidden });
     }
     if (body.reflectionEnabled !== undefined) f.detail.session.reflectionEnabled = body.reflectionEnabled;
     return ok<SessionEntity>(f.detail.session);

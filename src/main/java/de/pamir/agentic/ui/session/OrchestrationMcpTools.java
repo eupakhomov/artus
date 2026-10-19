@@ -123,6 +123,11 @@ public class OrchestrationMcpTools {
 		String childName = service.getFileName() + ": " + branch;
 		SessionEntity child = sessionService.create(new SessionService.CreateOptions(childName, branch, baseBranch,
 				repoRoot.toString(), null, overrides, null, false).withParent(parent.id()).withServicePath(servicePath));
+		// phase 25: the parent's transcript says a child exists and where, not just the model's prose
+		record(parent.id(), "child_spawned", mapper.createObjectNode()
+				.put("childId", child.id().toString())
+				.put("childName", child.name())
+				.put("service", service.getFileName().toString()));
 		return Map.of("childId", child.id().toString(), "name", child.name());
 	}
 
@@ -163,6 +168,9 @@ public class OrchestrationMcpTools {
 				.put("summary", summary);
 		record(child.id(), "child_reported", payload);
 		record(parent.id(), "child_reported", payload);
+		// phase 25: the report starts a turn on the parent — one that hid itself when it parked
+		// would otherwise digest the child's result where nobody sees it
+		sessionService.unhide(parent.id());
 		sessionService.sendUserMessage(parent.id(), "[child report — " + child.name() + " / " + service + "]: " + summary);
 		return "reported to parent \"" + parent.name() + "\"";
 	}

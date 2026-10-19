@@ -18,6 +18,8 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [syncIntervalDraft, setSyncIntervalDraft] = useState('');
   const [codexPricingDraft, setCodexPricingDraft] = useState('');
   const [codexPricingError, setCodexPricingError] = useState('');
+  const [claudePricingDraft, setClaudePricingDraft] = useState('');
+  const [claudePricingError, setClaudePricingError] = useState('');
   const [memoryRootDraft, setMemoryRootDraft] = useState('');
   const [memorySyncIntervalDraft, setMemorySyncIntervalDraft] = useState('');
   const [memoryRetentionDraft, setMemoryRetentionDraft] = useState('');
@@ -45,6 +47,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
       setAgentsRootDraft(s.libraryAgentsRoot);
       setSyncIntervalDraft(String(s.librarySyncIntervalMinutes));
       setCodexPricingDraft(s.codexPricing);
+      setClaudePricingDraft(s.claudePricing);
       setMemoryRootDraft(s.memoryRoot);
       setMemorySyncIntervalDraft(String(s.memorySyncIntervalMinutes));
       setMemoryRetentionDraft(String(s.memoryRetentionDays));
@@ -180,6 +183,14 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
       .catch((e: unknown) => setCodexPricingError(e instanceof Error ? e.message : String(e)));
   };
 
+  const saveClaudePricing = () => {
+    if (!settings || claudePricingDraft === settings.claudePricing) return;
+    setClaudePricingError('');
+    void api.updateSettings({ claudePricing: claudePricingDraft })
+      .then((s) => { setSettings(s); setClaudePricingDraft(s.claudePricing); })
+      .catch((e: unknown) => setClaudePricingError(e instanceof Error ? e.message : String(e)));
+  };
+
   const saveMcpSerenaRoot = () => {
     if (!settings || mcpSerenaRootDraft === settings.mcpSerenaRoot) return;
     setMcpSerenaError('');
@@ -253,6 +264,20 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
     const next = { ...settings, memoryReflectionDefault: !settings.memoryReflectionDefault };
     setSettings(next);
     void api.updateSettings({ memoryReflectionDefault: next.memoryReflectionDefault }).catch(() => setSettings(settings));
+  };
+
+  const toggleHideOnPark = () => {
+    if (!settings) return;
+    const next = { ...settings, hideOnPark: !settings.hideOnPark };
+    setSettings(next);
+    void api.updateSettings({ hideOnPark: next.hideOnPark }).catch(() => setSettings(settings));
+  };
+
+  const toggleAutoTitle = () => {
+    if (!settings) return;
+    const next = { ...settings, autoTitle: !settings.autoTitle };
+    setSettings(next);
+    void api.updateSettings({ autoTitle: next.autoTitle }).catch(() => setSettings(settings));
   };
 
   const toggleSlackDefault = () => {
@@ -420,6 +445,18 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
                 {providers.map((p) => <option key={p.id} value={p.id}>{p.id}</option>)}
               </select>
 
+              <label>Auto-title</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'normal' }}>
+                <input type="checkbox" checked={settings.autoTitle} onChange={toggleAutoTitle} />
+                rename a session from its first message (only while its name is still the branch)
+              </label>
+
+              <label>Hide when parked</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'normal' }}>
+                <input type="checkbox" checked={settings.hideOnPark} onChange={toggleHideOnPark} />
+                take sessions off the dashboard once they park after idling (they stay under Hidden in the sidebar)
+              </label>
+
               <label>Context warning at</label>
               <input
                 type="number"
@@ -430,6 +467,21 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
                 onBlur={saveContextWarnPercent}
                 title="widget ctx chip turns amber and a compact suggestion appears once a session crosses this percentage of its context window (30-95)"
               /> %
+            </div>
+
+            <h3 style={{ margin: '18px 0 10px' }}>Claude</h3>
+            <div className="form-grid">
+              <label>Live cost pricing</label>
+              <textarea
+                className="full"
+                style={{ gridColumn: '2 / -1', fontFamily: 'monospace' }}
+                rows={4}
+                value={claudePricingDraft}
+                onChange={(e) => setClaudePricingDraft(e.target.value)}
+                onBlur={saveClaudePricing}
+                title='$ per million tokens, used only for the "~$" estimate shown while a turn runs — the cost recorded when a turn ends comes from Claude itself. A model id uses its longest matching key prefix; "default" covers the rest. Empty restores the shipped table.'
+              />
+              {claudePricingError && <div className="error-text full" style={{ gridColumn: '2 / -1' }}>{claudePricingError}</div>}
             </div>
 
             <h3 style={{ margin: '18px 0 10px' }}>Codex</h3>

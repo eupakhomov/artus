@@ -51,7 +51,10 @@ public class SessionHousekeeping {
 
 	// ------------------------------------------------------------------ parking
 
-	/** IDLE sessions whose sidecar has been quiet past the timeout are parked. */
+	/**
+	 * IDLE sessions whose sidecar has been quiet past the timeout are parked — unless the provider
+	 * still runs background tasks for them (phase 25): parking would kill that work.
+	 */
 	@Scheduled(fixedDelay = 60_000)
 	void parkIdleSessions() {
 		var cutoff = Instant.now().minus(Duration.ofMinutes(props.idleParkMinutes()));
@@ -60,7 +63,8 @@ public class SessionHousekeeping {
 					// a recycled, re-warmed system session has no conversation (null provider id) but
 					// still holds a live sidecar worth parking
 					&& (session.providerSessionId() != null || "system".equals(session.kind()))
-					&& sidecars.hasLiveHandle(session.id())) {
+					&& sidecars.hasLiveHandle(session.id())
+					&& !sessionService.hasBackgroundTasks(session.id())) {
 				synchronized (sessionService.lock(session.id())) {
 					if (sessions.get(session.id()).state() != SessionState.IDLE) {
 						continue;
@@ -68,6 +72,7 @@ public class SessionHousekeeping {
 					log.info("parking idle session {}", session.id());
 					sessionService.transition(session.id(), SessionState.PARKED);
 					sidecars.terminate(session.id());
+					sessionService.onParked(session.id());
 				}
 			}
 		}

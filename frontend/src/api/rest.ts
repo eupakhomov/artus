@@ -73,7 +73,7 @@ export const api = {
   closeSession: (id: string, dirty: string, commitMessage?: string) =>
     request<null>('DELETE', `/api/sessions/${id}?dirty=${dirty}${commitMessage ? `&commitMessage=${encodeURIComponent(commitMessage)}` : ''}`),
   deleteQueued: (id: string, pos: number) => request<null>('DELETE', `/api/sessions/${id}/queue/${pos}`),
-  patchSession: (id: string, body: { costBudgetUsd?: number; name?: string; reflectionEnabled?: boolean }) =>
+  patchSession: (id: string, body: { costBudgetUsd?: number; name?: string; reflectionEnabled?: boolean; hidden?: boolean }) =>
     request<SessionEntity>('PATCH', `/api/sessions/${id}`, body),
   reflectSession: (id: string) => request<null>('POST', `/api/sessions/${id}/reflect`),
   /** phase 21: distill the session's demonstrated procedure into a pending skill proposal */
@@ -122,11 +122,11 @@ export const api = {
     | 'monorepoServiceGlobs' | 'monorepoDetectionEnabled'
     | 'prChecksEnabled' | 'prCheckPollIntervalSeconds' | 'librarySkillsRoot' | 'libraryAgentsRoot'
     | 'libraryVectorize' | 'librarySyncEnabled' | 'librarySyncIntervalMinutes'
-    | 'defaultProvider' | 'systemProvider' | 'codexPricing' | 'memoryRoot' | 'memoryEnabled' | 'memoryReflectionDefault'
+    | 'defaultProvider' | 'systemProvider' | 'codexPricing' | 'claudePricing' | 'memoryRoot' | 'memoryEnabled' | 'memoryReflectionDefault'
     | 'memoryReflectionModel' | 'memorySyncIntervalMinutes' | 'memoryRetentionDays'
     | 'memoryReflectionApprovalRequired' | 'serviceDiscoveryEnabled' | 'serviceDiscoveryStalenessDays'
     | 'serviceDiscoveryModel' | 'visualizeModel' | 'contextWarnPercent' | 'mcpSerenaRoot' | 'mcpUvPath' | 'mcpGraphifyRoot'
-    | 'mcpCodegraphRoot' | 'codeIntel' | 'linearAllowedTools' | 'authTokenRequired' | 'slackDefaultEnabled'>>) =>
+    | 'mcpCodegraphRoot' | 'codeIntel' | 'linearAllowedTools' | 'authTokenRequired' | 'slackDefaultEnabled' | 'hideOnPark' | 'autoTitle'>>) =>
     request<Settings>('PATCH', '/api/settings', patch),
   listProviders: () => request<ProviderView[]>('GET', '/api/providers'),
   libraryScan: (type: 'dir' | 'repo', ref: string, signal?: AbortSignal) =>

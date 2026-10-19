@@ -101,6 +101,8 @@ export interface SessionEntity {
   parentSessionId: string | null;
   /** GitHub PR URL opened from this session's branch, if any; one PR tracked per session */
   prUrl: string | null;
+  /** phase 25: kept off the dashboard */
+  hidden: boolean;
   prCheckStatus: PrCheckStatus | null;
   prCheckedAt: string | null;
   /** Opt-in end-of-session memory retrospective (phase 5.3) */
@@ -151,6 +153,8 @@ export interface SessionSummary {
   /** set once a session is closed (phase 23); null while open */
   closedAt: string | null;
   prUrl: string | null;
+  /** phase 25: kept off the dashboard — listed in the sidebar's Hidden section */
+  hidden: boolean;
 }
 
 export interface QueuedMessage {
@@ -222,6 +226,8 @@ export interface Settings {
   systemProvider: string;
   /** JSON: {"<model>"|"default": {"inputPer1M":n, "cachedInputPer1M":n, "outputPer1M":n}} */
   codexPricing: string;
+  /** phase 25: $/1M-token table for the live, mid-turn cost estimate (same JSON-object-as-string shape) */
+  claudePricing: string;
   memoryRoot: string;
   memoryEnabled: boolean;
   memoryReflectionDefault: boolean;
@@ -254,6 +260,10 @@ export interface Settings {
   authTokenRequired: boolean;
   /** phase 18: new sessions start with Slack mirroring on (only meaningful when the server has Slack enabled) */
   slackDefaultEnabled: boolean;
+  /** phase 25: idle parking also hides the session from the dashboard */
+  hideOnPark: boolean;
+  /** phase 25: rename a session after its first turn while its name is still the branch */
+  autoTitle: boolean;
 }
 
 /** phase 17 C: one row of the changes panel (working tree vs merge-base, plus untracked) */

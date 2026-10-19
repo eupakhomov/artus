@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SettingsController {
 
 	public record SettingsView(@JsonUnwrapped Settings settings, boolean linearApiKeyConfigured,
-								boolean voyageConfigured, String codexPricing) {
+								boolean voyageConfigured, String codexPricing, String claudePricing) {
 	}
 
 	private final SettingsService settings;
@@ -83,6 +83,7 @@ public class SettingsController {
 	private SettingsView view() {
 		boolean apiKeyConfigured = props.linearApiKey() != null && !props.linearApiKey().isBlank();
 		boolean voyageConfigured = props.voyageApiKey() != null && !props.voyageApiKey().isBlank();
-		return new SettingsView(settings.current(), apiKeyConfigured, voyageConfigured, settings.pricingFor("codex"));
+		return new SettingsView(settings.current(), apiKeyConfigured, voyageConfigured, settings.pricingFor("codex"),
+				settings.pricingFor("claude"));
 	}
 }

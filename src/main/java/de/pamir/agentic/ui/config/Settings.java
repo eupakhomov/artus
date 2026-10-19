@@ -61,7 +61,33 @@ public record Settings(
 		/** Phase 18: whether new sessions start with Slack mirroring on (the create dialog can still override). */
 		boolean slackDefaultEnabled,
 		/** Phase 22: model tier ({@code cheap}/{@code standard}/{@code premium}) for Visualize diagram turns. */
-		String visualizeModel) {
+		String visualizeModel,
+		/** Phase 25: idle parking also hides the session from the dashboard (it stays resumable from the sidebar). */
+		boolean hideOnPark,
+		/** Phase 25: rename a session after its first turn while its name is still the branch name. */
+		boolean autoTitle) {
+
+	/** Pre-phase-25 arity (no {@code hideOnPark}/{@code autoTitle}); keeps fixed-settings test fixtures compiling. */
+	public Settings(boolean linearOAuthEnabled, String ticketImportSpec, String ecosystemRoot,
+					String monorepoServiceGlobs, boolean monorepoDetectionEnabled, boolean prChecksEnabled,
+					int prCheckPollIntervalSeconds, String librarySkillsRoot, String libraryAgentsRoot,
+					boolean libraryVectorize, boolean librarySyncEnabled, int librarySyncIntervalMinutes,
+					String defaultProvider, String systemProvider, String memoryRoot, boolean memoryEnabled,
+					boolean memoryReflectionDefault, String memoryReflectionModel, int memorySyncIntervalMinutes,
+					int memoryRetentionDays, boolean memoryReflectionApprovalRequired,
+					boolean serviceDiscoveryEnabled, int serviceDiscoveryStalenessDays,
+					String serviceDiscoveryModel, int contextWarnPercent, String mcpSerenaRoot, String mcpUvPath,
+					String mcpGraphifyRoot, String mcpCodegraphRoot, String codeIntel, String linearAllowedTools,
+					boolean authTokenRequired, boolean slackDefaultEnabled, String visualizeModel) {
+		this(linearOAuthEnabled, ticketImportSpec, ecosystemRoot, monorepoServiceGlobs, monorepoDetectionEnabled,
+				prChecksEnabled, prCheckPollIntervalSeconds, librarySkillsRoot, libraryAgentsRoot, libraryVectorize,
+				librarySyncEnabled, librarySyncIntervalMinutes, defaultProvider, systemProvider, memoryRoot,
+				memoryEnabled, memoryReflectionDefault, memoryReflectionModel, memorySyncIntervalMinutes,
+				memoryRetentionDays, memoryReflectionApprovalRequired, serviceDiscoveryEnabled,
+				serviceDiscoveryStalenessDays, serviceDiscoveryModel, contextWarnPercent, mcpSerenaRoot, mcpUvPath,
+				mcpGraphifyRoot, mcpCodegraphRoot, codeIntel, linearAllowedTools, authTokenRequired,
+				slackDefaultEnabled, visualizeModel, false, true);
+	}
 
 	/** Pre-phase-22 arity (no {@code visualizeModel}); keeps fixed-settings test fixtures compiling. */
 	public Settings(boolean linearOAuthEnabled, String ticketImportSpec, String ecosystemRoot,

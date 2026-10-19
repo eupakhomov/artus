@@ -412,3 +412,130 @@ describe('phase 21 reflection notes', () => {
     expect(notes().map((n) => n.text)).toEqual(['reflection discarded (superseded by refresh)', 'memory saved (1 created)']);
   });
 });
+
+// phase 25: live turn, tasks and background work
+describe('live turn', () => {
+  const apply = (type: string, payload: Record<string, unknown> = {}) => useStore.getState().apply(SID, env(type, payload));
+  const view = () => useStore.getState().views[SID]!;
+
+  it('tracks activity, tool count and the estimated cost until turn_complete', () => {
+    apply('system_init', { model: 'claude-sonnet-5' });
+    expect(view().liveTurn).toMatchObject({ activity: null, toolCount: 0, estimatedCostUsd: null });
+
+    apply('stream_delta', { deltaType: 'thinking', text: 'hm' });
+    expect(view().liveTurn?.activity).toEqual({ kind: 'thinking' });
+    apply('tool_started', { toolUseId: 't1', name: 'Bash', input: { command: 'npm test' } });
+    expect(view().liveTurn?.activity).toEqual({ kind: 'tool', name: 'Bash', input: { command: 'npm test' }, subagent: null });
+    apply('turn_usage', { byModel: {}, estimatedCostUsd: 0.42 });
+    apply('tool_result', { toolUseId: 't1', output: 'ok', isError: false, truncated: false });
+    expect(view().liveTurn).toMatchObject({ activity: { kind: 'thinking' }, toolCount: 1, estimatedCostUsd: 0.42 });
+
+    apply('turn_complete', { stopReason: 'success', costUsd: 0.4, durationMs: 1, model: 'm' });
+    expect(view().liveTurn).toBeNull();
+  });
+
+  it('names the subagent that made a nested call', () => {
+    apply('system_init', {});
+    apply('tool_started', { toolUseId: 'task', name: 'Agent', input: { subagent_type: 'Explore', description: 'map auth' } });
+    apply('tool_started', { toolUseId: 'n1', name: 'Grep', input: { pattern: 'login' }, parentToolUseId: 'task' });
+    expect(view().liveTurn?.activity).toEqual({ kind: 'tool', name: 'Grep', input: { pattern: 'login' }, subagent: 'Explore' });
+    expect(view().liveTurn?.toolCount).toBe(2);
+  });
+
+  it('is dropped when the session stops running', () => {
+    apply('system_init', {});
+    apply('state_changed', { state: 'CRASHED' });
+    expect(view().liveTurn).toBeNull();
+  });
+
+  it('ignores a backgrounded subagent working while idle, and restarts the clock when the provider opens a turn', () => {
+    apply('state_changed', { state: 'IDLE' });
+    useStore.getState().apply(SID, { seq: 2, ts: '2026-10-19T10:00:00Z', type: 'tool_started', payload: { toolUseId: 'n1', name: 'Read', input: {}, parentToolUseId: 'task' } });
+    apply('turn_usage', { byModel: {}, estimatedCostUsd: 0.01 });
+    expect(view().liveTurn).toBeNull();
+
+    // the provider's own turn: system_init arrives while still IDLE, RUNNING follows
+    useStore.getState().apply(SID, { seq: 3, ts: '2026-10-19T10:00:06Z', type: 'system_init', payload: {} });
+    apply('state_changed', { state: 'RUNNING' });
+    expect(view().liveTurn).toMatchObject({ startedAt: '2026-10-19T10:00:06Z', toolCount: 0, estimatedCostUsd: null });
+  });
+
+  it('adds no footer for the empty turn a resumed CLI opens', () => {
+    apply('turn_complete', { stopReason: 'success', costUsd: 0, numTurns: 0, durationMs: 35, model: 'm' });
+    expect(view().transcript.some((i) => i.kind === 'turn_footer')).toBe(false);
+    apply('turn_complete', { stopReason: 'success', costUsd: 0.01, numTurns: 1, durationMs: 900, model: 'm' });
+    expect(view().transcript.filter((i) => i.kind === 'turn_footer')).toHaveLength(1);
+  });
+});
+
+describe('tasks', () => {
+  const apply = (type: string, payload: Record<string, unknown> = {}) => useStore.getState().apply(SID, env(type, payload));
+  const taskItem = () => useStore.getState().views[SID]!.transcript.find((i) => i.kind === 'tool');
+
+  it('keeps a backgrounded subagent running after its call returned, and notes its end', () => {
+    apply('tool_started', { toolUseId: 'tu', name: 'Agent', input: { subagent_type: 'Explore', description: 'List files' } });
+    apply('task_started', { taskId: 'k', toolUseId: 'tu', description: 'List files', subagentType: 'Explore', backgrounded: true });
+    apply('tool_result', { toolUseId: 'tu', output: 'running in the background', isError: false, truncated: false });
+    apply('task_progress', { taskId: 'k', toolUseId: 'tu', description: 'Running ls', lastTool: 'Bash', toolUses: 3, tokens: 10, durationMs: 4000 });
+    expect(taskItem()).toMatchObject({ task: { status: 'running', backgrounded: true, lastTool: 'Bash', toolUses: 3, durationMs: 4000 } });
+
+    apply('task_done', { taskId: 'k', toolUseId: 'tu', status: 'completed', summary: '3 files' });
+    expect(taskItem()).toMatchObject({ task: { status: 'completed', summary: '3 files' } });
+    expect(useStore.getState().views[SID]!.transcript.at(-1)).toEqual({ kind: 'note', level: 'info', text: 'background task completed: List files' });
+  });
+
+  it('does not note the end of a foreground subagent', () => {
+    apply('tool_started', { toolUseId: 'tu', name: 'Agent', input: { subagent_type: 'Explore', description: 'x' } });
+    apply('task_started', { taskId: 'k', toolUseId: 'tu', description: 'x', backgrounded: false });
+    apply('task_done', { taskId: 'k', toolUseId: 'tu', status: 'completed', summary: '' });
+    expect(useStore.getState().views[SID]!.transcript.some((i) => i.kind === 'note')).toBe(false);
+  });
+
+  it('does not note a subagent\'s own long-running foreground command', () => {
+    // the CLI reports those as tasks too, linked to the nested call — not a top-level row
+    apply('tool_started', { toolUseId: 'tu', name: 'Agent', input: { subagent_type: 'general-purpose', description: 'x' } });
+    apply('tool_started', { toolUseId: 'n1', name: 'Bash', input: { command: 'sleep 5' }, parentToolUseId: 'tu' });
+    apply('task_started', { taskId: 'b', toolUseId: 'n1', description: 'sleep 5', kind: 'local_bash', backgrounded: false });
+    apply('task_done', { taskId: 'b', toolUseId: 'n1', status: 'completed', summary: 'sleep 5' });
+    expect(useStore.getState().views[SID]!.transcript.some((i) => i.kind === 'note')).toBe(false);
+  });
+
+  it('stops a running task when its sidecar goes away, without a second note when the resumed CLI says so', () => {
+    apply('tool_started', { toolUseId: 'tu', name: 'Bash', input: { command: 'sleep 300', run_in_background: true } });
+    apply('task_started', { taskId: 'k', toolUseId: 'tu', description: 'sleep 300', kind: 'local_bash', backgrounded: true });
+    apply('tool_result', { toolUseId: 'tu', output: 'running in background', isError: false, truncated: false });
+    apply('state_changed', { state: 'CRASHED' });
+    expect(taskItem()).toMatchObject({ task: { status: 'stopped' } });
+
+    apply('task_done', { taskId: 'k', toolUseId: 'tu', status: 'stopped', summary: 'No completion record was found' });
+    expect(useStore.getState().views[SID]!.transcript.some((i) => i.kind === 'note')).toBe(false);
+  });
+
+  it('replaces the background set and clears it when the sidecar goes away', () => {
+    apply('background_tasks', { tasks: [{ taskId: 'k', kind: 'local_bash', description: 'sleep 120' }] });
+    expect(useStore.getState().views[SID]!.backgroundTasks).toHaveLength(1);
+    apply('state_changed', { state: 'PARKED' });
+    expect(useStore.getState().views[SID]!.backgroundTasks).toEqual([]);
+  });
+});
+
+describe('session_renamed', () => {
+  it('notes an automatic rename but not a manual one', () => {
+    useStore.getState().apply(SID, env('session_renamed', { name: 'Fix login', auto: true, from: 'feat/x' }));
+    useStore.getState().apply(SID, env('session_renamed', { name: 'Mine', auto: false }));
+    const notes = useStore.getState().views[SID]!.transcript.filter((i) => i.kind === 'note');
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toMatchObject({ text: expect.stringContaining('renamed to "Fix login" (was feat/x)') });
+    expect(useStore.getState().views[SID]!.name).toBe('Mine');
+  });
+});
+
+describe('child session notes', () => {
+  it('says when a child was spawned and when it needs attention', () => {
+    useStore.getState().apply(SID, env('child_spawned', { childId: 'c', childName: 'api: feat', service: 'api' }));
+    useStore.getState().apply(SID, env('child_attention', { childId: 'c', childName: 'api: feat', state: 'WAITING_INPUT' }));
+    const notes = useStore.getState().views[SID]!.transcript;
+    expect(notes[0]).toEqual({ kind: 'note', level: 'info', text: 'spawned child session api: feat (api)' });
+    expect(notes[1]).toMatchObject({ level: 'warn', text: expect.stringContaining('waiting for approval') });
+  });
+});

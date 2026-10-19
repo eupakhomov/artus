@@ -51,7 +51,9 @@ public class SessionController {
 								 String branch, String model, String permissionMode, String state, String kind,
 								 String sessionType, BigDecimal costToDate, Instant updatedAt, long lastSeq,
 								 /** Null for open sessions (phase 23) */
-								 Instant closedAt, String prUrl) {
+								 Instant closedAt, String prUrl,
+								 /** Phase 25: kept off the dashboard, listed in the sidebar's Hidden section */
+								 boolean hidden) {
 	}
 
 	private final SessionService service;
@@ -103,7 +105,7 @@ public class SessionController {
 					EventJournal.SessionStats st = stats.getOrDefault(s.id(), NO_EVENTS);
 					return new SessionSummary(s.id(), s.name(), s.provider(), s.repoPath(), s.servicePath(), s.branch(),
 							s.model(), s.permissionMode(), s.state().name(), s.kind(), s.sessionType(), st.costToDate(),
-							s.updatedAt(), st.lastSeq(), s.closedAt(), s.prUrl());
+							s.updatedAt(), st.lastSeq(), s.closedAt(), s.prUrl(), s.hidden());
 				})
 				.toList();
 	}
@@ -120,7 +122,7 @@ public class SessionController {
 		return sessions.findRecentlyClosed(clampHistoryLimit(limit)).stream()
 				.map(s -> new SessionSummary(s.id(), s.name(), s.provider(), s.repoPath(), s.servicePath(), s.branch(),
 						s.model(), s.permissionMode(), s.state().name(), s.kind(), s.sessionType(),
-						journal.costToDate(s.id()), s.updatedAt(), journal.lastSeq(s.id()), s.closedAt(), s.prUrl()))
+						journal.costToDate(s.id()), s.updatedAt(), journal.lastSeq(s.id()), s.closedAt(), s.prUrl(), s.hidden()))
 				.toList();
 	}
 
@@ -183,7 +185,7 @@ public class SessionController {
 		return service.duplicate(id, request.branch(), request.name(), Boolean.TRUE.equals(request.syncBaseBranch()));
 	}
 
-	public record PatchSessionRequest(BigDecimal costBudgetUsd, String name, Boolean reflectionEnabled) {
+	public record PatchSessionRequest(BigDecimal costBudgetUsd, String name, Boolean reflectionEnabled, Boolean hidden) {
 	}
 
 	@PatchMapping("/{id}")
@@ -196,6 +198,9 @@ public class SessionController {
 		}
 		if (request.reflectionEnabled() != null) {
 			service.updateReflectionEnabled(id, request.reflectionEnabled());
+		}
+		if (request.hidden() != null) {
+			service.setHidden(id, request.hidden());
 		}
 		return sessions.get(id);
 	}

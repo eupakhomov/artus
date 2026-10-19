@@ -583,6 +583,17 @@ effect on the next use with no backend restart.
   that block into a small memory proposal. Proposals show the transcript blocks they cite
   ("based on N blocks").
 
+**Live turn visibility, background work, hiding** (phase 25, `docs/plan/phase-25-feedback-visibility-cost.md`):
+`turn_complete.costUsd` is the turn's own cost — the Claude sidecar turns the SDK's per-process running total into a
+delta (never sum `total_cost_usd`). While a turn runs the widget shows a sticky activity line (current tool, elapsed,
+tool count, `~$` estimate from `turn_usage` priced by Settings → Claude → "Live cost pricing", `claude.pricing`).
+The Claude CLI backgrounds Explore subagents by default and opens a turn by itself when a background task settles, so
+a `system_init` arriving while IDLE moves the session to RUNNING; live background tasks show as a strip and block idle
+parking. Sessions can be hidden from the dashboard (`session.hidden`, widget archive button, sidebar "Hidden"; back by
+itself on an approval prompt or crash; Settings → Sessions "Hide when parked"). Auto-title is switchable (Settings →
+Sessions) and journals a note when it renames. The dashboard re-lists sessions every 10 s, so backend-created
+sessions (spawned children) appear on their own.
+
 **MCP tool search**: every sidecar is spawned with `ENABLE_TOOL_SEARCH=true`
 (`SidecarManager.applySidecarEnvironment`) so MCP tool schemas (Linear alone is ~80 tools) are
 deferred and loaded on demand instead of filling the first request. A session overrides it via its

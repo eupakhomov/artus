@@ -56,9 +56,14 @@ Bash is not path-policed — it flows through the normal approval path.
 | `thinking_progress` | `estimatedTokens`, `estimatedTokensDelta` | running token estimate while the model thinks (drive spinners/pills; not billed usage) |
 | `permission_mode_changed` | `mode` | confirms `set_permission_mode` |
 | `model_changed` | `model` | confirms `set_model` |
-| `turn_complete` | `stopReason`, `usage`, `costUsd`, `durationMs`, `numTurns`, `model` | end of an agentic turn; `model` is the model that produced it (tracked from the preceding `system_init`, which fires at the start of every turn) |
+| `turn_complete` | `stopReason`, `usage`, `costUsd`, `sessionCostUsd?`, `durationMs`, `numTurns`, `model` | end of an agentic turn; `model` is the model that produced it (tracked from the preceding `system_init`, which fires at the start of every turn). `costUsd` is **this turn's own cost** — every consumer sums it. The Claude SDK only reports a running total per `query()` (one per sidecar process), so the Claude sidecar sends the difference from its previous result (a total that went down counts as a reset) and the raw total as `sessionCostUsd`, for debugging only. Rows journaled before phase 25 held the running total; `V22__turn_cost_delta.sql` rewrote them (original kept as `costUsdRaw`) |
 | `context_usage` | `tokens`, `window`, `autoCompactAt?`, `breakdown?` | how full the *next* request's context will be — never `turn_complete.usage`'s per-turn summary. Emitted after every `turn_complete` and after a `context_compacted`, never mid-turn. `breakdown` (Claude only; display-only, journaled with the event, not persisted on the session row) = `{categories: [{name, tokens}], mcpServers: [{name, tokens, deferred}], messages?: {toolResults, toolCalls, assistant, user, attachments}, topTools: [{name, tokens}]}` — zero-token rows omitted, `mcpServers[].deferred` = the server's tool schemas are not loaded up front (tool search), `topTools` = max 5 by call+result tokens |
 | `context_compacted` | `preTokens`, `postTokens`, `trigger: manual\|auto` | a compaction boundary just happened (a `compact` command or the provider's own auto-compact) |
+| `turn_usage` | `byModel: {<model>: {input, output, cacheRead, cacheWrite5m, cacheWrite1h}}` | optional (phase 25). Running token counts of the turn in flight, per model (a subagent may run another one), cumulative within the turn and reset at `turn_complete`; re-sent whenever a model call's usage grows. The Claude sidecar keys calls by message id (the SDK repeats one call's partial usage on every content block; only the main loop's `message_delta` carries the final output count, so subagent output is undercounted). The `assistant` messages carry only the cache-write *total*, the stream's `message_start` also its 5m/1h split: the sidecar keeps the two apart, so a call's cache writes are never counted as both kinds (a call seen without any split — a subagent's — is priced as 5-minute writes). The backend adds `estimatedCostUsd` from the Settings price table (`claude.pricing`) before journaling — an estimate for the live display, never the billed figure |
+| `task_started` | `taskId`, `toolUseId?`, `description`, `kind?`, `subagentType?`, `backgrounded` | optional (phase 25). A provider task began: a subagent or a backgrounded shell command, linked to the tool call that spawned it. A backgrounded task outlives its call's `tool_result` (which returns at once); housekeeping tasks are not forwarded |
+| `task_progress` | `taskId`, `toolUseId?`, `description`, `lastTool?`, `toolUses`, `tokens`, `durationMs` | optional. Periodic progress of a running task |
+| `task_done` | `taskId`, `toolUseId?`, `status: completed\|failed\|stopped`, `summary` | optional. A task settled. When a *background* task settles while the session is idle, the Claude CLI opens a turn by itself (no `user_message`) to read its result — the backend treats a `system_init` arriving while IDLE as that turn starting (→ RUNNING) |
+| `background_tasks` | `tasks: [{taskId, kind, description}]` | optional. The full set of live background tasks, replace semantics; the Claude sidecar sends `[]` right after `ready` so a (re)spawn starts from a known set. The backend never parks an IDLE session whose set is non-empty |
 | `error` | `message`, `fatal` | non-fatal: guard denials, malformed input, transient provider errors; fatal: precedes exit 1 |
 | `exiting` | `reason: shutdown\|fatal\|stdin_closed` | last event before exit. An error thrown by the underlying agent stream *after* a `shutdown` command or a closed stdin is expected and is only logged to stderr (`exiting` keeps that reason, exit 0); the same error while the sidecar was not asked to stop is `fatal` |
 
@@ -305,6 +310,13 @@ approval round-trip. Full mapping tables and rationale:
   child and the parent when the child calls the `report_result` MCP tool (7.4); the
   same payload also lands as a `user_message` in the parent's queue/transcript, tagged
   `[child report — <name> / <service>]`. See docs/plan/phase-7-ux-and-orchestration.md.
+  `child_spawned {childId, childName, service}` — journaled on the parent when
+  `spawn_child_session` creates a child (phase 25); `child_attention {childId, childName,
+  state}` — journaled on the parent when a child that has not reported yet enters `WAITING_INPUT`
+  or `CRASHED`, the two states in which it will not report back on its own; once per state until
+  the child's turn settles (several approval prompts within one turn are one note). Both render as
+  transcript notes; the parent's model is not told. `report_result` also un-hides a hidden parent
+  (`visibility_changed {hidden:false}`) — the report starts a turn there.
   `code_intel_status {tool, status, nodes?, edges?, durationMs?, message?}` — emitted by
   `GraphifyService` on every transition of a `codeIntel: "graphify"` session's background
   graph build: `status` is `BUILDING|READY|FAILED`, `nodes`/`edges` are the last known

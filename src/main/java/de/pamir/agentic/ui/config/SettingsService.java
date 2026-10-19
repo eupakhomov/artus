@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -68,10 +69,32 @@ public class SettingsService {
 	 */
 	private static final String DEFAULT_CODEX_PRICING =
 			"{\"default\": {\"inputPer1M\": 2, \"cachedInputPer1M\": 0.5, \"outputPer1M\": 8}}";
+	/**
+	 * Seed pricing for "claude" (phase 25 step 3): Claude reports its own authoritative per-turn
+	 * USD, so this table only prices the live, mid-turn estimate shown while a turn runs
+	 * ({@link de.pamir.agentic.ui.session.TokenCostEstimator}). A model id matches its longest key
+	 * prefix ({@code claude-sonnet-5} covers {@code claude-sonnet-5[1m]} and {@code
+	 * claude-sonnet-5-5}). First-party list prices per million tokens as of 2026-10; cache writes
+	 * at 1.25x (5 min) and 2x (1 h) input.
+	 */
+	private static final String DEFAULT_CLAUDE_PRICING = """
+			{
+			  "claude-opus-5-5": {"inputPer1M": 4, "outputPer1M": 20, "cacheReadPer1M": 0.2, "cacheWrite5mPer1M": 5, "cacheWrite1hPer1M": 8},
+			  "claude-opus-5": {"inputPer1M": 5, "outputPer1M": 25, "cacheReadPer1M": 0.5, "cacheWrite5mPer1M": 6.25, "cacheWrite1hPer1M": 10},
+			  "claude-sonnet-5": {"inputPer1M": 2, "outputPer1M": 10, "cacheReadPer1M": 0.2, "cacheWrite5mPer1M": 2.5, "cacheWrite1hPer1M": 4},
+			  "claude-haiku-5-5": {"inputPer1M": 0.1, "outputPer1M": 0.5, "cacheReadPer1M": 0.01, "cacheWrite5mPer1M": 0.125, "cacheWrite1hPer1M": 0.2},
+			  "claude-haiku-4-5": {"inputPer1M": 1, "outputPer1M": 5, "cacheReadPer1M": 0.1, "cacheWrite5mPer1M": 1.25, "cacheWrite1hPer1M": 2},
+			  "default": {"inputPer1M": 2, "outputPer1M": 10, "cacheReadPer1M": 0.2, "cacheWrite5mPer1M": 2.5, "cacheWrite1hPer1M": 4}
+			}
+			""";
 	private static final String EMPTY_PRICING = "{}";
+	/** {@link #pricingFor} results per provider, dropped by {@link #setPricingFor}. */
+	private final Map<String, String> pricingCache = new ConcurrentHashMap<>();
 	private static final String MEMORY_ROOT_KEY = "memory.root";
 	private static final String MEMORY_ENABLED_KEY = "memory.enabled";
 	private static final String SLACK_DEFAULT_ENABLED_KEY = "slack.default-enabled";
+	private static final String HIDE_ON_PARK_KEY = "session.hide-on-park";
+	private static final String AUTO_TITLE_KEY = "session.auto-title";
 	private static final String MEMORY_REFLECTION_DEFAULT_KEY = "memory.reflection-default";
 	private static final String MEMORY_REFLECTION_MODEL_KEY = "memory.reflection-model";
 	private static final String MEMORY_SYNC_INTERVAL_KEY = "memory.sync-interval-minutes";
@@ -170,6 +193,8 @@ public class SettingsService {
 	/** Phase 18: new sessions start with Slack mirroring on. Off by default — content leaves the machine. */
 	private final Field<Boolean> slackDefaultEnabled =
 			boolField(SLACK_DEFAULT_ENABLED_KEY, false, SettingsPatch::slackDefaultEnabled);
+	private final Field<Boolean> hideOnPark = boolField(HIDE_ON_PARK_KEY, false, SettingsPatch::hideOnPark);
+	private final Field<Boolean> autoTitle = boolField(AUTO_TITLE_KEY, true, SettingsPatch::autoTitle);
 	private final Field<Boolean> memoryReflectionDefault =
 			boolField(MEMORY_REFLECTION_DEFAULT_KEY, false, SettingsPatch::memoryReflectionDefault);
 	private final Field<String> memoryReflectionModel = tierField(MEMORY_REFLECTION_MODEL_KEY, SettingsPatch::memoryReflectionModel);
@@ -228,7 +253,8 @@ public class SettingsService {
 				memoryReflectionDefault, memoryReflectionModel, memorySyncIntervalMinutes, memoryRetentionDays,
 				memoryReflectionApprovalRequired, serviceDiscoveryEnabled, serviceDiscoveryStalenessDays,
 				serviceDiscoveryModel, contextWarnPercent, mcpSerenaRoot, mcpUvPath, mcpGraphifyRoot,
-				mcpCodegraphRoot, codeIntelField, linearAllowedTools, authTokenRequired, slackDefaultEnabled, visualizeModel);
+				mcpCodegraphRoot, codeIntelField, linearAllowedTools, authTokenRequired, slackDefaultEnabled, visualizeModel,
+				hideOnPark, autoTitle);
 	}
 
 	/** One snapshot of every setting in {@link #fields}, cached until the next {@link #apply}. */
@@ -274,7 +300,9 @@ public class SettingsService {
 				linearAllowedTools.resolve(raw),
 				authTokenRequired.resolve(raw),
 				slackDefaultEnabled.resolve(raw),
-				visualizeModel.resolve(raw));
+				visualizeModel.resolve(raw),
+				hideOnPark.resolve(raw),
+				autoTitle.resolve(raw));
 		cache = built;
 		return built;
 	}
@@ -333,6 +361,9 @@ public class SettingsService {
 		if (patch.codexPricing() != null) {
 			setPricingFor("codex", patch.codexPricing());
 		}
+		if (patch.claudePricing() != null) {
+			setPricingFor("claude", patch.claudePricing());
+		}
 		cache = null;
 	}
 
@@ -349,6 +380,11 @@ public class SettingsService {
 		return s.systemProvider().isBlank() ? s.defaultProvider() : s.systemProvider();
 	}
 
+	/** Phase 25: whether {@link de.pamir.agentic.ui.session.AutoTitleService} may rename sessions. */
+	public boolean autoTitle() {
+		return current().autoTitle();
+	}
+
 	/**
 	 * Per-model $-per-million-tokens rate table used to estimate a turn's cost for any provider
 	 * that reports no USD of its own ({@code reportsCostUsd: false} — see {@link
@@ -357,14 +393,16 @@ public class SettingsService {
 	 * key used before the R1 generalization, so existing installs need no migration.
 	 */
 	public String pricingFor(String provider) {
-		return repo.get(provider + PRICING_KEY_SUFFIX).filter(v -> !v.isBlank())
-				.orElse("codex".equals(provider) ? DEFAULT_CODEX_PRICING : EMPTY_PRICING);
+		// read on every turn_usage event while a turn runs (phase 25), so not a DB round trip each time
+		return pricingCache.computeIfAbsent(provider, p -> repo.get(p + PRICING_KEY_SUFFIX)
+				.filter(v -> !v.isBlank()).orElse(defaultPricing(p)));
 	}
 
 	public void setPricingFor(String provider, String json) {
 		String key = provider + PRICING_KEY_SUFFIX;
+		pricingCache.remove(provider);
 		if (json == null || json.isBlank()) {
-			repo.set(key, "codex".equals(provider) ? DEFAULT_CODEX_PRICING : EMPTY_PRICING);
+			repo.set(key, defaultPricing(provider));
 			return;
 		}
 		boolean isObject;
@@ -377,6 +415,14 @@ public class SettingsService {
 			throw new IllegalArgumentException(provider + " pricing must be a JSON object");
 		}
 		repo.set(key, json);
+	}
+
+	private static String defaultPricing(String provider) {
+		return switch (provider) {
+			case "codex" -> DEFAULT_CODEX_PRICING;
+			case "claude" -> DEFAULT_CLAUDE_PRICING;
+			default -> EMPTY_PRICING;
+		};
 	}
 
 	/** Accepts a tier name as-is, maps a legacy raw Claude alias to its tier, else defaults to "cheap". */

@@ -4,7 +4,7 @@ import { getWidget } from '../hotkeys/widgetRegistry';
 import { needsFullCard, permissionResponseFor, permissionSummary, toolLabel } from '../permissions';
 import { shortAge, type NeedsYouItem, type SidebarModel, type SidebarRow } from '../sidebarModel';
 import type { SessionSummary } from '../protocol';
-import { Close, ContinuedFrom, MinimizeToDock, NeedsYou, PullRequest } from '../icons';
+import { Close, ContinuedFrom, HiddenSessions, MinimizeToDock, NeedsYou, PullRequest } from '../icons';
 import { PR_STATUS_LABEL } from './SessionWidget';
 
 export type SidebarFold = 'expanded' | 'rail';
@@ -27,6 +27,8 @@ export default function Sidebar({
   showHints,
   onSelect,
   history,
+  hidden,
+  onUnhide,
   onOpenHistory,
   onHideHistory,
 }: {
@@ -37,6 +39,9 @@ export default function Sidebar({
   onSelect: (id: string) => void;
   /** phase 23: most recently closed sessions, already filtered/capped */
   history: SessionSummary[];
+  /** phase 25: open sessions kept off the dashboard */
+  hidden: SessionSummary[];
+  onUnhide: (id: string) => void;
   onOpenHistory: (session: SessionSummary) => void;
   onHideHistory: (id: string) => void;
 }) {
@@ -44,6 +49,7 @@ export default function Sidebar({
   const focusedId = useStore((s) => s.focusedId);
   const [now, setNow] = useState(() => Date.now());
   const [inFlight, setInFlight] = useState<ReadonlySet<string>>(new Set());
+  const [hiddenOpen, setHiddenOpen] = useState(false);
 
   // one shared tick for every row's "time in state", not a timer per row
   useEffect(() => {
@@ -155,6 +161,23 @@ export default function Sidebar({
           ))}
         </section>
       ))}
+      {hidden.length > 0 && (
+        <section className="sb-section sb-hidden">
+          <button className="sb-heading sb-hidden-toggle" onClick={() => setHiddenOpen((v) => !v)} title={hiddenOpen ? 'collapse' : 'show the sessions kept off the dashboard'}>
+            <HiddenSessions />Hidden ({hidden.length})
+          </button>
+          {hiddenOpen && hidden.map((s) => (
+            <div key={s.id} className="sb-row sb-history-row" title={`${s.name} · ${s.branch} — ${s.state.toLowerCase()}, click to put it back on the dashboard`}>
+              <button className="sb-history-main" onClick={() => onUnhide(s.id)}>
+                <span className={`dot ${s.state}`} />
+                <span className="sb-name">{s.name}</span>
+                <span className="sb-age">{shortAge(s.updatedAt, now)}</span>
+                <span className="sb-cost">${s.costToDate.toFixed(2)}</span>
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
       {history.length > 0 && (
         <section className="sb-section sb-history">
           <div className="sb-heading"><ContinuedFrom />History</div>

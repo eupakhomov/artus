@@ -58,10 +58,19 @@ class AutoTitleServiceTest {
 	}
 
 	private static SettingsService fakeSettings() {
+		return fakeSettings(true);
+	}
+
+	private static SettingsService fakeSettings(boolean autoTitle) {
 		return new SettingsService(null, null, null) {
 			@Override
 			public String systemProvider() {
 				return "claude";
+			}
+
+			@Override
+			public boolean autoTitle() {
+				return autoTitle;
 			}
 		};
 	}
@@ -118,6 +127,39 @@ class AutoTitleServiceTest {
 		}
 		assertThat(sessions.get(id).name()).isEqualTo(client.title);
 		assertThat(journal.readAfterCalled).isFalse();
+	}
+
+	@Test
+	void rejectsAnAnswerThatIsNotATitle() {
+		assertThat(AutoTitleService.looksLikeATitle("Add login page")).isTrue();
+		assertThat(AutoTitleService.looksLikeATitle("No Explore subagent available; sleep started in background (ID: bl6rqb1ao).")).isFalse();
+		assertThat(AutoTitleService.looksLikeATitle("Done.")).isFalse();
+		assertThat(AutoTitleService.looksLikeATitle("line one\nline two")).isFalse();
+		assertThat(AutoTitleService.looksLikeATitle("")).isFalse();
+	}
+
+	@Test
+	void stripsQuotesAndATrailingPeriodBeforeJudging() {
+		assertThat(AutoTitleService.normalizeTitle("\"Add login page\"")).isEqualTo("Add login page");
+		assertThat(AutoTitleService.normalizeTitle("`Fix flaky date parsing`.")).isEqualTo("Fix flaky date parsing");
+		assertThat(AutoTitleService.normalizeTitle("  Add CSV export. ")).isEqualTo("Add CSV export");
+		assertThat(AutoTitleService.normalizeTitle("Wait...")).isEqualTo("Wait...");
+		assertThat(AutoTitleService.looksLikeATitle(AutoTitleService.normalizeTitle("\"Done.\""))).isTrue();
+	}
+
+	@Test
+	void doesNothingWhenAutoTitleIsSwitchedOff() throws InterruptedException {
+		UUID id = UUID.randomUUID();
+		seedUntitledSession(id);
+		journal.append(id, "user_message", mapper.createObjectNode().put("text", "please add a login page"));
+		journal.append(id, "turn_complete", mapper.createObjectNode());
+		RecordingSystemTurnClient client = new RecordingSystemTurnClient();
+		AutoTitleService service = new AutoTitleService(sessions, journal, fakeSettings(false), client, journalPublisher, mapper);
+
+		service.maybeAutoTitle(id);
+
+		assertThat(client.invoked.await(200, TimeUnit.MILLISECONDS)).isFalse();
+		assertThat(sessions.get(id).name()).isEqualTo("b");
 	}
 
 	@Test

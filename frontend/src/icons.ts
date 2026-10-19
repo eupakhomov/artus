@@ -89,4 +89,10 @@ export {
   Check as ToolOk,
   X as ToolFailed,
   LoaderCircle as ToolRunning,
+
+  // phase 25 — live turn visibility
+  Layers as BackgroundTasks,
+  Archive as HideFromDashboard,
+  ArchiveRestore as HiddenSessions,
+  Activity as LiveActivity,
 } from 'lucide-react';

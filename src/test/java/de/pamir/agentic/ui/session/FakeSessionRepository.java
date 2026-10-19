@@ -106,6 +106,11 @@ final class FakeSessionRepository extends SessionRepository {
 	}
 
 	@Override
+	public void updateHidden(UUID id, boolean hidden) {
+		byId.computeIfPresent(id, (k, e) -> e.toBuilder().hidden(hidden).build());
+	}
+
+	@Override
 	public void updateReflectionEnabled(UUID id, boolean enabled) {
 		byId.computeIfPresent(id, (k, e) -> e.toBuilder().reflectionEnabled(enabled).build());
 	}

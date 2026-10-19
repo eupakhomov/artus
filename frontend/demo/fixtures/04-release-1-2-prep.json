@@ -11,7 +11,7 @@
   "state": "IDLE",
   "kind": "user",
   "sessionType": "development",
-  "costToDate": 0.4328,
+  "costToDate": 0.2365,
   "updatedAt": "2026-10-18T09:20:02.239Z",
   "lastSeq": 227,
   "closedAt": null,
@@ -93,7 +93,7 @@
    "contextTokens": 46363,
    "contextWindow": 967000
   },
-  "costToDate": 0.4328,
+  "costToDate": 0.2365,
   "queued": [],
   "lastSeq": 227
  },
@@ -1436,7 +1436,8 @@
      "cache_read_input_tokens": 136504,
      "cache_creation_input_tokens": 1355
     },
-    "costUsd": 0.2365,
+    "costUsd": 0.0402,
+    "costUsdRaw": 0.2365,
     "numTurns": 3,
     "durationMs": 18137,
     "stopReason": "success"

@@ -255,7 +255,26 @@ details.evidence blockquote { margin: 4px 0 0; padding: 2px 8px; border-left: 2p
 .t-tool.error summary .tname { color: var(--red); }
 .t-tool pre { margin: 0; padding: 8px; border-top: 1px solid var(--border); max-height: 260px; overflow: auto; white-space: pre-wrap; }
 .t-nested { margin: 8px; padding-left: 8px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
-.task-badge { vertical-align: -2px; margin-right: 2px; color: var(--muted); }
+svg.task-badge { display: inline-block; vertical-align: -2px; margin-right: 2px; color: var(--muted); }
+.task-meta { color: var(--muted); }
+.t-tool summary .task-popout { width: 20px; height: 20px; padding: 0; margin-left: 4px; vertical-align: -5px; border-color: transparent; background: transparent; }
+.live-turn { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-top: 1px solid var(--border); background: var(--panel2); color: var(--muted); font-size: calc(12px * var(--font-scale)); min-width: 0; }
+.live-turn.waiting { color: var(--amber); }
+.live-turn .live-icon { color: var(--accent); flex-shrink: 0; animation: pulse 1.2s infinite; }
+.live-turn.waiting .live-icon { color: var(--amber); }
+.live-turn .live-label { color: var(--text); font-family: "JetBrains Mono", Consolas, monospace; font-size: calc(11.5px * var(--font-scale)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.live-turn.waiting .live-label { color: var(--amber); font-family: inherit; }
+.live-turn .live-meta { white-space: nowrap; flex-shrink: 0; }
+.bg-tasks { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-bottom: 1px solid var(--border); background: var(--panel2); color: var(--muted); font-size: calc(12px * var(--font-scale)); }
+.bg-tasks svg { color: var(--amber); flex-shrink: 0; animation: pulse 1.6s ease-in-out infinite; }
+.bg-tasks span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.chip.children-attention { color: var(--amber); border-color: var(--amber); }
+.children-popover { position: fixed; z-index: 1000; min-width: 260px; max-width: 420px; padding: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; gap: 2px; }
+.children-row { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; border: none; background: transparent; padding: 4px 6px; font-size: calc(12px * var(--font-scale)); }
+.children-row:hover { background: var(--panel2); }
+.children-row .children-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.children-row .children-meta { color: var(--muted); white-space: nowrap; }
+.t-nested-more { align-self: flex-start; font-size: calc(11.5px * var(--font-scale)); padding: 2px 8px; }
 .t-footer { color: var(--muted); font-size: calc(11.5px * var(--font-scale)); border-top: 1px dashed var(--border); padding-top: 4px; }
 .t-note { font-size: calc(12.5px * var(--font-scale)); padding: 5px 9px; border-radius: 6px; }
 .t-note.warn { background: var(--warn-bg); color: var(--amber); }
@@ -466,6 +485,10 @@ details.evidence blockquote { margin: 4px 0 0; padding: 2px 8px; border-left: 2p
 .sb-pr.pr-MERGED { color: var(--purple); }
 .sb-pr.pr-CLOSED { color: var(--muted); }
 .sidebar.expanded { display: flex; flex-direction: column; }
+.sb-hidden { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+.sb-hidden + .sb-history { margin-top: 0; }
+.sb-hidden-toggle { width: 100%; background: none; border: none; text-align: left; cursor: pointer; font: inherit; }
+.sb-hidden-toggle:hover:not(:disabled) { background: none; border: none; color: var(--text); }
 .sb-history { margin-top: auto; margin-bottom: 0; padding-top: 8px; border-top: 1px solid var(--border); }
 .sb-history-row { padding: 0; gap: 0; color: var(--muted); }
 .sb-history-row:hover { background: var(--panel2); }

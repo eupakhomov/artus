@@ -84,7 +84,11 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
   // appended at the end — reversing keeps one creation order, which the sidebar relies on
   // so rows don't reshuffle across a reload
   const [sessionIds, setSessionIds] = useState<string[]>(
-    initialSessions.filter((s) => s.state !== 'CLOSED' && s.kind !== 'system').map((s) => s.id).reverse(),
+    initialSessions.filter((s) => s.state !== 'CLOSED' && s.kind !== 'system' && !s.hidden).map((s) => s.id).reverse(),
+  );
+  /** phase 25: open sessions kept off the dashboard — the sidebar's Hidden section */
+  const [hiddenSessions, setHiddenSessions] = useState<SessionSummary[]>(
+    initialSessions.filter((s) => s.state !== 'CLOSED' && s.kind !== 'system' && s.hidden),
   );
   const [systemSessions, setSystemSessions] = useState<SessionSummary[]>(
     initialSessions.filter((s) => s.state !== 'CLOSED' && s.kind === 'system'),
@@ -267,13 +271,41 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
     loadHistory();
   }, [removeView, loadHistory]);
 
+  /** ids of the open sessions at the last refresh — history only changes when one leaves */
+  const openIdsRef = useRef('');
   const refresh = useCallback(async () => {
     const list = await api.listSessions();
     const live = list.filter((s) => s.state !== 'CLOSED');
-    setSessionIds(live.filter((s) => s.kind !== 'system').map((s) => s.id).reverse());
-    setSystemSessions(live.filter((s) => s.kind === 'system'));
-    loadHistory();
+    const ids = live.filter((s) => s.kind !== 'system' && !s.hidden).map((s) => s.id).reverse();
+    // unchanged lists keep their identity, so a quiet poll re-renders nothing
+    setSessionIds((cur) => (cur.join() === ids.join() ? cur : ids));
+    setSystemSessions((cur) => sameSummaries(cur, live.filter((s) => s.kind === 'system')));
+    setHiddenSessions((cur) => sameSummaries(cur, live.filter((s) => s.kind !== 'system' && s.hidden)));
+    const openIds = live.map((s) => s.id).join();
+    if (openIds !== openIdsRef.current) {
+      openIdsRef.current = openIds;
+      loadHistory();
+    }
   }, [loadHistory]);
+
+  // phase 25: sessions the backend creates (spawned children) or hides/unhides (another tab,
+  // hide-on-park, a hidden session needing approval) show up without a manual refresh. A hidden
+  // session has no widget and so no live stream: while any exist, poll faster, so one that
+  // un-hides itself for an approval prompt is back (and in "Needs you") within a few seconds
+  const anyHidden = hiddenSessions.length > 0;
+  useEffect(() => {
+    const tick = () => { void refresh().catch(() => { /* next tick retries */ }); };
+    const timer = setInterval(tick, anyHidden ? 3_000 : 10_000);
+    window.addEventListener('focus', tick);
+    return () => { clearInterval(timer); window.removeEventListener('focus', tick); };
+  }, [refresh, anyHidden]);
+
+  const hideSession = useCallback((id: string) => {
+    void api.patchSession(id, { hidden: true }).then(() => {
+      setSessionIds((ids) => ids.filter((x) => x !== id));
+      removeView(id);
+    }).finally(() => { void refresh(); }); // a failed PATCH re-syncs the lists from the server
+  }, [removeView, refresh]);
 
   const closeTopDialog = useCallback((): boolean => {
     if (showCheatsheet) { setShowCheatsheet(false); return true; }
@@ -355,6 +387,14 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
     }
   }, [restore]);
 
+  const unhideSession = useCallback((id: string) => {
+    void api.patchSession(id, { hidden: false }).then(() => {
+      setHiddenSessions((list) => list.filter((s) => s.id !== id));
+      setSessionIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
+      restoreAndFocus(id);
+    }).catch(() => { void refresh(); });
+  }, [restoreAndFocus, refresh]);
+
   const cycleFold = useCallback(() => {
     setFold((cur) => {
       const next = FOLD_CYCLE[(FOLD_CYCLE.indexOf(cur) + 1) % FOLD_CYCLE.length]!;
@@ -398,6 +438,7 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
     openCheatsheet: () => setShowCheatsheet(true),
     toggleMaximizeFocused: () => { if (focusedId) toggleMaximize(focusedId); },
     toggleMinimizeFocused: () => { if (focusedId) toggleMinimize(focusedId); },
+    hideFocused: () => { if (focusedId && sessionIds.includes(focusedId)) hideSession(focusedId); },
     openExpose: () => setShowExpose(true),
     cycleSidebar: cycleFold,
     toggleLayoutMode,
@@ -483,6 +524,8 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
         showHints={layoutMode === 'focus'}
         onSelect={restoreAndFocus}
         history={history}
+        hidden={hiddenSessions}
+        onUnhide={unhideSession}
         onOpenHistory={setOpenHistory}
         onHideHistory={(id) => setHiddenHistory(hideHistoryEntry(id))}
       />
@@ -512,6 +555,8 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
                 onToggleMaximize={() => toggleMaximize(id)}
                 onToggleMinimize={() => toggleMinimize(id)}
                 onRequestFocus={() => restoreAndFocus(id)}
+                onOpenSession={restoreAndFocus}
+                onHide={() => hideSession(id)}
               />
             </div>
           ))}
@@ -548,4 +593,10 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
       )}
     </>
   );
+}
+
+/** `next`, or `cur` when nothing a sidebar row shows changed — keeps a quiet poll from re-rendering. */
+function sameSummaries(cur: SessionSummary[], next: SessionSummary[]): SessionSummary[] {
+  const key = (l: SessionSummary[]) => l.map((s) => [s.id, s.name, s.state, s.costToDate, s.updatedAt].join('|')).join();
+  return key(cur) === key(next) ? cur : next;
 }

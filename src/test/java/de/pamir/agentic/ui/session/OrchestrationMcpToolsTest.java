@@ -116,11 +116,17 @@ class OrchestrationMcpToolsTest {
 		assertThat(child.repoPath()).isEqualTo(mono.toString());
 		assertThat(child.servicePath()).isEqualTo(mono.resolve("packages/bar").toString());
 		assertThat(child.parentSessionId()).isEqualTo(parent.id());
+		var spawnEvent = journal.firstEventOfType(parent.id(), "child_spawned").orElseThrow();
+		assertThat(spawnEvent.payload().path("childId").asText()).isEqualTo(childId.toString());
+		assertThat(spawnEvent.payload().path("service").asText()).isEqualTo("bar");
 
 		// give the parent a live handle so report_result's sendUserMessage dispatches immediately
 		// rather than just enqueueing behind a park→wake cycle
 		sidecars.spawn(parent, null, false, null, e -> { }, (h, c) -> { });
+		// phase 25: a parent that hid itself when it parked comes back for the turn the report starts
+		sessions.updateHidden(parent.id(), true);
 		tools.reportResult(childId.toString(), "finished the bar work");
+		assertThat(sessions.get(parent.id()).hidden()).isFalse();
 
 		var reportEvent = journal.firstEventOfType(childId, "child_reported").orElseThrow();
 		assertThat(reportEvent.payload().path("service").asText()).isEqualTo("bar");

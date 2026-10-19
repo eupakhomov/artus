@@ -206,7 +206,10 @@ export interface TurnCompleteEvent {
   type: 'turn_complete';
   stopReason: string;
   usage: unknown;
+  /** this turn's own cost — never a running total (consumers sum it for the session's cost) */
   costUsd: number;
+  /** adapter's raw running total since the provider process started, when it reports one (debugging only) */
+  sessionCostUsd?: number;
   durationMs: number;
   numTurns: number;
   /** model that produced this turn (last-seen system_init.model at completion time) */
@@ -265,6 +268,72 @@ export interface ExitingEvent {
   reason: 'shutdown' | 'fatal' | 'stdin_closed';
 }
 
+/** Token counts of one model within the current turn (phase 25). */
+export interface ModelTokenUsage {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite5m: number;
+  cacheWrite1h: number;
+}
+
+/**
+ * Running token usage of the current turn, per model (subagents may run another model),
+ * re-emitted whenever a model call's usage becomes known. Cumulative within the turn, reset
+ * at turn_complete. The backend prices it into `estimatedCostUsd` for the live cost display;
+ * the authoritative figure is still turn_complete.costUsd. Optional: adapters that cannot
+ * see per-call usage never send it.
+ */
+export interface TurnUsageEvent {
+  type: 'turn_usage';
+  byModel: Record<string, ModelTokenUsage>;
+}
+
+/**
+ * A provider-side task started: a subagent or a backgrounded shell command (phase 25).
+ * `toolUseId` links it to the tool call that spawned it, when there is one.
+ */
+export interface TaskStartedEvent {
+  type: 'task_started';
+  taskId: string;
+  toolUseId?: string;
+  description: string;
+  /** provider's task kind, e.g. `local_agent`, `local_bash` */
+  kind?: string;
+  subagentType?: string;
+  backgrounded: boolean;
+}
+
+/** Periodic progress of a running task. */
+export interface TaskProgressEvent {
+  type: 'task_progress';
+  taskId: string;
+  toolUseId?: string;
+  description: string;
+  lastTool?: string;
+  toolUses: number;
+  tokens: number;
+  durationMs: number;
+}
+
+/** A task settled. */
+export interface TaskDoneEvent {
+  type: 'task_done';
+  taskId: string;
+  toolUseId?: string;
+  status: 'completed' | 'failed' | 'stopped';
+  summary: string;
+}
+
+/**
+ * The full set of live background tasks (replace semantics). The adapter sends `[]` once at
+ * startup, so a consumer can reset on (re)spawn.
+ */
+export interface BackgroundTasksEvent {
+  type: 'background_tasks';
+  tasks: { taskId: string; kind: string; description: string }[];
+}
+
 export type Event =
   | ReadyEvent
   | SystemInitEvent
@@ -280,7 +349,12 @@ export type Event =
   | ContextUsageEvent
   | ContextCompactedEvent
   | ErrorEvent
-  | ExitingEvent;
+  | ExitingEvent
+  | TurnUsageEvent
+  | TaskStartedEvent
+  | TaskProgressEvent
+  | TaskDoneEvent
+  | BackgroundTasksEvent;
 
 /**
  * Codex has no plan mode, no static subagent-file equivalent, and no thinking-budget

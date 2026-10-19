@@ -132,6 +132,11 @@ public class SessionRepository {
 				.params(budget, id).update();
 	}
 
+	/** Phase 25: no updated_at bump — hiding is not activity, and idle parking reads updated_at. */
+	public void updateHidden(UUID id, boolean hidden) {
+		jdbc.sql("UPDATE session SET hidden = ? WHERE id = ?").params(hidden, id).update();
+	}
+
 	public void updateReflectionEnabled(UUID id, boolean enabled) {
 		jdbc.sql("UPDATE session SET reflection_enabled = ?, updated_at = now() WHERE id = ?")
 				.params(enabled, id).update();
@@ -327,6 +332,7 @@ public class SessionRepository {
 				rs.getString("slack_thread_ts"),
 				rs.getTimestamp("created_at").toInstant(),
 				rs.getTimestamp("updated_at").toInstant(),
-				rs.getTimestamp("closed_at") == null ? null : rs.getTimestamp("closed_at").toInstant());
+				rs.getTimestamp("closed_at") == null ? null : rs.getTimestamp("closed_at").toInstant(),
+				rs.getBoolean("hidden"));
 	}
 }

@@ -7,11 +7,15 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,11 +39,18 @@ class EventJournalDbTest {
 	@Autowired
 	private ObjectMapper mapper;
 
+	@Autowired
+	private JdbcTemplate jdbc;
+
 	/** session_event.session_id has a FK to session(id); the journal needs a real parent row. */
 	private UUID newSession() {
+		return newSession("claude");
+	}
+
+	private UUID newSession(String provider) {
 		UUID id = UUID.randomUUID();
 		SessionEntity entity = SessionEntity.builder()
-				.id(id).name("t-" + id).provider("claude")
+				.id(id).name("t-" + id).provider(provider)
 				.repoPath("/repo").branch("b-" + id).baseBranch("main").worktreePath("/wt/" + id)
 				.skillSources(mapper.createArrayNode()).agentSources(mapper.createArrayNode())
 				.state(SessionState.IDLE).build();
@@ -82,6 +93,40 @@ class EventJournalDbTest {
 		journal.append(sessionId, "turn_complete", turnComplete(2.25));
 
 		assertThat(journal.costToDate(sessionId)).isEqualByComparingTo(new BigDecimal("3.75"));
+	}
+
+	/**
+	 * V22 (phase 25 step 1) rewrites old Claude turn_complete rows, which carried the SDK's running
+	 * total per sidecar run, into per-turn costs. Re-running the migration file here is safe: it
+	 * only touches rows without costUsdRaw/sessionCostUsd, which is exactly what these fixtures are.
+	 */
+	@Test
+	void v22RewritesRunningTotalsIntoPerTurnCostsPerSidecarRun() throws IOException {
+		UUID claude = newSession();
+		journal.append(claude, "ready", mapper.createObjectNode());
+		for (double total : new double[] {1, 2, 4, 5}) {
+			journal.append(claude, "turn_complete", turnComplete(total));
+		}
+		journal.append(claude, "ready", mapper.createObjectNode()); // sidecar restart: total starts over
+		journal.append(claude, "turn_complete", turnComplete(0.5));
+		journal.append(claude, "turn_complete", turnComplete(1.5));
+		journal.append(claude, "turn_complete", turnComplete(0.25)); // went down without a ready: a reset
+		journal.append(claude, "turn_complete", turnComplete(9.0).put("sessionCostUsd", 20.0)); // fixed sidecar
+		UUID codex = newSession("codex");
+		journal.append(codex, "turn_complete", turnComplete(1.0));
+		journal.append(codex, "turn_complete", turnComplete(2.0));
+
+		String sql = new ClassPathResource("db/migration/V22__turn_cost_delta.sql").getContentAsString(StandardCharsets.UTF_8);
+		jdbc.execute(sql);
+		jdbc.execute(sql); // idempotent
+
+		var costs = journal.readAfter(claude, 0).stream().filter(e -> e.type().equals("turn_complete"))
+				.map(e -> e.payload().path("costUsd").asDouble()).toList();
+		assertThat(costs).containsExactly(1.0, 1.0, 2.0, 1.0, 0.5, 1.0, 0.25, 9.0);
+		assertThat(journal.readAfter(claude, 0).stream().filter(e -> e.type().equals("turn_complete")).findFirst()
+				.orElseThrow().payload().path("costUsdRaw").asDouble()).isEqualTo(1.0);
+		assertThat(journal.costToDate(claude)).isEqualByComparingTo(new BigDecimal("15.75"));
+		assertThat(journal.costToDate(codex)).isEqualByComparingTo(new BigDecimal("3.0"));
 	}
 
 	@Test

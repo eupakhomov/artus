@@ -16,6 +16,8 @@ export type TranscriptItem =
       kind: 'tool'; toolUseId: string; name: string; input: unknown; output?: string; isError?: boolean; truncated?: boolean;
       /** a Task call's own subagent activity (thinking/text/tool calls), nested one level — see reduce()'s parentToolUseId routing */
       items?: TranscriptItem[];
+      /** the provider task this call started (phase 25): a subagent keeps running after a backgrounded call's own result */
+      task?: TaskInfo;
     }
   | { kind: 'permission'; requestId: string; toolName: string; input: Record<string, unknown>; plan: string | null; decision: 'allow' | 'deny' | null }
   | { kind: 'turn_footer'; stopReason: string; costUsd: number; durationMs: number; model: string | null }
@@ -23,6 +25,37 @@ export type TranscriptItem =
   | { kind: 'context_compacted'; preTokens: number; postTokens: number; trigger: 'manual' | 'auto' };
 
 export type BlockMark = 'important' | 'excluded';
+
+/** A provider-side task (subagent, backgrounded command) as the task_* events describe it (phase 25). */
+export interface TaskInfo {
+  taskId: string;
+  status: 'running' | 'completed' | 'failed' | 'stopped';
+  description: string;
+  subagentType: string | null;
+  backgrounded: boolean;
+  lastTool: string | null;
+  toolUses: number;
+  durationMs: number;
+  /** ts of task_started, so a running task's duration can tick between progress events */
+  startedAt: string | null;
+  summary: string | null;
+}
+
+/** What the running turn is doing right now — the widget's sticky activity line (phase 25). */
+export type Activity =
+  | { kind: 'tool'; name: string; input: unknown; /** set when a subagent made the call */ subagent: string | null }
+  | { kind: 'thinking' }
+  | { kind: 'writing' };
+
+/** The turn in flight, cleared by turn_complete (phase 25). */
+export interface LiveTurn {
+  /** ts of the turn's system_init, or its user_message when the init is missing */
+  startedAt: string;
+  activity: Activity | null;
+  toolCount: number;
+  /** priced turn_usage — an estimate until turn_complete brings the real cost */
+  estimatedCostUsd: number | null;
+}
 
 export interface SessionView {
   state: SessionState;
@@ -68,6 +101,9 @@ export interface SessionView {
   /** kept current by pr_status_changed; the widget's PR chip and the sidebar both read it */
   prCheckStatus: PrCheckStatus | null;
   parentSessionId: string | null;
+  liveTurn: LiveTurn | null;
+  /** the provider's live background tasks (replace semantics, from `background_tasks`) */
+  backgroundTasks: { taskId: string; kind: string; description: string }[];
 }
 
 export interface CodeIntelStatus {
@@ -109,6 +145,8 @@ const emptyView = (): SessionView => ({
   prUrl: null,
   prCheckStatus: null,
   parentSessionId: null,
+  liveTurn: null,
+  backgroundTasks: [],
 });
 
 function last<T>(arr: T[]): T | undefined {
@@ -182,6 +220,48 @@ function findTopLevelToolIndex(arr: TranscriptItem[], toolUseId: string): number
   return -1;
 }
 
+/** The Task-call item that started a task, located by its toolUseId (top level only). */
+function patchTask(t: TranscriptItem[], toolUseId: string | undefined, patch: (task: TaskInfo | undefined) => TaskInfo | undefined): TaskInfo | undefined {
+  if (!toolUseId) return undefined;
+  const idx = findTopLevelToolIndex(t, toolUseId);
+  if (idx === -1) return undefined;
+  const item = t[idx] as Extract<TranscriptItem, { kind: 'tool' }>;
+  const task = patch(item.task);
+  if (task) t[idx] = { ...item, task };
+  return task;
+}
+
+function taskSubagent(t: TranscriptItem[], parentToolUseId: string | undefined): string | null {
+  if (!parentToolUseId) return null;
+  const idx = findTopLevelToolIndex(t, parentToolUseId);
+  const item = idx === -1 ? undefined : (t[idx] as Extract<TranscriptItem, { kind: 'tool' }>);
+  const input = item?.input as Record<string, unknown> | undefined;
+  return item?.task?.subagentType ?? (typeof input?.['subagent_type'] === 'string' ? input['subagent_type'] : 'subagent');
+}
+
+function newLiveTurn(ts: string | undefined): LiveTurn {
+  return { startedAt: ts ?? new Date().toISOString(), activity: null, toolCount: 0, estimatedCostUsd: null };
+}
+
+/**
+ * Folds a turn-progress event into the live turn, opening one if a turn is in flight but none
+ * was opened yet. Nothing while idle: a backgrounded subagent keeps working (and reporting
+ * tools and usage) after its turn ended, which is not a turn of its own — the provider opens
+ * that with a system_init when the subagent finishes.
+ */
+function touchLiveTurn(v: SessionView, ts: string | undefined, patch: Partial<LiveTurn>): void {
+  if (!v.liveTurn && v.state !== 'RUNNING' && v.state !== 'WAITING_INPUT') return;
+  v.liveTurn = { ...(v.liveTurn ?? newLiveTurn(ts)), ...patch };
+}
+
+/** The sidecar process is gone: a task it still ran will never report back, so it stopped. */
+function stopRunningTasks(t: TranscriptItem[]): void {
+  for (let i = 0; i < t.length; i++) {
+    const item = t[i]!;
+    if (item.kind === 'tool' && item.task?.status === 'running') t[i] = { ...item, task: { ...item.task, status: 'stopped' } };
+  }
+}
+
 /** Applies one journal event to a session view (mutates a fresh copy). */
 function reduce(view: SessionView, e: Envelope): SessionView {
   const v: SessionView = { ...view, transcript: [...view.transcript] };
@@ -193,12 +273,21 @@ function reduce(view: SessionView, e: Envelope): SessionView {
       v.state = p['state'] as SessionState;
       v.stateSince = e.ts ?? new Date().toISOString();
       if (v.state === 'IDLE' || v.state === 'CRASHED') v.pendingPermission = null;
+      if (v.state !== 'RUNNING' && v.state !== 'WAITING_INPUT') v.liveTurn = null;
+      // the sidecar process is gone, and its background tasks with it
+      if (v.state === 'PARKED' || v.state === 'CRASHED' || v.state === 'CLOSED' || v.state === 'FAILED') {
+        v.backgroundTasks = [];
+        stopRunningTasks(t);
+      }
       break;
     case 'ready':
       v.capabilities = p['capabilities'] as Capabilities;
       break;
     case 'system_init':
       v.model = (p['model'] as string) ?? v.model;
+      // opens every turn — including one the provider starts by itself after a background task,
+      // which arrives while still IDLE (RUNNING follows); so it always starts a fresh live turn
+      v.liveTurn = newLiveTurn(e.ts);
       break;
     case 'user_message':
       t.push({ kind: 'user', text: p['text'] as string, seq: e.seq });
@@ -232,8 +321,85 @@ function reduce(view: SessionView, e: Envelope): SessionView {
       } else {
         applyBranchEvent(t, e.type, p, e.seq);
       }
+      if (e.type === 'tool_started') {
+        touchLiveTurn(v, e.ts, {
+          activity: { kind: 'tool', name: p['name'] as string, input: p['input'], subagent: taskSubagent(t, parentToolUseId) },
+          toolCount: (v.liveTurn?.toolCount ?? 0) + 1,
+        });
+      } else if (e.type === 'tool_result') {
+        if (v.liveTurn?.activity?.kind === 'tool') touchLiveTurn(v, e.ts, { activity: { kind: 'thinking' } });
+      } else if (e.type === 'stream_delta' && !parentToolUseId) {
+        const kind = p['deltaType'] === 'thinking' ? 'thinking' : 'writing';
+        if (v.liveTurn?.activity?.kind !== kind) touchLiveTurn(v, e.ts, { activity: { kind } });
+      }
       break;
     }
+    case 'turn_usage':
+      if (typeof p['estimatedCostUsd'] === 'number') touchLiveTurn(v, e.ts, { estimatedCostUsd: p['estimatedCostUsd'] });
+      break;
+    case 'task_started': {
+      const backgrounded = p['backgrounded'] === true;
+      patchTask(t, p['toolUseId'] as string | undefined, () => ({
+        taskId: p['taskId'] as string,
+        status: 'running',
+        description: (p['description'] as string) ?? '',
+        subagentType: (p['subagentType'] as string | undefined) ?? null,
+        backgrounded,
+        lastTool: null,
+        toolUses: 0,
+        durationMs: 0,
+        startedAt: e.ts ?? null,
+        summary: null,
+      }));
+      break;
+    }
+    case 'task_progress':
+      patchTask(t, p['toolUseId'] as string | undefined, (task) => task && {
+        ...task,
+        lastTool: (p['lastTool'] as string | undefined) ?? task.lastTool,
+        toolUses: (p['toolUses'] as number) ?? task.toolUses,
+        durationMs: (p['durationMs'] as number) ?? task.durationMs,
+      });
+      break;
+    case 'task_done': {
+      const status = p['status'] as TaskInfo['status'];
+      const summary = (p['summary'] as string) ?? '';
+      const toolUseId = p['toolUseId'] as string | undefined;
+      let wasRunning = false;
+      const task = patchTask(t, toolUseId, (prev) => {
+        wasRunning = prev?.status === 'running';
+        return prev && { ...prev, status, summary };
+      });
+      // a background task's result makes the provider start a turn on its own — say why it woke up.
+      // Not for a task we can't place under a top-level call: a subagent's own long-running
+      // foreground commands are tasks too; nor for one already marked stopped when its sidecar
+      // died (a resumed CLI reports those once more).
+      if ((task && task.backgrounded && wasRunning) || (!task && !toolUseId)) {
+        t.push({
+          kind: 'note', level: status === 'completed' ? 'info' : 'warn',
+          text: `background task ${status}${task?.description ? `: ${task.description}` : summary ? `: ${summary}` : ''}`,
+        });
+      }
+      break;
+    }
+    case 'child_spawned':
+      t.push({ kind: 'note', level: 'info', text: `spawned child session ${p['childName']} (${p['service']})` });
+      break;
+    case 'child_reported':
+      // journaled on both the child and its parent
+      t.push({ kind: 'note', level: 'info', text: `${p['childName']} reported its result to the parent session` });
+      break;
+    case 'child_attention':
+      t.push({
+        kind: 'note', level: 'warn',
+        text: p['state'] === 'WAITING_INPUT'
+          ? `child session ${p['childName']} is waiting for approval — it will not report back until someone answers`
+          : `child session ${p['childName']} crashed — it will not report back unless resumed`,
+      });
+      break;
+    case 'background_tasks':
+      v.backgroundTasks = (p['tasks'] as SessionView['backgroundTasks']) ?? [];
+      break;
     case 'thinking_progress': {
       // No parentToolUseId is available for this event type (the underlying SDK message
       // carries none) — resolve the open thinking item positionally instead: if the last
@@ -286,7 +452,8 @@ function reduce(view: SessionView, e: Envelope): SessionView {
       const tail = last(t);
       if (tail?.kind === 'text' && !tail.done) t[t.length - 1] = { ...tail, done: true };
       const cost = (p['costUsd'] as number) ?? 0;
-      t.push({
+      // a resumed CLI opens an empty turn (no model call, $0) to settle tasks of the previous process
+      if (!(p['numTurns'] === 0 && cost === 0)) t.push({
         kind: 'turn_footer',
         stopReason: p['stopReason'] as string,
         costUsd: cost,
@@ -294,6 +461,7 @@ function reduce(view: SessionView, e: Envelope): SessionView {
         model: (p['model'] as string) ?? null,
       });
       v.costToDate = view.costToDate + cost;
+      v.liveTurn = null;
       break;
     }
     case 'queue_updated':
@@ -340,6 +508,13 @@ function reduce(view: SessionView, e: Envelope): SessionView {
       break;
     case 'session_renamed':
       v.name = p['name'] as string;
+      // phase 25: an automatic rename says so, instead of the name silently changing
+      if (p['auto'] === true) {
+        t.push({
+          kind: 'note', level: 'info',
+          text: `renamed to "${p['name']}"${p['from'] ? ` (was ${p['from']})` : ''} — titled automatically from the first message; switch off under Settings → Sessions`,
+        });
+      }
       break;
     case 'budget_updated':
       v.costBudgetUsd = p['costBudgetUsd'] == null ? null : Number(p['costBudgetUsd']);

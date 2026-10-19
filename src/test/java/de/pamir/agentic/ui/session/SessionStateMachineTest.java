@@ -695,6 +695,102 @@ class SessionStateMachineTest {
 	}
 
 	@Test
+	void aTurnTheProviderStartsOnItsOwnMovesAnIdleSessionToRunning() {
+		// phase 25: a finished background task makes the CLI open a turn with no user message
+		SessionEntity s = session(SessionState.IDLE);
+
+		sessionService.onSidecarEvent(s.id(), mapper.readTree(
+				"{\"type\":\"system_init\",\"providerSessionId\":\"p\",\"model\":\"claude-sonnet-5\"}"));
+
+		assertThat(sessions.get(s.id()).state()).isEqualTo(SessionState.RUNNING);
+	}
+
+	@Test
+	void aChildStoppingForApprovalOrCrashingLeavesANoteOnItsParent() {
+		SessionEntity parent = session(SessionState.IDLE);
+		SessionEntity child = SessionEntity.builder()
+				.id(UUID.randomUUID()).name("svc: child").provider("claude").repoPath("/repo")
+				.branch("child").baseBranch("main").worktreePath(worktreeRoot.resolve(UUID.randomUUID().toString()).toString())
+				.contextDirs(List.of()).permissionMode("default").allowedTools(List.of()).disallowedTools(List.of())
+				.state(SessionState.RUNNING).kind("user").parentSessionId(parent.id())
+				.build();
+		sessions.seed(child);
+
+		sessionService.transition(child.id(), SessionState.WAITING_INPUT);
+		sessionService.transition(child.id(), SessionState.IDLE);
+
+		assertThat(journal.countEventType(parent.id(), "child_attention")).isEqualTo(1);
+		JsonNode note = journal.firstEventOfType(parent.id(), "child_attention").orElseThrow().payload();
+		assertThat(note.path("state").asText()).isEqualTo("WAITING_INPUT");
+		assertThat(note.path("childName").asText()).isEqualTo("svc: child");
+	}
+
+	@Test
+	void aChildAskingSeveralTimesInOneTurnIsOneNoteAndAReportedChildNone() {
+		SessionEntity parent = session(SessionState.IDLE);
+		SessionEntity child = SessionEntity.builder()
+				.id(UUID.randomUUID()).name("svc: child").provider("claude").repoPath("/repo")
+				.branch("child").baseBranch("main").worktreePath(worktreeRoot.resolve(UUID.randomUUID().toString()).toString())
+				.contextDirs(List.of()).permissionMode("default").allowedTools(List.of()).disallowedTools(List.of())
+				.state(SessionState.RUNNING).kind("user").parentSessionId(parent.id())
+				.build();
+		sessions.seed(child);
+
+		// two approvals within one turn: one stall
+		sessionService.transition(child.id(), SessionState.WAITING_INPUT);
+		sessionService.transition(child.id(), SessionState.RUNNING);
+		sessionService.transition(child.id(), SessionState.WAITING_INPUT);
+		assertThat(journal.countEventType(parent.id(), "child_attention")).isEqualTo(1);
+		// crashing is news even right after a prompt
+		sessionService.transition(child.id(), SessionState.CRASHED);
+		assertThat(journal.countEventType(parent.id(), "child_attention")).isEqualTo(2);
+		// a new turn that stops again is a new stall
+		sessionService.transition(child.id(), SessionState.IDLE);
+		sessionService.transition(child.id(), SessionState.RUNNING);
+		sessionService.transition(child.id(), SessionState.WAITING_INPUT);
+		assertThat(journal.countEventType(parent.id(), "child_attention")).isEqualTo(3);
+		// once it has reported, the parent is no longer waiting on it
+		journal.append(child.id(), "child_reported", mapper.createObjectNode());
+		sessionService.transition(child.id(), SessionState.IDLE);
+		sessionService.transition(child.id(), SessionState.RUNNING);
+		sessionService.transition(child.id(), SessionState.WAITING_INPUT);
+		assertThat(journal.countEventType(parent.id(), "child_attention")).isEqualTo(3);
+	}
+
+	@Test
+	void aHiddenSessionComesBackWhenItNeedsTheUser() {
+		SessionEntity s = session(SessionState.RUNNING);
+
+		sessionService.setHidden(s.id(), true);
+		assertThat(sessions.get(s.id()).hidden()).isTrue();
+		assertThat(journal.countEventType(s.id(), "visibility_changed")).isEqualTo(1);
+
+		sessionService.setHidden(s.id(), true); // no-op: nothing journaled twice
+		assertThat(journal.countEventType(s.id(), "visibility_changed")).isEqualTo(1);
+
+		sessionService.transition(s.id(), SessionState.WAITING_INPUT);
+		assertThat(sessions.get(s.id()).hidden()).isFalse();
+		assertThat(journal.countEventType(s.id(), "visibility_changed")).isEqualTo(2);
+	}
+
+	@Test
+	void backgroundTasksAreTrackedFromTheLatestSetAndDieWithTheSidecar() {
+		SessionEntity s = session(SessionState.IDLE);
+
+		sessionService.onSidecarEvent(s.id(), mapper.readTree(
+				"{\"type\":\"background_tasks\",\"tasks\":[{\"taskId\":\"k\",\"kind\":\"local_bash\",\"description\":\"sleep\"}]}"));
+		assertThat(sessionService.hasBackgroundTasks(s.id())).isTrue();
+
+		sessionService.onSidecarEvent(s.id(), mapper.readTree("{\"type\":\"background_tasks\",\"tasks\":[]}"));
+		assertThat(sessionService.hasBackgroundTasks(s.id())).isFalse();
+
+		sessionService.onSidecarEvent(s.id(), mapper.readTree(
+				"{\"type\":\"background_tasks\",\"tasks\":[{\"taskId\":\"k\",\"kind\":\"local_bash\",\"description\":\"sleep\"}]}"));
+		sessionService.onSidecarExit(s.id(), 0, List.of(), true);
+		assertThat(sessionService.hasBackgroundTasks(s.id())).isFalse();
+	}
+
+	@Test
 	void onSidecarExitIsANoOpWhenTheSessionIsAlreadyGone() {
 		UUID unknown = UUID.randomUUID();
 
