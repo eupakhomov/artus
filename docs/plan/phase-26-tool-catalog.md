@@ -172,8 +172,11 @@ Deviations from the plan, and what was actually verified.
 - Import scan listed Claude (`playwright`, …) and Codex (`datadog`, …) plugins with their servers; adding, Test
   (25 Playwright tools listed through the stdio probe), reserved name `linear` → 400, unset `DD_API_KEY` → 400 naming
   `dd`, both at Test and at session creation.
-- Claude session with the catalog plugin: tools callable-listed (above). Codex session: the baked file contained the
-  expanded `playwright` server, but Codex reported no MCP tools at all — **also for a session with no catalog tools**
-  (memory/linear), so this is an environment/Codex-side limitation to look into separately, not caused by this phase.
+- Claude session with the catalog plugin: tools callable-listed (above). Codex session: asking it to *list* its MCP tools answers "none"
+  (also for a session with no catalog tools), but that is Codex deferring MCP tools behind its own tool search, not a
+  missing server. Probed directly against `codex app-server` (0.151.0, `thread/start config.mcp_servers`): the server
+  reports `ready`, and a prompt that names the tool makes the model find and call `playwright.browser_tabs` (it only
+  failed there because the probe used approval policy `never`, which rejects MCP calls). So catalog servers work on
+  Codex; test with a prompt that names a tool, not "list your tools".
 - Not exercised live: `enabledTools` on stdio for both providers (unit-tested in `mcp.test.ts`/`ToolCatalogTest`),
   the dashboard UI in a browser (typechecked and built, both themes not eyeballed).
