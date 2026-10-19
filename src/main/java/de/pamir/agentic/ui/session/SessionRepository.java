@@ -38,9 +38,9 @@ public class SessionRepository {
 							allowed_tools, disallowed_tools, mcp_config, env_vars, skill_sources, agent_sources,
 							instructions, thinking, effort, max_turns, fallback_model, cost_budget_usd,
 							kickoff_prompt, state, kind, session_type, ticket_ref, continued_from_id, parent_session_id,
-							reflection_enabled, code_intel, slack_enabled)
+							reflection_enabled, code_intel, slack_enabled, tools, plugin_dirs)
 						VALUES (?, ?, ?, ?::jsonb, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb,
-							?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+							?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb)
 						""")
 				.params(s.id(), s.name(), s.provider(), json(s.providerConfig()), s.repoPath(), s.rawServicePath(),
 						s.ecosystemPath(), json(s.contextDirs()), s.branch(), s.baseBranch(), s.worktreePath(),
@@ -48,7 +48,7 @@ public class SessionRepository {
 						json(s.mcpConfig()), json(s.envVars()), json(s.skillSources()), json(s.agentSources()),
 						s.instructions(), s.thinking(), s.effort(), s.maxTurns(), s.fallbackModel(), s.costBudgetUsd(),
 						s.kickoffPrompt(), s.state().name(), s.kind(), s.sessionType(), s.ticketRef(), s.continuedFromId(),
-						s.parentSessionId(), s.reflectionEnabled(), s.codeIntel(), s.slackEnabled())
+						s.parentSessionId(), s.reflectionEnabled(), s.codeIntel(), s.slackEnabled(), json(s.tools()), json(s.pluginDirs()))
 				.update();
 	}
 
@@ -333,6 +333,8 @@ public class SessionRepository {
 				rs.getTimestamp("created_at").toInstant(),
 				rs.getTimestamp("updated_at").toInstant(),
 				rs.getTimestamp("closed_at") == null ? null : rs.getTimestamp("closed_at").toInstant(),
-				rs.getBoolean("hidden"));
+				rs.getBoolean("hidden"),
+				readStringList(rs.getString("tools")),
+				readStringList(rs.getString("plugin_dirs")));
 	}
 }

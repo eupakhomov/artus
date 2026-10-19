@@ -407,6 +407,11 @@ export default function SessionWidget({
               {entity.codeIntel}
             </span>
           )}
+          {entity?.tools && entity.tools.length > 0 && (
+            <span className="chip" title={`catalog tools: ${entity.tools.join(', ')}`}>
+              {entity.tools.length === 1 ? entity.tools[0] : `${entity.tools.length} tools`}
+            </span>
+          )}
           {entity?.ticketRef && (
             <span className="chip" title="linked ticket"><LinkedTicket />{entity.ticketRef}</span>
           )}

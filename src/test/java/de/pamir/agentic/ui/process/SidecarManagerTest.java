@@ -196,4 +196,17 @@ class SidecarManagerTest {
 
 		assertThat(env).containsEntry("MCP_TIMEOUT", "300000").containsEntry("ENABLE_TOOL_SEARCH", "true");
 	}
+
+	@Test
+	void passesPluginDirsOnlyToAProviderThatSupportsThem() {
+		ProviderCapabilities noPlugins = new ProviderCapabilities(List.of("default"), true, true, true, true, true,
+				true, true, true, true, true, true, List.of("pluginDirs"), true, true, true, "claude-code");
+		SessionEntity entity = baseEntity().provider("widget").pluginDirs(List.of("/plugins/a", "/plugins/b")).build();
+
+		List<String> with = new SidecarManager(null, null, catalogOf("widget", fullCaps())).buildArgs(entity, null, false, null);
+		List<String> without = new SidecarManager(null, null, catalogOf("widget", noPlugins)).buildArgs(entity, null, false, null);
+
+		assertThat(with).containsSubsequence("--plugin-dir", "/plugins/a", "--plugin-dir", "/plugins/b");
+		assertThat(without).doesNotContain("--plugin-dir");
+	}
 }

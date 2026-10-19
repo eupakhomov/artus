@@ -8,6 +8,9 @@ import de.pamir.agentic.ui.integration.CodegraphService;
 import de.pamir.agentic.ui.integration.GraphifyService;
 import de.pamir.agentic.ui.integration.SerenaService;
 import de.pamir.agentic.ui.memory.MemoryEpisodeRepository;
+import de.pamir.agentic.ui.tools.ToolCatalog;
+import de.pamir.agentic.ui.tools.ToolCatalogService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
@@ -51,12 +54,25 @@ public class SessionConfigFactory {
 	private final SerenaService serena;
 	private final GraphifyService graphify;
 	private final CodegraphService codegraph;
+	/** Phase 26 tool catalog; null in unit tests that never select catalog tools. */
+	private final ToolCatalogService toolCatalog;
 
+	/** Pre-phase-26 arity (no tool catalog); keeps unit-test construction compiling. */
+	public SessionConfigFactory(AppProperties props, SettingsService settings, TemplateRepository templates,
+								 ObjectMapper mapper, MemoryEpisodeRepository episodes, int serverPort,
+								 ProviderCatalog catalog, GitWorktreeService worktrees, SerenaService serena,
+								 GraphifyService graphify, CodegraphService codegraph) {
+		this(props, settings, templates, mapper, episodes, serverPort, catalog, worktrees, serena, graphify,
+				codegraph, null);
+	}
+
+	@Autowired
 	public SessionConfigFactory(AppProperties props, SettingsService settings, TemplateRepository templates,
 								 ObjectMapper mapper, MemoryEpisodeRepository episodes,
 								 @Value("${server.port:8080}") int serverPort, ProviderCatalog catalog,
 								 GitWorktreeService worktrees, SerenaService serena, GraphifyService graphify,
-								 CodegraphService codegraph) {
+								 CodegraphService codegraph, ToolCatalogService toolCatalog) {
+		this.toolCatalog = toolCatalog;
 		this.props = props;
 		this.settings = settings;
 		this.templates = templates;
@@ -99,7 +115,7 @@ public class SessionConfigFactory {
 		}
 		String provider = text(config, "provider", s.defaultProvider());
 		String permissionMode = text(config, "permissionMode", "default");
-		JsonNode explicitMcpConfig = config.get("mcpConfig");
+		JsonNode explicitMcpConfig = config.get("mcpConfig");  // reassigned when catalog tools are layered in below
 		List<String> allowedTools = stringList(config, "allowedTools");
 		// Absent key = the default block list; an explicit list (even empty) is the session's own choice.
 		boolean explicitDisallowed = config.has("disallowedTools");
@@ -178,6 +194,21 @@ public class SessionConfigFactory {
 			allowedTools = new ArrayList<>(new LinkedHashSet<>(allowedTools));
 		}
 		String cwdPath = computeCwdPath(repo, resolution.servicePath(), worktree);
+		List<String> tools = stringList(config, "tools");
+		List<String> pluginDirs = List.of();
+		if (!tools.isEmpty()) {
+			if (toolCatalog == null) {
+				throw new IllegalArgumentException("the tool catalog is not available");
+			}
+			ToolCatalog.Resolution picked = toolCatalog.resolve(tools, caps.supports("pluginDirs"),
+					caps.supports("allowedTools"));
+			explicitMcpConfig = withCatalogServers(explicitMcpConfig, picked.servers());
+			pluginDirs = picked.pluginDirs();
+			if (!picked.allowedTools().isEmpty()) {
+				allowedTools = new ArrayList<>(new LinkedHashSet<>(
+						Stream.concat(allowedTools.stream(), picked.allowedTools().stream()).toList()));
+			}
+		}
 		JsonNode mcpConfig = withDefaultCodeIntelMcp(withDefaultMemoryMcp(withDefaultLinearMcp(explicitMcpConfig)),
 				provider, codeIntel, cwdPath, id);
 
@@ -200,6 +231,7 @@ public class SessionConfigFactory {
 				.reflectionEnabled(config.path("reflectionEnabled").asBoolean(s.memoryReflectionDefault()))
 				.codeIntel(codeIntel)
 				.slackEnabled(config.path("slackEnabled").asBoolean(s.slackDefaultEnabled()))
+				.tools(tools).pluginDirs(pluginDirs)
 				.build();
 		return new Prepared(entity, warnings);
 	}
@@ -405,6 +437,23 @@ public class SessionConfigFactory {
 	}
 
 	/**
+	 * Layers the selected catalog servers into a session's mcpConfig; same merge rule as the managed
+	 * entries — a key the session's own mcpConfig already defines wins (so a duplicate, which carries
+	 * the baked servers, reproduces them as they were).
+	 */
+	private JsonNode withCatalogServers(JsonNode configured, ObjectNode servers) {
+		if (servers.isEmpty()) {
+			return configured;
+		}
+		ObjectNode merged = mapper.createObjectNode();
+		merged.setAll(servers);
+		if (configured instanceof ObjectNode existing) {
+			merged.setAll(existing);
+		}
+		return merged;
+	}
+
+	/**
 	 * The shared in-process MCP server block ({"memory": {...}}) — still keyed "memory" for
 	 * backward compatibility, but it now also carries the service-discovery tools (decision 6,
 	 * docs/plan/phase-8-service-discovery.md) alongside 7.4's orchestration tools, all on the same
@@ -455,6 +504,18 @@ public class SessionConfigFactory {
 		refreshed.setAll(existing);
 		refreshed.set("memory", fresh.get("memory"));
 		return refreshed;
+	}
+
+	/**
+	 * Substitutes {@code ${VAR}} references (catalog secrets, phase 26) from the backend's own
+	 * environment at the moment the config file is written — the persisted {@code mcp_config} keeps
+	 * the references, so no secret reaches the DB. A variable that is unset is left as written.
+	 */
+	JsonNode expandSecrets(JsonNode mcpConfig) {
+		if (mcpConfig == null || mcpConfig.isNull() || toolCatalog == null) {
+			return mcpConfig;
+		}
+		return ToolCatalog.expand(mcpConfig, toolCatalog.env(), mapper);
 	}
 
 	/**
@@ -762,6 +823,9 @@ public class SessionConfigFactory {
 		}
 		if (source.costBudgetUsd() != null) {
 			overrides.put("costBudgetUsd", source.costBudgetUsd().toPlainString());
+		}
+		if (!source.tools().isEmpty()) {
+			overrides.set("tools", mapper.valueToTree(source.tools()));
 		}
 		overrides.put("reflectionEnabled", source.reflectionEnabled());
 		// the tool itself is re-resolved from the global selector at prepare() time (decision 5)

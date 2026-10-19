@@ -5,9 +5,11 @@ import { assetStub, type AssetKind, type LibraryAsset, type ProviderView, type S
 import AssetPickerDialog from './AssetPickerDialog';
 import { AttachedAssetsRow } from './CreateSessionDialog';
 import ModelSelect from './ModelSelect';
+import ToolsPicker, { useToolCatalog } from './ToolsPicker';
+import { builtinOnly, disallowedFor, enabledFrom } from '../toolsModel';
 import { useBackdropDismiss } from '../hooks/useBackdropDismiss';
 
-const PROMOTED_KEYS = ['provider', 'model', 'permissionMode', 'baseBranch', 'kickoffPrompt', 'instructions', 'mcpConfig', 'envVars'];
+const PROMOTED_KEYS = ['provider', 'model', 'permissionMode', 'baseBranch', 'kickoffPrompt', 'instructions', 'mcpConfig', 'envVars', 'tools'];
 
 type EnvRow = { key: string; value: string };
 
@@ -36,6 +38,9 @@ export default function TemplateManager({ onClose }: { onClose: () => void }) {
   const [selectedSkillAssets, setSelectedSkillAssets] = useState<Map<string, LibraryAsset>>(new Map());
   const [selectedAgentAssets, setSelectedAgentAssets] = useState<Map<string, LibraryAsset>>(new Map());
   const [assetPickerKind, setAssetPickerKind] = useState<AssetKind | null>(null);
+  const toolCatalog = useToolCatalog();
+  const [pickedTools, setPickedTools] = useState<string[]>([]);
+  const [enabledBuiltins, setEnabledBuiltins] = useState<Set<string>>(new Set());
   const [advanced, setAdvanced] = useState('{}');
   const [error, setError] = useState('');
 
@@ -63,7 +68,11 @@ export default function TemplateManager({ onClose }: { onClose: () => void }) {
     setEnvRows(envRowsFrom(config));
     setSelectedSkillAssets(new Map((t?.assets ?? []).filter((a) => a.kind === 'skill').map((a) => [a.id, assetStub(a)])));
     setSelectedAgentAssets(new Map((t?.assets ?? []).filter((a) => a.kind === 'agent').map((a) => [a.id, assetStub(a)])));
-    const rest = Object.fromEntries(Object.entries(config).filter(([k]) => !PROMOTED_KEYS.includes(k)));
+    setPickedTools(Array.isArray(config['tools']) ? (config['tools'] as unknown[]).filter((x): x is string => typeof x === 'string') : []);
+    const builtinsManaged = !('disallowedTools' in config) || builtinOnly(config['disallowedTools']);
+    setEnabledBuiltins(builtinsManaged ? enabledFrom(config['disallowedTools']) : new Set());
+    const rest = Object.fromEntries(Object.entries(config).filter(([k]) =>
+      !PROMOTED_KEYS.includes(k) && !(k === 'disallowedTools' && builtinsManaged)));
     setAdvanced(Object.keys(rest).length > 0 ? JSON.stringify(rest, null, 2) : '{}');
     setError('');
   };
@@ -79,6 +88,9 @@ export default function TemplateManager({ onClose }: { onClose: () => void }) {
       if (kickoffPrompt.trim()) config['kickoffPrompt'] = kickoffPrompt.trim();
       if (instructions.trim()) config['instructions'] = instructions.trim();
       if (mcpConfig.trim()) config['mcpConfig'] = JSON.parse(mcpConfig);
+      if (pickedTools.length > 0) config['tools'] = pickedTools;
+      const disallowed = disallowedFor(enabledBuiltins);
+      if (disallowed && !('disallowedTools' in config)) config['disallowedTools'] = disallowed;
       const envEntries = envRows.filter((r) => r.key.trim());
       if (envEntries.length > 0) {
         config['envVars'] = Object.fromEntries(envEntries.map((r) => [r.key.trim(), r.value]));
@@ -191,6 +203,15 @@ export default function TemplateManager({ onClose }: { onClose: () => void }) {
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
             placeholder="extra system instructions"
+          />
+
+          <ToolsPicker
+            catalog={toolCatalog}
+            selected={pickedTools}
+            onSelected={setPickedTools}
+            builtins={enabledBuiltins}
+            onBuiltins={setEnabledBuiltins}
+            capabilities={activeCapabilities}
           />
 
           <label>MCP servers (JSON)</label>

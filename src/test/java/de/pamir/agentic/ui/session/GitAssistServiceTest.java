@@ -21,7 +21,7 @@ class GitAssistServiceTest {
 				branch, "main", "/worktree", null, null, null, "default", List.of(), List.of(),
 				null, null, null, null, null, null, null, null, null, null, null,
 				SessionState.RUNNING, "user", "development", ticketRef, null, null,
-				null, null, null, null, false, null, null, null, null, false, null, null, null, null, null, false);
+				null, null, null, null, false, null, null, null, null, false, null, null, null, null, null, false, List.of(), List.of());
 	}
 
 	@Test

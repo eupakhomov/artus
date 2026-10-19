@@ -3,6 +3,7 @@ import { api } from '../api/rest';
 import { getFontSize, getTheme, setFontSize, setTheme, type FontSize, type Theme } from '../prefs';
 import type { AuthStatus, CodeIntel, ProviderView, Settings, SlackStatus } from '../protocol';
 import { useBackdropDismiss } from '../hooks/useBackdropDismiss';
+import ToolCatalogSettings from './ToolCatalogSettings';
 
 export default function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [theme, setThemeState] = useState<Theme>(getTheme());
@@ -559,6 +560,8 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               />
               {mcpSerenaError && <div className="error-text full" style={{ gridColumn: '2 / -1' }}>{mcpSerenaError}</div>}
             </div>
+
+            <ToolCatalogSettings />
 
             <h3 style={{ margin: '18px 0 10px' }}>Skill library</h3>
             <div className="form-grid">

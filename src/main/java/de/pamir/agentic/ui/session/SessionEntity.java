@@ -89,7 +89,11 @@ public record SessionEntity(
 		/** When the user-facing close finished (phase 23); null while open and for rows closed before V21 had no source. */
 		Instant closedAt,
 		/** Phase 25: kept off the dashboard (no widget; the sidebar's Hidden section lists it). */
-		boolean hidden
+		boolean hidden,
+		/** Phase 26: catalog tool names selected at creation (a snapshot; the servers are baked into mcpConfig). */
+		List<String> tools,
+		/** Phase 26: plugin directories passed to a Claude sidecar's SDK {@code plugins} option. */
+		List<String> pluginDirs
 ) {
 
 	/**
@@ -143,7 +147,8 @@ public record SessionEntity(
 				.prCheckedAt(prCheckedAt).reflectionEnabled(reflectionEnabled).reflectedSeq(reflectedSeq)
 				.codeIntel(codeIntel).contextTokens(contextTokens).contextWindow(contextWindow)
 				.slackEnabled(slackEnabled).slackChannel(slackChannel).slackThreadTs(slackThreadTs)
-				.createdAt(createdAt).updatedAt(updatedAt).closedAt(closedAt).hidden(hidden);
+				.createdAt(createdAt).updatedAt(updatedAt).closedAt(closedAt).hidden(hidden)
+				.tools(tools).pluginDirs(pluginDirs);
 	}
 
 	/**
@@ -208,6 +213,8 @@ public record SessionEntity(
 		private Instant updatedAt;
 		private Instant closedAt;
 		private boolean hidden;
+		private List<String> tools = List.of();
+		private List<String> pluginDirs = List.of();
 
 		private Builder() {
 		}
@@ -262,6 +269,8 @@ public record SessionEntity(
 		public Builder updatedAt(Instant v) { this.updatedAt = v; return this; }
 		public Builder closedAt(Instant v) { this.closedAt = v; return this; }
 		public Builder hidden(boolean v) { this.hidden = v; return this; }
+		public Builder tools(List<String> v) { this.tools = v; return this; }
+		public Builder pluginDirs(List<String> v) { this.pluginDirs = v; return this; }
 
 		public SessionEntity build() {
 			return new SessionEntity(id, name, provider, providerConfig, repoPath, servicePath, ecosystemPath, contextDirs,
@@ -269,7 +278,7 @@ public record SessionEntity(
 					allowedTools, disallowedTools, mcpConfig, envVars, skillSources, agentSources, instructions,
 					thinking, effort, maxTurns, fallbackModel, costBudgetUsd, kickoffPrompt, state, kind, sessionType,
 					ticketRef, continuedFromId, parentSessionId, prUrl, prHeadSha, prCheckStatus, prCheckedAt,
-					reflectionEnabled, reflectedSeq, codeIntel, contextTokens, contextWindow, slackEnabled, slackChannel, slackThreadTs, createdAt, updatedAt, closedAt, hidden);
+					reflectionEnabled, reflectedSeq, codeIntel, contextTokens, contextWindow, slackEnabled, slackChannel, slackThreadTs, createdAt, updatedAt, closedAt, hidden, tools, pluginDirs);
 		}
 	}
 }

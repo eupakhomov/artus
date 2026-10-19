@@ -37,7 +37,9 @@ public class ProviderController {
 	public record Capabilities(List<String> permissionModes, boolean thinking, boolean effort, boolean planMode,
 								boolean resume, boolean skills, boolean agents, boolean mcp, boolean interrupt,
 								boolean fallbackModel, boolean updatedInput, boolean modelSwitch,
-								List<ModelInfo> models) {
+								List<ModelInfo> models,
+								/** Whether the provider honours allowedTools/disallowedTools (gates the built-in tool toggles). */
+								boolean toolPresets) {
 	}
 
 	public record ProviderView(String id, Capabilities capabilities) {
@@ -52,7 +54,7 @@ public class ProviderController {
 	private static Capabilities toCapabilities(String providerId, ProviderCapabilities caps) {
 		return new Capabilities(caps.permissionModes(), caps.thinking(), caps.effort(), caps.planMode(),
 				caps.resume(), caps.skills(), caps.agents(), caps.mcp(), caps.interrupt(), caps.fallbackModel(),
-				caps.updatedInput(), caps.modelSwitch(), models(providerId));
+				caps.updatedInput(), caps.modelSwitch(), models(providerId), caps.supports("disallowedTools"));
 	}
 
 	private final AppProperties props;

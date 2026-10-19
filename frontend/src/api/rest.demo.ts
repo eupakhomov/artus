@@ -122,6 +122,7 @@ const implemented: Partial<Api> = {
     });
   },
   getSettings: () => ok(SETTINGS),
+  toolCatalog: () => ok([]),
   authStatus: () => ok<AuthStatus>({ required: false, tokenConfigured: false }),
   slackStatus: () => ok<SlackStatus>({ enabled: false, connected: false }),
   listProviders: () => ok(PROVIDERS),

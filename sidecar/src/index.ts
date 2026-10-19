@@ -11,7 +11,7 @@ function usage(): never {
     `usage: sidecar --cwd <dir> [--writable-root <dir>] [--resume <provider-session-id>] [--model <m>]
        [--fallback-model <m>] [--permission-mode ${PERMISSION_MODES.join('|')}]
        [--allowed-tools <csv>] [--disallowed-tools <csv>] [--mcp-config <path.json>]
-       [--append-system-prompt <text>] [--context-dir <path>]...
+       [--append-system-prompt <text>] [--context-dir <path>]... [--plugin-dir <path>]...
        [--thinking off|adaptive|<budgetTokens>] [--effort low|medium|high|xhigh|max]
        [--max-turns <n>]`,
   );
@@ -19,7 +19,7 @@ function usage(): never {
 }
 
 function parseArgs(argv: string[]): SidecarConfig {
-  const config: SidecarConfig = { cwd: '', writableRoot: '', contextDirs: [] };
+  const config: SidecarConfig = { cwd: '', writableRoot: '', contextDirs: [], pluginDirs: [] };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     const value = argv[i + 1];
@@ -44,6 +44,7 @@ function parseArgs(argv: string[]): SidecarConfig {
       case '--disallowed-tools': config.disallowedTools = need().split(',').map((s) => s.trim()).filter(Boolean); break;
       case '--mcp-config': config.mcpConfigPath = resolve(need()); break;
       case '--append-system-prompt': config.appendSystemPrompt = need(); break;
+      case '--plugin-dir': config.pluginDirs.push(resolve(need())); break;
       case '--context-dir': config.contextDirs.push(resolve(need())); break;
       case '--thinking': {
         const v = need();

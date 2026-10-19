@@ -1,4 +1,4 @@
-import type { Envelope, AssetKind, AuthStatus, ChangeList, ChangedFileView, DiagramStatus, DiagramType, DiagramView, FilledMeta, ImportItemResult, LibraryAsset, LibraryAssetContent, LibrarySearchHit, LibrarySource, MemoryDoc, MemoryDocDetail, MemoryEpisode, MemoryProposal, MemoryProposedOp, MemorySearchHit, PrInfo, ProviderView, ScanResult, ServiceProfileView, ServicesResponse, SessionDetail, SessionEntity, SessionSummary, Settings, SkillProposalMeta, SlackStatus, StaleSession, Template, TicketList, TurnUsage } from '../protocol';
+import type { Envelope, AssetKind, AuthStatus, ChangeList, ChangedFileView, DiagramStatus, DiagramType, DiagramView, FilledMeta, ImportItemResult, LibraryAsset, LibraryAssetContent, LibrarySearchHit, LibrarySource, MemoryDoc, MemoryDocDetail, MemoryEpisode, MemoryProposal, MemoryProposedOp, MemorySearchHit, PrInfo, ProviderView, ScanResult, ServiceProfileView, ServicesResponse, SessionDetail, SessionEntity, SessionSummary, Settings, SkillProposalMeta, SlackStatus, StaleSession, Template, TicketList, ToolCandidate, ToolCatalogRow, ToolEntry, ToolProbeResult, TurnUsage } from '../protocol';
 
 let authToken: string | null = localStorage.getItem('artus.token');
 
@@ -107,6 +107,10 @@ export const api = {
   listRecentTickets: (refresh: boolean, signal?: AbortSignal) =>
     request<TicketList>('POST', `/api/tickets/recent?refresh=${refresh}`, undefined, signal),
   getSettings: () => request<Settings>('GET', '/api/settings'),
+  toolCatalog: () => request<ToolCatalogRow[]>('GET', '/api/tools/catalog'),
+  saveToolCatalog: (entries: ToolEntry[]) => request<ToolCatalogRow[]>('PUT', '/api/tools/catalog', entries),
+  testTool: (name: string) => request<Record<string, ToolProbeResult>>('POST', '/api/tools/test', { name }),
+  importableTools: () => request<ToolCandidate[]>('GET', '/api/tools/import'),
   sessionChanges: (sessionId: string) => request<ChangeList>('GET', `/api/sessions/${sessionId}/changes`),
   sessionChangedFile: (sessionId: string, path: string) =>
     request<ChangedFileView>('GET', `/api/sessions/${sessionId}/changes/file?path=${encodeURIComponent(path)}`),

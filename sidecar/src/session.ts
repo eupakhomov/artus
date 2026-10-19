@@ -32,6 +32,8 @@ export interface SidecarConfig {
   mcpConfigPath?: string;
   appendSystemPrompt?: string;
   contextDirs: string[];
+  /** Local plugin directories (SDK `plugins`); their MCP servers, skills and commands load with the session. */
+  pluginDirs: string[];
   thinking?: ThinkingSetting;
   effort?: EffortLevel;
   maxTurns?: number;
@@ -637,6 +639,7 @@ export async function runSession(config: SidecarConfig): Promise<never> {
     ...(config.allowedTools ? { allowedTools: config.allowedTools } : {}),
     ...(config.disallowedTools ? { disallowedTools: config.disallowedTools } : {}),
     ...(config.contextDirs.length > 0 ? { additionalDirectories: config.contextDirs } : {}),
+    ...(config.pluginDirs.length > 0 ? { plugins: config.pluginDirs.map((path) => ({ type: 'local' as const, path })) } : {}),
     ...(config.thinking !== undefined ? { thinking: thinkingConfig(config.thinking) } : {}),
     ...(config.effort !== undefined ? { effort: config.effort } : {}),
     ...(config.maxTurns !== undefined ? { maxTurns: config.maxTurns } : {}),

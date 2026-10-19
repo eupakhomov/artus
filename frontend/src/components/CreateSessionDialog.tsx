@@ -3,6 +3,8 @@ import { ticketWaitCopy } from '../ticketCopy';
 import { api, ApiError } from '../api/rest';
 import { assetStub, pickDefaultBranch, placeholdersOf, type AssetKind, type LibraryAsset, type PermissionMode, type PrInfo, type ProviderView, type ServicesResponse, type SessionSummary, type SessionType, type Settings, type SlackStatus, type Template } from '../protocol';
 import AssetPickerDialog from './AssetPickerDialog';
+import ToolsPicker, { useToolCatalog } from './ToolsPicker';
+import { disallowedFor, enabledFrom } from '../toolsModel';
 import ModelSelect from './ModelSelect';
 import { MODE_CYCLE, MODE_LABEL } from './SessionWidget';
 import TicketPickerDialog from './TicketPickerDialog';
@@ -74,6 +76,10 @@ export default function CreateSessionDialog({
   const [slackStatus, setSlackStatus] = useState<SlackStatus | null>(null);
   /** phase 13: one flag; which tool it attaches is the global Settings selector (`settings.codeIntel`) */
   const [codeIntelEnabled, setCodeIntelEnabled] = useState(false);
+  /** phase 26: catalog tools and the built-in tools to un-block */
+  const toolCatalog = useToolCatalog();
+  const [pickedTools, setPickedTools] = useState<string[]>([]);
+  const [enabledBuiltins, setEnabledBuiltins] = useState<Set<string>>(new Set());
   const [selectedSkillAssets, setSelectedSkillAssets] = useState<Map<string, LibraryAsset>>(new Map());
   const [selectedAgentAssets, setSelectedAgentAssets] = useState<Map<string, LibraryAsset>>(new Map());
   const [extraSkill, setExtraSkill] = useState('');
@@ -296,6 +302,9 @@ export default function CreateSessionDialog({
     if (tplBaseBranch) setBaseBranch(tplBaseBranch);
     setSelectedSkillAssets(new Map(template.assets.filter((a) => a.kind === 'skill').map((a) => [a.id, assetStub(a)])));
     setSelectedAgentAssets(new Map(template.assets.filter((a) => a.kind === 'agent').map((a) => [a.id, assetStub(a)])));
+    const tplTools = template.config['tools'];
+    setPickedTools(Array.isArray(tplTools) ? tplTools.filter((x): x is string => typeof x === 'string') : []);
+    setEnabledBuiltins(enabledFrom(template.config['disallowedTools']));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
 
@@ -312,6 +321,9 @@ export default function CreateSessionDialog({
       overrides['reflectionEnabled'] = reflectionEnabled;
       if (slackStatus?.enabled) overrides['slackEnabled'] = slackEnabled;
       overrides['codeIntelEnabled'] = codeIntelEnabled;
+      if (pickedTools.length > 0) overrides['tools'] = pickedTools;
+      const disallowed = disallowedFor(enabledBuiltins);
+      if (disallowed) overrides['disallowedTools'] = disallowed;
       if (promptFromTicket && resolvedTicketRef) overrides['ticketRef'] = resolvedTicketRef;
       const sniffSource = (raw: string) =>
         raw.startsWith('http') || raw.endsWith('.git') ? { type: 'repo', ref: raw } : { type: 'dir', ref: raw };
@@ -600,6 +612,15 @@ export default function CreateSessionDialog({
                 </label>
               </>
             )}
+
+            <ToolsPicker
+              catalog={toolCatalog}
+              selected={pickedTools}
+              onSelected={setPickedTools}
+              builtins={enabledBuiltins}
+              onBuiltins={setEnabledBuiltins}
+              capabilities={activeCapabilities}
+            />
 
             <label>Skills</label>
             <AttachedAssetsRow

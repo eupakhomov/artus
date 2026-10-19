@@ -42,6 +42,8 @@ export async function translateMcpConfig(path: string): Promise<McpTranslationRe
       const out: Record<string, unknown> = { command: entry['command'] };
       if (Array.isArray(entry['args'])) out['args'] = entry['args'];
       if (entry['env'] && typeof entry['env'] === 'object') out['env'] = entry['env'];
+      // same allowlist mapping as the url branch (a stdio catalog server is restricted the same way)
+      if (Array.isArray(entry['enabledTools'])) out['enabled_tools'] = entry['enabledTools'];
       mcpServers[name] = out;
       continue;
     }

@@ -41,6 +41,8 @@ export interface Capabilities {
   reportsCostUsd?: boolean;
   /** supports the compact command; absent/false hides the widget's Compact action but the ctx chip still shows */
   compact?: boolean;
+  /** provider honours allowedTools/disallowedTools — gates the built-in tool toggles (phase 26) */
+  toolPresets?: boolean;
 }
 
 /** GET /api/providers — static per-provider capabilities, used to gate create-dialog/
@@ -112,6 +114,8 @@ export interface SessionEntity {
   /** Latest known context-window usage (phase 12 track C); null until the first turn */
   contextTokens: number | null;
   contextWindow: number | null;
+  /** phase 26: tool-catalog names picked at creation (absent in demo fixtures) */
+  tools?: string[];
 }
 
 /** Mirrors docs/PROTOCOL.md `context_usage.breakdown` (Claude only; absent for other providers). */
@@ -608,4 +612,40 @@ export interface DiagramStatus {
   latest: DiagramView | null;
   currentFingerprint: string;
   stale: boolean;
+}
+
+/** One tool-catalog entry (phase 26): an MCP server, or a reference to an installed plugin directory. */
+export interface ToolEntry {
+  name: string;
+  kind: 'mcp' | 'plugin';
+  description: string;
+  /** Claude-shaped MCP block (`command`/`args`/`env` or `url`/`headers`); secrets only as `${ENV_VAR}` */
+  server: Record<string, unknown> | null;
+  enabledTools: string[];
+  preApprove: boolean;
+  source: 'claude' | 'codex' | null;
+  path: string | null;
+}
+
+/** GET /api/tools/catalog row: the entry plus host environment variables it references that are unset. */
+export interface ToolCatalogRow {
+  entry: ToolEntry;
+  missingEnv: string[];
+}
+
+export interface ToolProbeResult {
+  ok: boolean;
+  tools: string[];
+  error: string | null;
+}
+
+/** GET /api/tools/import row — something found on the host that can be added to the catalog. */
+export interface ToolCandidate {
+  name: string;
+  kind: 'mcp' | 'plugin';
+  source: 'claude' | 'codex';
+  path: string | null;
+  server: Record<string, unknown> | null;
+  servers: string[];
+  origin: string;
 }

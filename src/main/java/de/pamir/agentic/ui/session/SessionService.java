@@ -897,7 +897,7 @@ public class SessionService {
 			Path file = mcpConfigPath(session.id());
 			Files.createDirectories(file.getParent());
 			// re-stamp the live backend token: the persisted one is stale after any backend restart
-			Files.writeString(file, configFactory.refreshManagedMcp(session.mcpConfig()).toString());
+			Files.writeString(file, configFactory.expandSecrets(configFactory.refreshManagedMcp(session.mcpConfig())).toString());
 		} catch (IOException e) {
 			throw new IllegalStateException("failed to write mcp config: " + e.getMessage(), e);
 		}

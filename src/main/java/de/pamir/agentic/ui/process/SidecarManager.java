@@ -211,6 +211,11 @@ public class SidecarManager {
 		if (caps.supports("disallowedTools") && !s.disallowedTools().isEmpty()) {
 			args.addAll(List.of("--disallowed-tools", String.join(",", s.disallowedTools())));
 		}
+		if (caps.supports("pluginDirs")) {
+			for (String dir : s.pluginDirs()) {
+				args.addAll(List.of("--plugin-dir", dir));
+			}
+		}
 		if (mcpConfigFile != null && Files.exists(mcpConfigFile)) {
 			args.addAll(List.of("--mcp-config", mcpConfigFile.toString()));
 		}
