@@ -41,6 +41,8 @@ export default function TemplateManager({ onClose }: { onClose: () => void }) {
   const toolCatalog = useToolCatalog();
   const [pickedTools, setPickedTools] = useState<string[]>([]);
   const [enabledBuiltins, setEnabledBuiltins] = useState<Set<string>>(new Set());
+  /** false while the stored disallowedTools holds non-built-in names — then Advanced JSON owns the key and the toggles hide */
+  const [builtinsManaged, setBuiltinsManaged] = useState(true);
   const [advanced, setAdvanced] = useState('{}');
   const [error, setError] = useState('');
 
@@ -70,6 +72,7 @@ export default function TemplateManager({ onClose }: { onClose: () => void }) {
     setSelectedAgentAssets(new Map((t?.assets ?? []).filter((a) => a.kind === 'agent').map((a) => [a.id, assetStub(a)])));
     setPickedTools(Array.isArray(config['tools']) ? (config['tools'] as unknown[]).filter((x): x is string => typeof x === 'string') : []);
     const builtinsManaged = !('disallowedTools' in config) || builtinOnly(config['disallowedTools']);
+    setBuiltinsManaged(builtinsManaged);
     setEnabledBuiltins(builtinsManaged ? enabledFrom(config['disallowedTools']) : new Set());
     const rest = Object.fromEntries(Object.entries(config).filter(([k]) =>
       !PROMOTED_KEYS.includes(k) && !(k === 'disallowedTools' && builtinsManaged)));
@@ -89,8 +92,10 @@ export default function TemplateManager({ onClose }: { onClose: () => void }) {
       if (instructions.trim()) config['instructions'] = instructions.trim();
       if (mcpConfig.trim()) config['mcpConfig'] = JSON.parse(mcpConfig);
       if (pickedTools.length > 0) config['tools'] = pickedTools;
-      const disallowed = disallowedFor(enabledBuiltins);
-      if (disallowed && !('disallowedTools' in config)) config['disallowedTools'] = disallowed;
+      if (builtinsManaged) {
+        const disallowed = disallowedFor(enabledBuiltins);
+        if (disallowed) config['disallowedTools'] = disallowed;
+      }
       const envEntries = envRows.filter((r) => r.key.trim());
       if (envEntries.length > 0) {
         config['envVars'] = Object.fromEntries(envEntries.map((r) => [r.key.trim(), r.value]));
@@ -212,6 +217,7 @@ export default function TemplateManager({ onClose }: { onClose: () => void }) {
             builtins={enabledBuiltins}
             onBuiltins={setEnabledBuiltins}
             capabilities={activeCapabilities}
+            builtinsEditable={builtinsManaged}
           />
 
           <label>MCP servers (JSON)</label>

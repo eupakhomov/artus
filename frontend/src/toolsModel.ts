@@ -9,9 +9,13 @@ export const BUILTIN_TOOLS = [
   { id: 'NotebookEdit', label: 'Notebook edit' },
 ] as const;
 
-/** Names to send as `disallowedTools`, or `undefined` to leave the key out (= the backend default). */
-export function disallowedFor(enabled: ReadonlySet<string>): string[] | undefined {
-  if (enabled.size === 0) return undefined;
+/**
+ * Names to send as `disallowedTools`, or `undefined` to leave the key out (= the backend default).
+ * `always` forces the key even when nothing is ticked — needed when a template defines its own
+ * `disallowedTools`, since an omitted override would let the template's list win the config merge.
+ */
+export function disallowedFor(enabled: ReadonlySet<string>, always = false): string[] | undefined {
+  if (enabled.size === 0 && !always) return undefined;
   return BUILTIN_TOOLS.map((t) => t.id).filter((id) => !enabled.has(id));
 }
 

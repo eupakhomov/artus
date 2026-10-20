@@ -206,15 +206,19 @@ export default function ToolCatalogSettings() {
           {candidates.map((c) => {
             const key = `${c.kind}:${c.name}`;
             const exists = entries.some((e) => e.name === c.name);
+            // the same name from two sources (a plugin and a ~/.claude.json server, two marketplaces) would
+            // fail the whole import as a duplicate — only one of them can be ticked at a time
+            const clash = !ticked.has(key) && candidates.some((o) => o !== c && o.name === c.name && ticked.has(`${o.kind}:${o.name}`));
             return (
               <label key={key} style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontWeight: 'normal', padding: '2px 0' }}>
-                <input type="checkbox" disabled={exists} checked={ticked.has(key)}
+                <input type="checkbox" disabled={exists || clash} checked={ticked.has(key)}
                        onChange={(e) => setTicked((t) => { const n = new Set(t); if (e.target.checked) n.add(key); else n.delete(key); return n; })} />
                 <span>{c.name}</span>
                 <span style={small}>
                   {c.kind === 'plugin' ? `${c.source} plugin` : 'MCP server'} · {c.origin}
                   {c.servers.length > 0 && c.kind === 'plugin' ? ` · servers: ${c.servers.join(', ')}` : ''}
-                  {exists ? ' · already in the catalog' : ''}
+                  {exists ? ' · already in the catalog' : clash ? ' · same name as a ticked row' : ''}
+                  {c.redacted.length > 0 ? ` · secrets replaced by ${c.redacted.map((v) => '${' + v + '}').join(' ')}` : ''}
                 </span>
               </label>
             );

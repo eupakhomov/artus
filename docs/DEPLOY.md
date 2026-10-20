@@ -340,6 +340,22 @@ Slack is off unless `ARTUS_SLACK_ENABLED=true`; with it off no Slack code runs. 
 Slack app (two on the same app steal each other's events). Emergency stop: delete the app-level
 token in the Slack app (cuts inbound immediately), then unset the variable and restart.
 
+## 8f. Optional: extra MCP servers and plugins (tool catalog)
+
+Sessions start with a small tool set; anything else (a Datadog or BigQuery MCP server, the Playwright plugin, …)
+is added through **Settings → Tools** and then ticked per session or template. **Import…** lists what the host
+already has — `~/.claude.json` servers, installed Claude plugins, Codex plugins — so nothing has to be retyped.
+
+- **Secrets never go into the catalog.** Write them as `${DD_API_KEY}`-style references in the server's `env` or
+  `headers`; the import replaces literal values with such placeholders. The variable must be set in the environment
+  of the process running Artus (e.g. exported before `start.sh`, or in the launchd plist) — a session picking an
+  entry whose variable is unset fails with a 400 that names the entry.
+- **Headless only.** The backend runs no browser, so a server that only offers OAuth login (Datadog's default,
+  Google Drive, …) cannot authenticate; "Test" reports it as `HTTP 401 — the server needs authentication`. Use the
+  server's API-key/header form instead.
+- **Codex sessions** get the same servers (a plugin's `.mcp.json` is carried as thread-scoped `mcp_servers`, nothing
+  is installed into `~/.codex`), but no pre-approval — every call goes through the approval prompt.
+
 ## 9. Updating
 
 ```bash

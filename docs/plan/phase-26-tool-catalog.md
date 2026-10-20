@@ -180,3 +180,16 @@ Deviations from the plan, and what was actually verified.
   Codex; test with a prompt that names a tool, not "list your tools".
 - Not exercised live: `enabledTools` on stdio for both providers (unit-tested in `mcp.test.ts`/`ToolCatalogTest`),
   the dashboard UI in a browser (typechecked and built, both themes not eyeballed).
+
+### Review pass (same day)
+Ten findings from `/code-review`, all fixed: `pluginDirs` was missing from Codex's capabilities (the JSON is
+*generated* from `protocol.ts` and my hand edit was overwritten by the rebuild — a Codex session with a plugin entry
+would have crashed its sidecar on `--plugin-dir`); unticking a template-enabled built-in didn't override the template
+(the key is now forced whenever the template defines `disallowedTools`); built-in toggle state leaked into a Codex
+create (skipped when `toolPresets` is false); the import copied `~/.claude.json` secrets verbatim (now `${VAR}`
+placeholders, listed per row); the HTTP probe buffered the body to its end, so an SSE stream kept open hung the
+thread (streamed, deadline-bound, `McpProbeTest`); Test on a skills-only plugin rendered nothing (now a named
+result); two same-name import candidates failed the whole import (one tickable at a time); template toggles were
+shown but discarded when `disallowedTools` had non-built-in names (hidden); `~/.codex/plugins/cache` wasn't scanned
+(now `<marketplace>/<plugin>/<version>/`); plus the `ArrayNode` round-trip, per-probe `HttpClient` and a stale
+javadoc. Step 4 docs (`CLAUDE.md`, `DEPLOY.md` 8f, `ARCHITECTURE.md` 3m) were also still missing and are in now.

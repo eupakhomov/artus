@@ -582,6 +582,25 @@ skips to the end of that turn and plays the fixture's recorded denied tail (seqs
 answers the calls the dashboard needs from the fixtures and rejects everything else with a 501 `ApiError`. Fixture
 capture and scrubbing: `scripts/capture-demo.mjs` + `frontend/demo/scrub.mjs`. Plan: `docs/plan/phase-24-demo-mode.md`.
 
+## 3m. Tool catalog (Phase 26)
+
+`tools.catalog` (an `app_setting` row, JSON array of `ToolEntry`) is the one place extra tools live; `ToolCatalog`
+(pure: validation, `${VAR}` handling, resolution) and `ToolCatalogService` (persistence, probe, import scan) sit in
+`de.pamir.agentic.ui.tools`, exposed by `ToolCatalogController` under `/api/tools`. A session's `tools` (list of
+catalog names, `V24`) is resolved inside `SessionConfigFactory.prepare`: `mcp` entries are layered into `mcpConfig`
+under their name (a key the session's own config already has wins — the rule shared with the managed Linear/memory/
+code-intel entries, which also makes `duplicate()` reproduce the baked servers rather than re-resolve); `plugin`
+entries become `pluginDirs` for a provider that supports them (Claude: `--plugin-dir` → SDK `plugins`) or their
+`.mcp.json` servers for one that doesn't (Codex: `pluginDirs` in `unsupportedSessionFields`). `preApprove` appends
+`mcp__<name>[__tool]` to `allowedTools` where supported; `enabledTools` rides as our own key, enforced by the Claude
+sidecar's `PreToolUse` hook and Codex's per-server `enabled_tools` (now for stdio entries too). Secrets stay as
+`${VAR}` in `session.mcp_config`; `SessionConfigFactory.expandSecrets` substitutes from the backend environment only
+when `SessionService.writeMcpConfig` writes the per-session file, and `ToolCatalog.resolve` refuses creation while a
+referenced variable is unset. `McpProbe` is the "Test" button: `initialize` + `tools/list` over stdio (polled with a
+deadline) or streamable HTTP (body read as lines and dropped at the matching `id`, so an SSE stream the server keeps
+open can't hang the thread). Built-in tool toggles are UI-only (`frontend/src/toolsModel.ts`): they send the
+remaining `DEFAULT_DISALLOWED_TOOLS` as `disallowedTools`, forced when a template defines its own list.
+
 ## 4. Backlog implementation sketches (remaining: 5.4, 5.6–5.8, 5.10–5.11)
 
 ### 5.4 Templates v2 — remaining gap

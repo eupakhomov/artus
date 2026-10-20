@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
@@ -16,6 +15,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -89,7 +89,19 @@ public class ToolCatalogService {
 		McpProbe probe = new McpProbe(mapper, TEST_BUDGET);
 		Map<String, McpProbe.Result> out = new java.util.LinkedHashMap<>();
 		if (e.isPlugin()) {
-			ObjectNode servers = ToolCatalog.pluginServers(Path.of(e.path()), mapper);
+			ObjectNode servers;
+			try {
+				servers = ToolCatalog.pluginServers(Path.of(e.path()), mapper);
+			} catch (IllegalArgumentException ex) {
+				out.put(e.name(), new McpProbe.Result(false, List.of(), ex.getMessage()));
+				return out;
+			}
+			if (servers.isEmpty()) {
+				// a skills/commands-only plugin: nothing to start, but the click still needs a visible outcome
+				out.put(e.name(), new McpProbe.Result(false, List.of(), "no MCP servers in " + e.path()
+						+ " (the plugin brings skills/commands only)"));
+				return out;
+			}
 			for (var s : servers.properties()) {
 				out.put(s.getKey(), probeExpanded(probe, s.getValue(), Path.of(e.path())));
 			}
@@ -112,21 +124,54 @@ public class ToolCatalogService {
 
 	/** One importable thing found on this host: a user-level MCP server or an installed plugin. */
 	public record Candidate(String name, String kind, String source, String path, JsonNode server, List<String> servers,
-							String origin) {
+							String origin,
+							/** {@code ${VAR}} placeholders that replaced literal {@code env}/{@code headers} values (decision 2) */
+							List<String> redacted) {
 	}
 
 	/**
 	 * Read-only scan (decision 3): {@code ~/.claude.json} {@code mcpServers}, Claude plugins from
 	 * {@code ~/.claude/plugins/installed_plugins.json}, Codex plugins under {@code ~/.codex/.tmp/plugins/plugins}
-	 * (the marketplace snapshot) and {@code ~/.codex/plugins/cache}. Nothing is written.
+	 * (the marketplace snapshot, one folder per plugin) and {@code ~/.codex/plugins/cache} (installed:
+	 * {@code <marketplace>/<plugin>/<version>/}). Nothing is written. Literal {@code env}/{@code headers}
+	 * values in a user-level server are the user's real secrets — they are replaced by {@code ${VAR}}
+	 * placeholders, never copied (decision 2).
 	 */
 	public List<Candidate> scan() {
 		List<Candidate> out = new ArrayList<>();
 		scanClaudeUserServers(out);
 		scanClaudePlugins(out);
 		scanCodexPlugins(out, home.resolve(".codex/.tmp/plugins/plugins"), "codex marketplace");
+		scanCodexCache(out, home.resolve(".codex/plugins/cache"));
 		return out;
 	}
+
+	/**
+	 * {@code env} values become {@code ${KEY}} (the variable the user most likely already exports),
+	 * {@code headers} values {@code ${<SERVER>_<HEADER>}}; a value that is already a single {@code
+	 * ${VAR}} reference is kept. Returns the placeholders introduced, in order.
+	 */
+	static List<String> redactSecrets(String serverName, ObjectNode server) {
+		List<String> placeholders = new ArrayList<>();
+		String prefix = serverName.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "_");
+		for (String section : List.of("env", "headers")) {
+			if (!(server.get(section) instanceof ObjectNode values)) {
+				continue;
+			}
+			for (String key : new ArrayList<>(values.propertyNames())) {
+				String value = values.path(key).asText("");
+				if (REFERENCE.matcher(value).matches()) {
+					continue;
+				}
+				String var = section.equals("env") ? key : prefix + "_" + key.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "_");
+				values.put(key, "${" + var + "}");
+				placeholders.add(var);
+			}
+		}
+		return placeholders;
+	}
+
+	private static final java.util.regex.Pattern REFERENCE = java.util.regex.Pattern.compile("\\$\\{[A-Za-z_][A-Za-z0-9_]*}");
 
 	private JsonNode readJson(Path file) {
 		try {
@@ -143,9 +188,11 @@ public class ToolCatalogService {
 			return;
 		}
 		root.path("mcpServers").properties().forEach(e -> {
-			JsonNode s = e.getValue();
-			if (s.isObject() && (s.hasNonNull("command") || s.hasNonNull("url"))) {
-				out.add(new Candidate(e.getKey(), ToolEntry.MCP, "claude", null, s, List.of(e.getKey()), "~/.claude.json"));
+			if (e.getValue() instanceof ObjectNode s && (s.hasNonNull("command") || s.hasNonNull("url"))) {
+				ObjectNode copy = s.deepCopy();
+				List<String> redacted = redactSecrets(e.getKey(), copy);
+				out.add(new Candidate(e.getKey(), ToolEntry.MCP, "claude", null, copy, List.of(e.getKey()), "~/.claude.json",
+						redacted));
 			}
 		});
 	}
@@ -164,7 +211,7 @@ public class ToolCatalogService {
 				}
 				List<String> servers = serverNames(Path.of(path));
 				// a plugin without an MCP server still brings skills/commands, which is why it is listed
-				out.add(new Candidate(name, ToolEntry.PLUGIN, "claude", path, null, servers, e.getKey()));
+				out.add(new Candidate(name, ToolEntry.PLUGIN, "claude", path, null, servers, e.getKey(), List.of()));
 				break;
 			}
 		});
@@ -179,7 +226,7 @@ public class ToolCatalogService {
 				List<String> servers = serverNames(p);
 				if (!servers.isEmpty()) {
 					out.add(new Candidate(p.getFileName().toString(), ToolEntry.PLUGIN, "codex", p.toString(), null,
-							servers, origin));
+							servers, origin, List.of()));
 				}
 			});
 		} catch (IOException e) {
@@ -187,13 +234,33 @@ public class ToolCatalogService {
 		}
 	}
 
+	/** Installed Codex plugins: {@code cache/<marketplace>/<plugin>/<version>/} — the newest version folder with an {@code .mcp.json}. */
+	private void scanCodexCache(List<Candidate> out, Path cache) {
+		if (!Files.isDirectory(cache)) {
+			return;
+		}
+		try (Stream<Path> marketplaces = Files.list(cache)) {
+			for (Path marketplace : marketplaces.filter(Files::isDirectory).sorted().toList()) {
+				try (Stream<Path> plugins = Files.list(marketplace)) {
+					for (Path plugin : plugins.filter(Files::isDirectory).sorted().toList()) {
+						try (Stream<Path> versions = Files.list(plugin)) {
+							versions.filter(Files::isDirectory).sorted(java.util.Comparator.reverseOrder())
+									.filter(v -> !serverNames(v).isEmpty()).findFirst()
+									.ifPresent(v -> out.add(new Candidate(plugin.getFileName().toString(), ToolEntry.PLUGIN,
+											"codex", v.toString(), null, serverNames(v),
+											"codex plugin " + plugin.getFileName() + "@" + marketplace.getFileName(), List.of())));
+						}
+					}
+				}
+			}
+		} catch (IOException e) {
+			log.warn("import scan: cannot list {}: {}", cache, e.getMessage());
+		}
+	}
+
 	private List<String> serverNames(Path pluginDir) {
 		try {
-			ArrayNode names = mapper.createArrayNode();
-			ToolCatalog.pluginServers(pluginDir, mapper).properties().forEach(e -> names.add(e.getKey()));
-			List<String> out = new ArrayList<>();
-			names.forEach(n -> out.add(n.asText()));
-			return out;
+			return new ArrayList<>(ToolCatalog.pluginServers(pluginDir, mapper).propertyNames());
 		} catch (IllegalArgumentException e) {
 			return List.of();
 		}

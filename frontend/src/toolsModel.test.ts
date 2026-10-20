@@ -10,6 +10,10 @@ describe('toolsModel', () => {
     expect(disallowedFor(new Set(['WebSearch']))).toEqual(['WebFetch', 'NotebookEdit']);
   });
 
+  it('sends the full default list when forced with nothing ticked', () => {
+    expect(disallowedFor(new Set(), true)).toEqual(['WebSearch', 'WebFetch', 'NotebookEdit']);
+  });
+
   it('sends an empty list when every built-in is enabled', () => {
     expect(disallowedFor(new Set(['WebSearch', 'WebFetch', 'NotebookEdit']))).toEqual([]);
   });

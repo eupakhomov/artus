@@ -16,13 +16,15 @@ export function useToolCatalog(): ToolCatalogRow[] {
  * Phase 26: catalog tools (checkboxes) plus the three built-in tools blocked by default. Rows render
  * as form-grid pairs so it drops into the create dialog and the template editor alike.
  */
-export default function ToolsPicker({ catalog, selected, onSelected, builtins, onBuiltins, capabilities }: {
+export default function ToolsPicker({ catalog, selected, onSelected, builtins, onBuiltins, capabilities, builtinsEditable = true }: {
   catalog: ToolCatalogRow[];
   selected: string[];
   onSelected: (names: string[]) => void;
   builtins: Set<string>;
   onBuiltins: (ids: Set<string>) => void;
   capabilities?: Capabilities;
+  /** false = the stored `disallowedTools` holds names the toggles can't express (template Advanced JSON owns it) */
+  builtinsEditable?: boolean;
 }) {
   const toggle = (name: string, on: boolean) =>
     onSelected(on ? [...selected, name] : selected.filter((n) => n !== name));
@@ -31,7 +33,7 @@ export default function ToolsPicker({ catalog, selected, onSelected, builtins, o
     if (on) next.add(id); else next.delete(id);
     onBuiltins(next);
   };
-  const showBuiltins = !capabilities || capabilities.toolPresets !== false;
+  const showBuiltins = builtinsEditable && (!capabilities || capabilities.toolPresets !== false);
   if (catalog.length === 0 && !showBuiltins) return null;
   return (
     <>

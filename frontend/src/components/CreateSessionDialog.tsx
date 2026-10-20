@@ -322,8 +322,13 @@ export default function CreateSessionDialog({
       if (slackStatus?.enabled) overrides['slackEnabled'] = slackEnabled;
       overrides['codeIntelEnabled'] = codeIntelEnabled;
       if (pickedTools.length > 0) overrides['tools'] = pickedTools;
-      const disallowed = disallowedFor(enabledBuiltins);
-      if (disallowed) overrides['disallowedTools'] = disallowed;
+      // only for a provider that honours the presets (the toggles are hidden otherwise, but their
+      // state survives a provider switch); forced when the template has its own list, so unticking
+      // a template-enabled built-in actually overrides it
+      if (!activeCapabilities || activeCapabilities.toolPresets !== false) {
+        const disallowed = disallowedFor(enabledBuiltins, template?.config['disallowedTools'] !== undefined);
+        if (disallowed) overrides['disallowedTools'] = disallowed;
+      }
       if (promptFromTicket && resolvedTicketRef) overrides['ticketRef'] = resolvedTicketRef;
       const sniffSource = (raw: string) =>
         raw.startsWith('http') || raw.endsWith('.git') ? { type: 'repo', ref: raw } : { type: 'dir', ref: raw };

@@ -16,7 +16,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 /**
  * One-off "Test" for a catalog server (docs/plan/phase-26-tool-catalog.md decision 8): starts it,
@@ -83,7 +87,7 @@ public class McpProbe {
 		}
 	}
 
-	/** Reads lines until the response with {@code id}; a reader thread keeps the deadline enforceable. */
+	/** Polls for lines until the response with {@code id} arrives, the process dies or the deadline passes. */
 	private JsonNode readResponse(BufferedReader in, int id, long deadline, Process p) throws IOException, InterruptedException {
 		while (true) {
 			if (System.nanoTime() > deadline) {
@@ -115,21 +119,29 @@ public class McpProbe {
 		}
 	}
 
+	/**
+	 * Streamable HTTP: each request is one POST; the answer may come as plain JSON or as an SSE
+	 * stream the server is allowed to keep open after the response, so the body is read line by
+	 * line and dropped as soon as the matching {@code id} shows up — never buffered to its end.
+	 * The whole handshake shares one deadline; the client is torn down with {@code shutdownNow}
+	 * (not {@code close}, which would wait for a still-open stream).
+	 */
 	private List<String> viaHttp(JsonNode server) throws IOException, InterruptedException {
 		HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
-		URI uri = URI.create(server.get("url").asText());
-		String[] session = new String[1];
-		JsonNode init = post(client, uri, server, request(1, "initialize", INIT_PARAMS), session, 1);
-		if (init == null) {
-			throw new IOException("no initialize response");
+		long deadline = System.nanoTime() + budget.toNanos();
+		try {
+			URI uri = URI.create(server.get("url").asText());
+			String[] session = new String[1];
+			post(client, uri, server, request(1, "initialize", INIT_PARAMS), session, 1, deadline);
+			post(client, uri, server, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}", session, -1, deadline);
+			return toolNames(post(client, uri, server, request(2, "tools/list", "{}"), session, 2, deadline));
+		} finally {
+			client.shutdownNow();
 		}
-		post(client, uri, server, "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}", session, -1);
-		JsonNode list = post(client, uri, server, request(2, "tools/list", "{}"), session, 2);
-		return toolNames(list);
 	}
 
-	private JsonNode post(HttpClient client, URI uri, JsonNode server, String body, String[] session, int id)
-			throws IOException, InterruptedException {
+	private JsonNode post(HttpClient client, URI uri, JsonNode server, String body, String[] session, int id,
+						  long deadline) throws IOException, InterruptedException {
 		HttpRequest.Builder b = HttpRequest.newBuilder(uri).timeout(budget)
 				.header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream")
 				.header("MCP-Protocol-Version", PROTOCOL)
@@ -138,32 +150,51 @@ public class McpProbe {
 		if (session[0] != null) {
 			b.header("Mcp-Session-Id", session[0]);
 		}
-		HttpResponse<String> res = client.send(b.build(), HttpResponse.BodyHandlers.ofString());
-		if (res.statusCode() == 401 || res.statusCode() == 403) {
-			throw new IOException("HTTP " + res.statusCode() + " — the server needs authentication (OAuth-only servers cannot be used headless)");
-		}
-		if (res.statusCode() >= 400) {
-			throw new IOException("HTTP " + res.statusCode());
-		}
-		res.headers().firstValue("Mcp-Session-Id").ifPresent(s -> session[0] = s);
-		if (id < 0) {
-			return null;
-		}
-		String text = res.body();
-		for (String chunk : text.split("\n")) {
-			String payload = chunk.startsWith("data:") ? chunk.substring(5).strip() : chunk.strip();
-			if (!payload.startsWith("{")) {
-				continue;
+		CompletableFuture<JsonNode> reply = client.sendAsync(b.build(), HttpResponse.BodyHandlers.ofLines())
+				.thenApply(res -> {
+					if (res.statusCode() == 401 || res.statusCode() == 403) {
+						throw new IllegalStateException("HTTP " + res.statusCode()
+								+ " — the server needs authentication (OAuth-only servers cannot be used headless)");
+					}
+					if (res.statusCode() >= 400) {
+						throw new IllegalStateException("HTTP " + res.statusCode());
+					}
+					res.headers().firstValue("Mcp-Session-Id").ifPresent(sid -> session[0] = sid);
+					try (Stream<String> lines = res.body()) {
+						if (id < 0) {
+							return null; // a notification: 202 with no body worth reading
+						}
+						return lines.map(McpProbe::payloadOf).filter(p -> p.startsWith("{"))
+								.map(p -> {
+									try {
+										return mapper.readTree(p);
+									} catch (RuntimeException e) {
+										return mapper.createObjectNode();
+									}
+								})
+								.filter(msg -> msg.path("id").asInt(-1) == id).findFirst()
+								.orElseThrow(() -> new IllegalStateException("no response to request " + id));
+					}
+				});
+		long remaining = deadline - System.nanoTime();
+		try {
+			JsonNode msg = reply.get(Math.max(1, remaining), TimeUnit.NANOSECONDS);
+			if (msg != null && msg.has("error")) {
+				throw new IOException(msg.path("error").path("message").asText("MCP error"));
 			}
-			JsonNode msg = mapper.readTree(payload);
-			if (msg.path("id").asInt(-1) == id) {
-				if (msg.has("error")) {
-					throw new IOException(msg.path("error").path("message").asText("MCP error"));
-				}
-				return msg.path("result");
-			}
+			return msg == null ? null : msg.path("result");
+		} catch (TimeoutException e) {
+			reply.cancel(true);
+			throw new IOException("timed out after " + budget.toSeconds() + " s");
+		} catch (ExecutionException e) {
+			Throwable cause = e.getCause() == null ? e : e.getCause();
+			throw new IOException(cause.getMessage() == null ? cause.toString() : cause.getMessage(), cause);
 		}
-		throw new IOException("no response to request " + id);
+	}
+
+	/** An SSE {@code data:} line's payload, or the line itself for a plain JSON body. */
+	private static String payloadOf(String line) {
+		return line.startsWith("data:") ? line.substring(5).strip() : line.strip();
 	}
 
 	private static List<String> toolNames(JsonNode result) {

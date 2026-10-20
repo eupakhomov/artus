@@ -381,7 +381,9 @@ export const CODEX_CAPABILITIES: Capabilities = {
   // up front (docs/plan/phase-5.13-codex-provider.md: "no hardcoded Codex model list")
   // — empty means the frontend falls back to a free-text model field.
   models: [],
-  unsupportedSessionFields: ['allowedTools', 'disallowedTools', 'thinking', 'maxTurns', 'fallbackModel', 'agentSources'],
+  // pluginDirs (phase 26): Codex has no equivalent of the Claude SDK's `plugins` option — a
+  // plugin-kind catalog tool is carried as its `.mcp.json` servers in config.mcp_servers instead.
+  unsupportedSessionFields: ['allowedTools', 'disallowedTools', 'thinking', 'maxTurns', 'fallbackModel', 'agentSources', 'pluginDirs'],
   contextDirs: false,
   reportsCostUsd: false,
   // Confirmed live from the installed codex-cli's own app-server protocol schema

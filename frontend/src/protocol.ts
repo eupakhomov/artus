@@ -648,4 +648,6 @@ export interface ToolCandidate {
   server: Record<string, unknown> | null;
   servers: string[];
   origin: string;
+  /** `${VAR}` placeholders that replaced literal secret values found in the source */
+  redacted: string[];
 }

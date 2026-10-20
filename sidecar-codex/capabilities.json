@@ -21,7 +21,8 @@
     "thinking",
     "maxTurns",
     "fallbackModel",
-    "agentSources"
+    "agentSources",
+    "pluginDirs"
   ],
   "contextDirs": false,
   "reportsCostUsd": false,

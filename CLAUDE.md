@@ -506,6 +506,22 @@ effect on the next use with no backend restart.
   first and compacted once it reports ready); the button is hidden, chip-only, for a
   provider whose capabilities report `compact: false` (both shipped providers report
   `true`). See docs/plan/phase-12-linear-cache-serena-context.md track C.
+- **Tool catalog** (Settings dialog → "Tools"; phase 26, `docs/plan/phase-26-tool-catalog.md`; `tools.catalog`
+  setting, own REST under `/api/tools/{catalog,test,import}`) — named MCP servers (Claude-shaped `server` block) and
+  references to installed Claude/Codex **plugin directories**, picked per session/template as a list of names
+  (`session.tools`, create dialog / template editor "Tools" group, carried by duplicate and quick session) and resolved
+  **at creation** into `mcpConfig` (catalog edits never touch a live session). A Claude session gets a plugin via the
+  SDK `plugins` option (`--plugin-dir`, `session.plugin_dirs`); a provider listing `pluginDirs` in
+  `unsupportedSessionFields` (Codex) gets the plugin's `.mcp.json` servers carried as ordinary entries. **Secrets only
+  as `${ENV_VAR}`** — expanded from the backend's environment when the per-session MCP file is written, never stored;
+  an unset variable is a 400 naming the entry. Names `memory/linear/serena/graphify/codegraph` are reserved. "Import…"
+  scans `~/.claude.json`, installed Claude plugins and both Codex plugin dirs read-only, replacing literal
+  `env`/`headers` values with placeholders; "Test" starts a server, lists its tools and stops it (30 s). `enabledTools`
+  (allow-list) and `preApprove` (Claude only) per entry. The same group holds the three built-in toggles (Web search /
+  Web fetch / Notebook edit) over `disallowedTools`: ticking one sends the *rest* of `DEFAULT_DISALLOWED_TOOLS`, so the
+  others stay blocked; hidden for a provider whose `/api/providers` capabilities report `toolPresets: false`.
+  `sidecar-codex/capabilities.json` is **generated** from `CODEX_CAPABILITIES` in `src/protocol.ts` by `npm run build`
+  — edit the TypeScript, never the JSON.
 - **Visualize** (Settings dialog → "Visualize", `visualize.model` ∈ `cheap|standard|premium`, default `standard`; phase 22,
   `docs/plan/phase-22-visualize.md`) — the widget's Visualize button runs one system turn on its own lane over the branch
   diff (`ChangesService.unifiedDiff`) plus a digest tail and gets a Mermaid diagram (model picks one of flowchart/sequence/
