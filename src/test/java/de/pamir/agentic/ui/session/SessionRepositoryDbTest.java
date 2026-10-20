@@ -138,6 +138,21 @@ class SessionRepositoryDbTest {
 	}
 
 	@Test
+	void crashReasonIsKeptOnlyWithCrashedAndClearedByAnyOtherState() {
+		SessionEntity s = insertSession(SessionState.RUNNING);
+		assertThat(sessions.get(s.id()).crashReason()).isNull();
+
+		sessions.updateState(s.id(), SessionState.CRASHED, SessionService.CRASH_BACKEND_RESTART);
+		assertThat(sessions.get(s.id()).crashReason()).isEqualTo("backend_restart");
+
+		sessions.updateState(s.id(), SessionState.STARTING);
+		assertThat(sessions.get(s.id()).crashReason()).isNull();
+
+		sessions.updateState(s.id(), SessionState.IDLE, "backend_restart"); // ignored outside CRASHED
+		assertThat(sessions.get(s.id()).crashReason()).isNull();
+	}
+
+	@Test
 	void countByStatesCountsOnlyMatchingLiveStates() {
 		insertSession(SessionState.IDLE);
 		insertSession(SessionState.RUNNING);

@@ -1,7 +1,8 @@
 # Shooting the demo media (screenshots + screencast)
 
 Everything is produced from the **demo build** (phase 24), which replays recorded sessions with no backend, so the
-output is deterministic and re-shootable at any time. Dark theme only. Script: `scripts/shoot-demo.mjs`.
+output is deterministic and re-shootable at any time. Screenshots in both themes (dark = plain name, light = `-light`
+suffix); the screencast is dark only. Script: `scripts/shoot-demo.mjs`.
 
 ## Prerequisites
 
@@ -12,7 +13,9 @@ output is deterministic and re-shootable at any time. Dark theme only. Script: `
 | `ffmpeg` on `PATH` | only for `--video` (webm → mp4) |
 
 If `import('playwright')` does not resolve (`npx -p` does not put it on the ESM resolution path), point the script at any
-installed copy: `PLAYWRIGHT_DIR=/path/to/node_modules/playwright`.
+installed copy: `PLAYWRIGHT_DIR=/path/to/node_modules/playwright`. If that Playwright wants a browser build that isn't
+downloaded (`Executable doesn't exist at …/chromium_headless_shell-NNNN/…`), reuse one that is instead of downloading:
+`CHROMIUM_PATH=~/.cache/ms-playwright/chromium-NNNN/chrome-linux64/chrome`.
 
 ## Steps
 
@@ -38,6 +41,11 @@ Run step 1 again whenever the frontend or the fixtures change — the shots come
 | `demo-review-card.png` | `docs/images/` | the review session's `submit_pr_review` approval |
 | `demo-git-panel.png` | `docs/images/` | Git panel open on the child session |
 | `demo-history-sidebar.png` | `docs/images/` | sidebar with Needs-you, sessions and History |
+| `demo-changes.png` | `docs/images/` | Changes panel (diff vs base) on a maximized widget |
+| `demo-visualize.png` | `docs/images/` | Visualize dialog with the rendered Mermaid diagram |
+| `demo-memory.png`, `demo-memory-pending.png` | `docs/images/` | Memory dialog: a note, then the Pending proposals tab |
+| `demo-library.png` | `docs/images/` | Skill library dialog |
+| `*-light.png` | `docs/images/` | the same shots in the light theme |
 | `artus-demo.mp4` / `.webm` | `demo-media/` (**gitignored**) | 1600×1000 screencast; upload as a GitHub release asset |
 
 Screenshots are 1600×1000 at 2× (3200×2000). The screencast is 1× and trimmed to 75 s: it starts at 1× speed, switches
@@ -46,7 +54,8 @@ to 4×, approves the first three prompts, opens the Git panel, then idles to the
 ## Options
 
 `--base <url>` (default `http://localhost:4173/`), `--out <dir>` (default `docs/images`), `--video-dir <dir>` (default
-`./demo-media`), `--only dashboard,permission-card,history,git-panel,review-card` (reshoot a subset).
+`./demo-media`), `--themes dark,light` (default both), `--only <names>` (reshoot a subset; names: dashboard,
+permission-card, git-panel, history, review-card, changes, visualize, memory, memory-pending, library).
 
 ## Notes
 

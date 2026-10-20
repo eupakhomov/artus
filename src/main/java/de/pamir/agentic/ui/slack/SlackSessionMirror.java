@@ -5,6 +5,7 @@ import de.pamir.agentic.ui.journal.EventJournal.JournalEvent;
 import de.pamir.agentic.ui.journal.SessionEventBus;
 import de.pamir.agentic.ui.session.SessionEntity;
 import de.pamir.agentic.ui.session.SessionRepository;
+import de.pamir.agentic.ui.session.SessionService;
 import de.pamir.agentic.ui.session.SessionState;
 import de.pamir.agentic.ui.slack.SlackBlocks.ParentView;
 import de.pamir.agentic.ui.slack.SlackBlocks.PlanMessage;
@@ -162,7 +163,7 @@ public class SlackSessionMirror {
 			}
 			JsonNode p = event.payload();
 			switch (event.type()) {
-				case "state_changed" -> onState(st, p.path("state").asText(""));
+				case "state_changed" -> onState(st, p.path("state").asText(""), p.path("reason").asText(""));
 				case "user_message" -> onUserMessage(st, p);
 				case "assistant_message" -> onAssistantMessage(st, p);
 				case "permission_request" -> onPermissionRequest(st, p);
@@ -214,7 +215,7 @@ public class SlackSessionMirror {
 
 	// ------------------------------------------------------------------ handlers
 
-	private void onState(State st, String state) {
+	private void onState(State st, String state, String reason) {
 		State root = rootOf(st);
 		if (root == null || !root.mirrored) {
 			return;
@@ -227,7 +228,15 @@ public class SlackSessionMirror {
 					ensureThread(st);
 				}
 			}
-			case "CRASHED", "FAILED" -> notice(st, "session " + state.toLowerCase(),
+			case "CRASHED" -> {
+				if (SessionService.CRASH_BACKEND_RESTART.equals(reason)) {
+					notice(st, "session interrupted",
+							":warning: *Session interrupted* by a backend restart — resume it from the dashboard.");
+				} else {
+					notice(st, "session crashed", ":rotating_light: *Session crashed* — resume it from the dashboard.");
+				}
+			}
+			case "FAILED" -> notice(st, "session " + state.toLowerCase(),
 					":rotating_light: *Session " + state.toLowerCase() + "*"
 							+ ("CRASHED".equals(state) ? " — resume it from the dashboard." : "."));
 			case "CLOSING" -> st.closing = true;
@@ -496,7 +505,9 @@ public class SlackSessionMirror {
 		}
 		String kickoff = e.kickoffPrompt() != null && !e.kickoffPrompt().isBlank() ? e.kickoffPrompt() : root.firstPrompt;
 		boolean live = e.state() != SessionState.CLOSED && e.state() != SessionState.FAILED;
-		return new ParentView(e.id().toString(), e.name(), stateLabel(e.state()), context.toString(), pr,
+		String label = SessionService.CRASH_BACKEND_RESTART.equals(e.crashReason())
+				? ":large_orange_circle: interrupted (backend restart)" : stateLabel(e.state());
+		return new ParentView(e.id().toString(), e.name(), label, context.toString(), pr,
 				kickoff == null ? null : SlackToolSummary.truncate(mask(kickoff.strip()), KICKOFF_CHARS),
 				openUrl(), live);
 	}

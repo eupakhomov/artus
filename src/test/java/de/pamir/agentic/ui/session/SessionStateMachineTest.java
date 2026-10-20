@@ -312,6 +312,34 @@ class SessionStateMachineTest {
 		assertThat(sessions.get(s.id()).state()).isEqualTo(SessionState.CRASHED);
 	}
 
+	// ------------------------------------------------------------------ crash reason
+
+	@Test
+	void aBenignCrashReasonIsStoredAndJournaledAndAnyLaterTransitionClearsIt() {
+		SessionEntity s = session(SessionState.RUNNING);
+
+		sessionService.transition(s.id(), SessionState.CRASHED, SessionService.CRASH_BACKEND_RESTART);
+
+		assertThat(sessions.get(s.id()).crashReason()).isEqualTo("backend_restart");
+		var crashed = journal.journaled(s.id()).getLast();
+		assertThat(crashed.type()).isEqualTo("state_changed");
+		assertThat(crashed.payload().path("reason").asString()).isEqualTo("backend_restart");
+
+		sessionService.transition(s.id(), SessionState.STARTING);
+		assertThat(sessions.get(s.id()).crashReason()).isNull();
+		assertThat(journal.journaled(s.id()).getLast().payload().has("reason")).isFalse();
+	}
+
+	@Test
+	void aPlainCrashHasNoReason() {
+		SessionEntity s = session(SessionState.RUNNING);
+
+		sessionService.transition(s.id(), SessionState.CRASHED);
+
+		assertThat(sessions.get(s.id()).crashReason()).isNull();
+		assertThat(journal.journaled(s.id()).getLast().payload().has("reason")).isFalse();
+	}
+
 	// ------------------------------------------------------------------ resume
 
 	@Test

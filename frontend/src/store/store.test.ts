@@ -33,6 +33,30 @@ describe('state_changed', () => {
     expect(useStore.getState().views[SID]?.pendingPermission).toBeNull();
   });
 
+  it('keeps a backend-restart reason on CRASHED and clears it on the next state', () => {
+    useStore.getState().apply(SID, env('state_changed', { state: 'CRASHED', reason: 'backend_restart' }));
+    expect(useStore.getState().views[SID]?.crashReason).toBe('backend_restart');
+    useStore.getState().apply(SID, env('state_changed', { state: 'STARTING' }, 2));
+    expect(useStore.getState().views[SID]?.crashReason).toBeNull();
+  });
+
+  it('recognises a restart from an older journal by the sweep note before CRASHED, shown as a warning', () => {
+    useStore.getState().apply(SID, env('error', { message: 'backend restarted while session was live', fatal: true }));
+    useStore.getState().apply(SID, env('state_changed', { state: 'CRASHED' }, 2));
+    const v = useStore.getState().views[SID];
+    expect(v?.crashReason).toBe('backend_restart');
+    expect(v?.transcript.at(-1)).toMatchObject({ kind: 'note', level: 'warn' });
+  });
+
+  it('a real crash after a restart drops the old reason', () => {
+    useStore.getState().apply(SID, env('state_changed', { state: 'CRASHED', reason: 'backend_restart' }));
+    useStore.getState().apply(SID, env('state_changed', { state: 'IDLE' }, 2));
+    useStore.getState().apply(SID, env('error', { message: 'sidecar exited unexpectedly with code 1', fatal: true }, 3));
+    useStore.getState().apply(SID, env('state_changed', { state: 'CRASHED' }, 4));
+    expect(useStore.getState().views[SID]?.crashReason).toBeNull();
+    expect(useStore.getState().views[SID]?.transcript.at(-1)).toMatchObject({ kind: 'note', level: 'error' });
+  });
+
   it('clears a pending permission on CRASHED too', () => {
     useStore.getState().apply(SID, env('permission_request', { requestId: 'r1', toolName: 'Bash', input: {} }));
     useStore.getState().apply(SID, env('state_changed', { state: 'CRASHED' }));

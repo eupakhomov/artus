@@ -34,6 +34,11 @@ final class FakeEventJournal extends EventJournal {
 		costs.put(id, cost);
 	}
 
+	/** Everything appended for this session, in order (readAfter stays a stub — see its own doc). */
+	List<JournalEvent> journaled(UUID id) {
+		return journaled.getOrDefault(id, List.of());
+	}
+
 	@Override
 	public JournalEvent append(UUID sessionId, String type, tools.jackson.databind.JsonNode payload) {
 		long seq = seqs.merge(sessionId, 1L, Long::sum);

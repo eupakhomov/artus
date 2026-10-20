@@ -37,6 +37,9 @@ public class SessionService {
 
 	private static final Logger log = LoggerFactory.getLogger(SessionService.class);
 
+	/** {@code session.crash_reason}: the startup sweep found the session live — nothing failed in the session itself. */
+	public static final String CRASH_BACKEND_RESTART = "backend_restart";
+
 	private final AppProperties props;
 	private final SettingsService settings;
 	private final SessionRepository sessions;
@@ -717,12 +720,25 @@ public class SessionService {
 
 	/** Package-private: also called by {@link SystemSessionService#createSystemSession} and {@link SessionHousekeeping}. */
 	void transition(UUID id, SessionState state) {
+		transition(id, state, null);
+	}
+
+	/**
+	 * {@code crashReason} only means something with CRASHED: a benign cause the dashboard shows
+	 * differently from a real crash ({@link #CRASH_BACKEND_RESTART}). Journaled as the event's
+	 * {@code reason}, so open tabs follow without a re-fetch.
+	 */
+	void transition(UUID id, SessionState state, String crashReason) {
 		if (state == SessionState.CLOSED) {
 			sessions.markClosed(id);
 		} else {
-			sessions.updateState(id, state);
+			sessions.updateState(id, state, crashReason);
 		}
-		record(id, "state_changed", mapper.createObjectNode().put("state", state.name()));
+		ObjectNode event = mapper.createObjectNode().put("state", state.name());
+		if (state == SessionState.CRASHED && crashReason != null) {
+			event.put("reason", crashReason);
+		}
+		record(id, "state_changed", event);
 		if (state == SessionState.WAITING_INPUT || state == SessionState.CRASHED) {
 			noteChildAttention(id, state);
 			unhide(id); // it needs the user now — hidden would mean nobody sees it

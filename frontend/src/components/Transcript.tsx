@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { createContext, memo, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -6,14 +6,17 @@ import type { BlockMark, TranscriptItem } from '../store/store';
 import PermissionCard, { type PermissionResponse } from './PermissionCard';
 import { AgentAsset, ExcludeFromMemory, MarkImportant, PopOut, RememberBlock, ToolFailed, ToolOk, ToolRunning } from '../icons';
 import { useBackdropDismiss } from '../hooks/useBackdropDismiss';
-import { describeToolCall, formatDuration } from '../activity';
+import { describeToolCall, formatDuration, toolCallDetail } from '../activity';
 
 const Markdown = memo(function Markdown({ text }: { text: string }) {
   return <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>;
 });
 
-function summarizeInput(input: unknown): string {
-  const s = JSON.stringify(input) ?? '';
+/** The session's worktree, so tool rows can show paths relative to it ('' = show them as-is). */
+const CwdContext = createContext('');
+
+function summarizeInput(input: unknown, cwd: string): string {
+  const s = toolCallDetail(input, cwd) ?? JSON.stringify(input) ?? '';
   return s.length > 120 ? s.slice(0, 120) + '…' : s;
 }
 
@@ -44,10 +47,10 @@ export interface MarkContext {
 const NESTED_TAIL = 8;
 
 /** The latest nested tool call of a subagent, as a one-line label. */
-function latestNestedCall(items: TranscriptItem[] | undefined): string | null {
+function latestNestedCall(items: TranscriptItem[] | undefined, cwd: string): string | null {
   for (let i = (items?.length ?? 0) - 1; i >= 0; i--) {
     const it = items![i]!;
-    if (it.kind === 'tool') return describeToolCall(it.name, it.input, 48);
+    if (it.kind === 'tool') return describeToolCall(it.name, it.input, 48, cwd);
   }
   return null;
 }
@@ -57,6 +60,7 @@ function ToolRow({ item, onPermission, markCtx }: {
   onPermission: ((requestId: string, response: PermissionResponse) => void) | undefined;
   markCtx?: MarkContext;
 }) {
+  const cwd = useContext(CwdContext);
   const [showAll, setShowAll] = useState(false);
   const [poppedOut, setPoppedOut] = useState(false);
   const task = taskSummary(item.input);
@@ -65,7 +69,7 @@ function ToolRow({ item, onPermission, markCtx }: {
   const failed = item.isError || item.task?.status === 'failed' || item.task?.status === 'stopped';
   const nested = item.items ?? [];
   const hidden = running && !showAll ? Math.max(0, nested.length - NESTED_TAIL) : 0;
-  const latest = task && running ? latestNestedCall(nested) ?? item.task?.lastTool ?? null : null;
+  const latest = task && running ? latestNestedCall(nested, cwd) ?? item.task?.lastTool ?? null : null;
   const toolUses = item.task?.toolUses || nested.filter((n) => n.kind === 'tool').length;
   const now = useNow(running && item.task?.startedAt != null);
   // progress events only come with each nested tool call, so a running task's clock ticks locally
@@ -90,7 +94,7 @@ function ToolRow({ item, onPermission, markCtx }: {
         ) : (
           <>
             <span className="tname">{item.name}</span>{' '}
-            {summarizeInput(item.input)}
+            <span className="tinput">{summarizeInput(item.input, cwd)}</span>
           </>
         )}
         <span className={`tool-status ${running ? 'run' : failed ? 'err' : 'ok'}`}>
@@ -261,11 +265,14 @@ export default function Transcript({
   items,
   onPermission,
   markCtx,
+  cwd = '',
 }: {
   items: TranscriptItem[];
   /** omit for a read-only transcript (no permission buttons) */
   onPermission?: (requestId: string, response: PermissionResponse) => void;
   markCtx?: MarkContext;
+  /** the session's worktree — tool rows show paths relative to it */
+  cwd?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
@@ -288,6 +295,7 @@ export default function Transcript({
   }, []);
 
   return (
+    <CwdContext.Provider value={cwd}>
     <div
       className="transcript"
       ref={ref}
@@ -298,5 +306,6 @@ export default function Transcript({
     >
       {items.map((item, i) => renderItem(item, i, onPermission, markCtx))}
     </div>
+    </CwdContext.Provider>
   );
 }

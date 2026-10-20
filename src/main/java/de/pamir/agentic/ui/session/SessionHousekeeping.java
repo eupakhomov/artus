@@ -86,8 +86,9 @@ public class SessionHousekeeping {
 			killOrphanSidecar(session);
 			log.info("startup sweep: session {} was {} -> CRASHED", session.id(), session.state());
 			journalPublisher.record(session.id(), "error", mapper.createObjectNode()
-					.put("message", "backend restarted while session was live").put("fatal", true));
-			sessionService.transition(session.id(), SessionState.CRASHED);
+					.put("message", "backend restarted while session was live").put("fatal", true)
+					.put("cause", SessionService.CRASH_BACKEND_RESTART));
+			sessionService.transition(session.id(), SessionState.CRASHED, SessionService.CRASH_BACKEND_RESTART);
 		}
 	}
 

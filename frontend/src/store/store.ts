@@ -3,6 +3,10 @@ import type {
   Capabilities, ContextBreakdown, Envelope, PermissionMode, PrCheckStatus, QueuedMessage, SessionState, SessionType,
 } from '../protocol';
 import type { WsStatus } from '../api/ws';
+import { CRASH_BACKEND_RESTART } from '../protocol';
+
+/** what SessionHousekeeping's startup sweep journals — recognises a restart in journals that predate `cause` */
+const LEGACY_RESTART_MESSAGE = 'backend restarted while session was live';
 
 // ---------------------------------------------------------------------------
 // Transcript view model: WS events reduce into a flat item list per session.
@@ -61,6 +65,8 @@ export interface SessionView {
   state: SessionState;
   /** ts of the latest state_changed (phase 16 sidebar's "time in state"); replayed envelopes keep their original ts */
   stateSince: string | null;
+  /** CRASHED only: a benign cause (`backend_restart`), from the journal — see protocol.ts isInterrupted */
+  crashReason: string | null;
   permissionMode: PermissionMode;
   capabilities: Capabilities | null;
   model: string | null;
@@ -119,6 +125,7 @@ export interface CodeIntelStatus {
 const emptyView = (): SessionView => ({
   state: 'CREATING',
   stateSince: null,
+  crashReason: null,
   permissionMode: 'default',
   capabilities: null,
   model: null,
@@ -272,6 +279,8 @@ function reduce(view: SessionView, e: Envelope): SessionView {
     case 'state_changed':
       v.state = p['state'] as SessionState;
       v.stateSince = e.ts ?? new Date().toISOString();
+      // the reason rides on the CRASHED event; older journals only carry it on the error just before
+      v.crashReason = v.state === 'CRASHED' ? (p['reason'] as string | undefined) ?? v.crashReason : null;
       if (v.state === 'IDLE' || v.state === 'CRASHED') v.pendingPermission = null;
       if (v.state !== 'RUNNING' && v.state !== 'WAITING_INPUT') v.liveTurn = null;
       // the sidecar process is gone, and its background tasks with it
@@ -470,9 +479,15 @@ function reduce(view: SessionView, e: Envelope): SessionView {
     case 'warning':
       t.push({ kind: 'note', level: 'warn', text: p['message'] as string });
       break;
-    case 'error':
-      t.push({ kind: 'note', level: p['fatal'] ? 'error' : 'warn', text: p['message'] as string });
+    case 'error': {
+      // journals from before `cause` existed: the startup sweep's own message identifies it
+      const cause = (p['cause'] as string | undefined)
+        ?? (p['message'] === LEGACY_RESTART_MESSAGE ? CRASH_BACKEND_RESTART : null);
+      if (p['fatal']) v.crashReason = cause;
+      // a backend restart is an interruption to resume, not a failure — amber, not red
+      t.push({ kind: 'note', level: p['fatal'] && !cause ? 'error' : 'warn', text: p['message'] as string });
       break;
+    }
     case 'interrupt':
       t.push({ kind: 'note', level: 'info', text: 'interrupted by user' });
       break;

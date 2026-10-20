@@ -66,8 +66,9 @@ final class FakeSessionRepository extends SessionRepository {
 	}
 
 	@Override
-	public void updateState(UUID id, SessionState state) {
-		byId.computeIfPresent(id, (k, e) -> e.toBuilder().state(state).build());
+	public void updateState(UUID id, SessionState state, String crashReason) {
+		byId.computeIfPresent(id, (k, e) -> e.toBuilder().state(state)
+				.crashReason(state == SessionState.CRASHED ? crashReason : null).build());
 	}
 
 	@Override

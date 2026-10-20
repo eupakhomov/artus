@@ -1,3 +1,4 @@
+import { dotClass, stateLabel } from '../protocol';
 import type { SessionView, TranscriptItem } from '../store/store';
 import { Close, MinimizeToDock } from '../icons';
 
@@ -53,7 +54,7 @@ export default function ExposeOverlay({
               onClick={() => onSelect(id)}
             >
               <div className="expose-head">
-                <span className={`dot ${v?.state ?? 'CREATING'}`} title={v?.state} />
+                <span className={dotClass(v?.state ?? 'CREATING', v?.crashReason)} title={stateLabel(v?.state ?? 'CREATING', v?.crashReason)} />
                 <span className="expose-name">{v?.name ?? id.slice(0, 8)}</span>
                 {minimized && <span className="chip" title="minimized"><MinimizeToDock /></span>}
               </div>

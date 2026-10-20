@@ -269,7 +269,11 @@ approval round-trip. Full mapping tables and rationale:
   configured (loopback-only mode) the bearer entry may be omitted.
 - **Outbound**: every adapter event, wrapped in a journal envelope
   `{seq, ts, type, payload}` — `seq` is the per-session monotonic journal sequence.
-  The backend also journals/broadcasts its own event types: `state_changed {state}`,
+  The backend also journals/broadcasts its own event types: `state_changed {state, reason?}`
+  (`reason` only on a CRASHED whose cause is benign — `backend_restart` when the startup sweep
+  found the session live; the dashboard shows that as *interrupted*, amber, not as a failure;
+  mirrored in `session.crash_reason` and the session list's `crashReason`), the backend's own
+  `error {message, fatal, cause?}` (`cause: "backend_restart"` on the sweep's note),
   `user_message {text}` (inbound messages echoed into the transcript),
   `queue_updated {queued:[{pos,text}]}`, `warning {message}`, `error`,
   `permission_response` (echo of the user's decision; a decision made in Slack also carries

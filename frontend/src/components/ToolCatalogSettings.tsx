@@ -116,7 +116,7 @@ export default function ToolCatalogSettings() {
 
   return (
     <>
-      <h3 style={{ margin: '18px 0 10px' }}>Tools</h3>
+      <h3 className="settings-h">Tools</h3>
       <div style={{ ...small, marginBottom: 8 }}>
         MCP servers and plugins a session can be given in the create dialog or a template. Picked at creation and baked in — editing an
         entry never changes a running session. Put secrets as <code>{'${ENV_VAR}'}</code>: they are read from the environment of the

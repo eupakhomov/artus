@@ -105,6 +105,8 @@ export interface SessionEntity {
   prUrl: string | null;
   /** phase 25: kept off the dashboard */
   hidden: boolean;
+  /** CRASHED only: a benign cause (`backend_restart`) — see {@link isInterrupted} */
+  crashReason?: string | null;
   prCheckStatus: PrCheckStatus | null;
   prCheckedAt: string | null;
   /** Opt-in end-of-session memory retrospective (phase 5.3) */
@@ -159,6 +161,26 @@ export interface SessionSummary {
   prUrl: string | null;
   /** phase 25: kept off the dashboard — listed in the sidebar's Hidden section */
   hidden: boolean;
+  /** CRASHED only: a benign cause (`backend_restart`) — see {@link isInterrupted} */
+  crashReason?: string | null;
+}
+
+/** `session.crash_reason` when the backend restarted under a live session — nothing failed in the session itself. */
+export const CRASH_BACKEND_RESTART = 'backend_restart';
+
+/** CRASHED by a backend restart: shown as interrupted (amber, Resume) rather than as a failure (red). */
+export function isInterrupted(state: string, crashReason: string | null | undefined): boolean {
+  return state === 'CRASHED' && crashReason === CRASH_BACKEND_RESTART;
+}
+
+/** The status dot's classes — `dot <STATE>`, plus `interrupted` for {@link isInterrupted}. */
+export function dotClass(state: string, crashReason?: string | null): string {
+  return `dot ${state}${isInterrupted(state, crashReason) ? ' interrupted' : ''}`;
+}
+
+/** Lower-case state for tooltips — "interrupted (backend restart)" instead of "crashed" when benign. */
+export function stateLabel(state: string, crashReason?: string | null): string {
+  return isInterrupted(state, crashReason) ? 'interrupted (backend restart)' : state.toLowerCase().replace('_', ' ');
 }
 
 export interface QueuedMessage {

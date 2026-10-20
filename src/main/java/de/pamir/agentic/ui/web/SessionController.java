@@ -53,7 +53,9 @@ public class SessionController {
 								 /** Null for open sessions (phase 23) */
 								 Instant closedAt, String prUrl,
 								 /** Phase 25: kept off the dashboard, listed in the sidebar's Hidden section */
-								 boolean hidden) {
+								 boolean hidden,
+								 /** CRASHED only: a benign cause ({@code backend_restart}) — shown as interrupted, not failed */
+								 String crashReason) {
 	}
 
 	private final SessionService service;
@@ -105,7 +107,7 @@ public class SessionController {
 					EventJournal.SessionStats st = stats.getOrDefault(s.id(), NO_EVENTS);
 					return new SessionSummary(s.id(), s.name(), s.provider(), s.repoPath(), s.servicePath(), s.branch(),
 							s.model(), s.permissionMode(), s.state().name(), s.kind(), s.sessionType(), st.costToDate(),
-							s.updatedAt(), st.lastSeq(), s.closedAt(), s.prUrl(), s.hidden());
+							s.updatedAt(), st.lastSeq(), s.closedAt(), s.prUrl(), s.hidden(), s.crashReason());
 				})
 				.toList();
 	}
@@ -122,7 +124,7 @@ public class SessionController {
 		return sessions.findRecentlyClosed(clampHistoryLimit(limit)).stream()
 				.map(s -> new SessionSummary(s.id(), s.name(), s.provider(), s.repoPath(), s.servicePath(), s.branch(),
 						s.model(), s.permissionMode(), s.state().name(), s.kind(), s.sessionType(),
-						journal.costToDate(s.id()), s.updatedAt(), journal.lastSeq(s.id()), s.closedAt(), s.prUrl(), s.hidden()))
+						journal.costToDate(s.id()), s.updatedAt(), journal.lastSeq(s.id()), s.closedAt(), s.prUrl(), s.hidden(), s.crashReason()))
 				.toList();
 	}
 

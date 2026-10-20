@@ -149,6 +149,8 @@ button.primary:disabled { background: var(--panel2); color: var(--muted); }
 button.danger { background: var(--red); color: var(--on-accent); border: none; }
 button.danger:disabled { background: var(--panel2); color: var(--muted); }
 button.pulse:disabled { color: var(--text); animation: pulse 1.2s infinite; }
+/* an enabled button whose action is still running somewhere behind it (the header's ⋯ menu) */
+button.icon-btn.busy { color: var(--accent); animation: pulse 1.2s infinite; }
 /* same in-flight affordance for a text input whose blur-to-save can take a while (a graphify root's first env sync) */
 input.pulse:disabled { color: var(--text); animation: pulse 1.2s infinite; }
 input, select, textarea { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: calc(13px * var(--font-scale)); font-family: inherit; }
@@ -158,6 +160,8 @@ code, pre { font-family: "JetBrains Mono", Consolas, monospace; font-size: calc(
 .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel); position: sticky; top: 0; z-index: 10; }
 .topbar h1 { font-size: calc(16px * var(--font-scale)); margin: 0; }
 .topbar-spacer { flex: 1; }
+/* thin divider between topbar groups — the gap alone made 12 identical buttons read as one row */
+.topbar-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
 .brand { display: flex; align-items: center; gap: 8px; }
 .brand-logo { height: 28px; width: 28px; flex: none; display: block; }
 .brand-gate { justify-content: center; }
@@ -174,15 +178,18 @@ code, pre { font-family: "JetBrains Mono", Consolas, monospace; font-size: calc(
    shrinking/collapsing (below) keeps things fitting in all but the narrowest widgets, but
    if even the trailing mode/cost/ctx chips + action buttons can't all fit, a quick scroll
    beats a permanently unreachable close button */
-.widget-header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel2); cursor: move; overflow-x: auto; overflow-y: hidden; }
-.widget-header .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 40px; max-width: 200px; }
+.widget-header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--panel2); cursor: move; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.widget-header::-webkit-scrollbar { display: none; }
+.widget-header .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 40px; max-width: 280px; }
 /* the info group absorbs all shrinking (and clips internally) so the mode/cost/ctx chips
    and action buttons after it — flex-shrink:0 below — never get pushed past the header edge.
    It's also its own size container: how much room IT actually has left (after the header's
    other, protected children take theirs) is what decides whether path/branch/model collapse
    — querying the header's own total width can't tell, since that varies with how many
    buttons/chips are present elsewhere. */
-.header-info { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; overflow: hidden; container-type: inline-size; }
+/* min-width keeps the dot + a readable slice of the name on screen however many chips and
+   buttons follow — without it a 2-column grid squeezed the title to nothing */
+.header-info { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 120px; overflow: hidden; container-type: inline-size; }
 .widget-header > *:not(.header-info) { flex-shrink: 0; }
 .info-chips-full { display: contents; }
 /* path/branch/model can each run long (branch names especially) — ellipsize individually
@@ -193,12 +200,19 @@ code, pre { font-family: "JetBrains Mono", Consolas, monospace; font-size: calc(
   .info-chips-full { display: none; }
   .chip.info-chips-collapsed { display: inline-flex; }
 }
+/* tighter still: the name wins over the descriptive chips; only the ones that signal
+   something (children needing attention, the PR status) stay */
+@container (max-width: 240px) {
+  .header-info > span.chip:not(.children-attention) { display: none; }
+}
 .spacer { flex: 1; }
 .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .dot.IDLE { background: var(--green); }
 .dot.RUNNING, .dot.STARTING, .dot.CREATING, .dot.PROVISIONING { background: var(--accent); animation: pulse 1.2s infinite; }
 .dot.WAITING_INPUT { background: var(--amber); animation: pulse 1.2s infinite; }
 .dot.CRASHED, .dot.FAILED { background: var(--red); }
+/* CRASHED by a backend restart — nothing failed, it just needs a Resume: attention, not error */
+.dot.CRASHED.interrupted { background: var(--amber); }
 .dot.CLOSED, .dot.CLOSING { background: var(--muted); }
 .dot.PARKED { background: var(--muted); border: 2px solid var(--green); box-sizing: border-box; }
 @keyframes pulse { 50% { opacity: 0.35; } }
@@ -246,6 +260,7 @@ details.evidence blockquote { margin: 4px 0 0; padding: 2px 8px; border-left: 2p
 .t-tool { border: 1px solid var(--border); border-radius: 6px; background: var(--panel2); font-size: calc(12.5px * var(--font-scale)); }
 .t-tool summary { padding: 5px 9px; cursor: pointer; color: var(--muted); user-select: none; }
 .t-tool summary .tname { color: var(--accent); font-weight: 600; }
+.t-tool summary .tinput { font-family: "JetBrains Mono", Consolas, monospace; font-size: calc(12px * var(--font-scale)); color: var(--muted); }
 /* tool outcome: state colour only — muted while running, green ok, red failed */
 .tool-status { display: inline-flex; vertical-align: -2px; margin-left: 4px; }
 .tool-status.ok { color: var(--green); }
@@ -269,6 +284,12 @@ svg.task-badge { display: inline-block; vertical-align: -2px; margin-right: 2px;
 .bg-tasks svg { color: var(--amber); flex-shrink: 0; animation: pulse 1.6s ease-in-out infinite; }
 .bg-tasks span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .chip.children-attention { color: var(--amber); border-color: var(--amber); }
+.action-menu { position: fixed; z-index: 1000; min-width: 200px; padding: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); }
+.action-menu-row { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: none; background: transparent; padding: 5px 8px; color: var(--muted); }
+.action-menu-row:hover:not(:disabled) { background: var(--panel2); color: var(--text); }
+.action-menu-row .action-menu-label { flex: 1; color: var(--text); }
+.action-menu-row:disabled .action-menu-label { color: var(--muted); }
+.action-menu-row kbd { padding: 0 5px; font-size: calc(11px * var(--font-scale)); }
 .children-popover { position: fixed; z-index: 1000; min-width: 260px; max-width: 420px; padding: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; gap: 2px; }
 .children-row { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; border: none; background: transparent; padding: 4px 6px; font-size: calc(12px * var(--font-scale)); }
 .children-row:hover { background: var(--panel2); }
@@ -285,6 +306,8 @@ svg.task-badge { display: inline-block; vertical-align: -2px; margin-right: 2px;
 .perm-card { border: 1px solid var(--amber); border-radius: 8px; background: var(--perm-bg); padding: 10px; }
 .perm-card.resolved { opacity: 0.55; border-color: var(--border); background: var(--panel2); }
 .perm-card .head { color: var(--amber); font-weight: 600; margin-bottom: 6px; }
+/* a decided prompt no longer needs attention — amber is reserved for the pending one */
+.perm-card.resolved .head { color: var(--muted); }
 .perm-card pre { background: var(--panel); border-radius: 6px; padding: 8px; overflow-x: auto; max-height: 200px; white-space: pre-wrap; margin: 6px 0; }
 .perm-card .actions { display: flex; gap: 8px; margin-top: 8px; }
 .perm-card.ctx-suggestion { background: var(--warn-bg); }
@@ -328,6 +351,21 @@ svg.task-badge { display: inline-block; vertical-align: -2px; margin-right: 2px;
 .advanced-toggle > .form-grid { margin-top: 10px; }
 .modal .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 .modal.wide { width: min(960px, 95vw); }
+/* Settings: a section index beside one long form; h3s are section labels under the h2 */
+.modal.settings { width: min(880px, 95vw); }
+.settings-layout { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 0 18px; align-items: start; }
+.settings-nav { position: sticky; top: 0; display: flex; flex-direction: column; gap: 1px; padding-right: 10px; border-right: 1px solid var(--border); }
+.settings-nav button { background: none; border: 1px solid transparent; text-align: left; padding: 4px 8px; color: var(--muted); }
+.settings-nav button:hover:not(:disabled) { border-color: transparent; background: var(--panel2); color: var(--text); }
+.settings-nav button.active { color: var(--accent); background: var(--panel2); }
+.settings-h { margin: 22px 0 10px; padding-bottom: 4px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: calc(11.5px * var(--font-scale)); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.settings-body > .settings-h:first-child { margin-top: 0; }
+.with-unit { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.with-unit input { width: 80px; }
+@media (max-width: 640px) {
+  .settings-layout { grid-template-columns: minmax(0, 1fr); }
+  .settings-nav { display: none; }
+}
 .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; justify-content: flex-end; z-index: 110; }
 .drawer { width: min(440px, 92vw); height: 100%; background: var(--panel); border-left: 1px solid var(--border); padding: 18px; overflow-y: auto; box-shadow: -6px 0 24px rgba(0,0,0,0.3); animation: drawer-in 0.15s ease-out; }
 @keyframes drawer-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
@@ -486,15 +524,20 @@ svg.task-badge { display: inline-block; vertical-align: -2px; margin-right: 2px;
 .sb-pr.pr-CLOSED { color: var(--muted); }
 .sidebar.expanded { display: flex; flex-direction: column; }
 .sb-hidden { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
-.sb-hidden + .sb-history { margin-top: 0; }
-.sb-hidden-toggle { width: 100%; background: none; border: none; text-align: left; cursor: pointer; font: inherit; }
+/* Hidden and History read as one bottom block: one divider above the pair, not one each */
+.sb-hidden + .sb-history { margin-top: 0; border-top: none; padding-top: 0; }
+.sb-hidden-toggle { width: 100%; background: none; border: none; border-radius: 0; text-align: left; cursor: pointer; font-family: inherit; }
 .sb-hidden-toggle:hover:not(:disabled) { background: none; border: none; color: var(--text); }
 .sb-history { margin-top: auto; margin-bottom: 0; padding-top: 8px; border-top: 1px solid var(--border); }
-.sb-history-row { padding: 0; gap: 0; color: var(--muted); }
+/* same metrics as .sb-row (a <button>, 13px) — this one's a <div> holding two buttons, so it
+   would otherwise pick up the 14px body size */
+.sb-history-row { position: relative; padding: 0; gap: 0; color: var(--muted); font-size: calc(13px * var(--font-scale)); }
 .sb-history-row:hover { background: var(--panel2); }
-.sb-history-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 8px; background: none; border: none; color: inherit; text-align: left; font: inherit; }
+.sb-history-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: none; border: none; color: inherit; text-align: left; font: inherit; }
 .sb-history-main:hover:not(:disabled) { background: none; border: none; color: var(--text); }
-.sb-history-hide { visibility: hidden; flex-shrink: 0; width: 22px; height: 22px; }
+/* overlays the age/cost on hover instead of reserving a column, so the history's right edge
+   lines up with the session rows above */
+.sb-history-hide { visibility: hidden; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; background: var(--panel2); }
 .sb-history-row:hover .sb-history-hide, .sb-history-hide:focus-visible { visibility: visible; }
 .closed-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
 .closed-when { color: var(--muted); font-size: calc(11.5px * var(--font-scale)); }

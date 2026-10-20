@@ -8,13 +8,27 @@ function clip(s: string, max: number): string {
   return oneLine.length > max ? oneLine.slice(0, max) + '…' : oneLine;
 }
 
-/** `Bash: npm test`, `Read: src/App.tsx` — the one input field that says what the call does. */
-export function describeToolCall(name: string, input: unknown, max = 60): string {
+/**
+ * The one input field that says what a tool call does (`npm test`, `src/App.tsx`), with the
+ * session's own worktree prefix stripped so paths read relative to it; `null` when the input
+ * has no such field (most MCP tools) and only the raw JSON can describe it.
+ */
+export function toolCallDetail(input: unknown, cwd?: string): string | null {
   const i = (typeof input === 'object' && input !== null ? input : {}) as Record<string, unknown>;
   const pick = ['command', 'file_path', 'path', 'pattern', 'url', 'query', 'description', 'prompt']
     .map((k) => i[k])
     .find((v): v is string => typeof v === 'string' && v.length > 0);
-  if (pick !== undefined) return `${name}: ${clip(pick, max)}`;
+  if (pick === undefined) return null;
+  if (!cwd) return pick;
+  const root = cwd.replace(/\/+$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // `<root>/src/a.ts` → `src/a.ts`; the bare root (`cd <root>`, `<root>/`) → `.`
+  return pick.replace(new RegExp(`${root}(?:(/)(?=[^\\s/])|/?(?=[\\s"']|$))`, 'g'), (_m, sub?: string) => (sub ? '' : '.'));
+}
+
+/** `Bash: npm test`, `Read: src/App.tsx` — see {@link toolCallDetail}. */
+export function describeToolCall(name: string, input: unknown, max = 60, cwd?: string): string {
+  const detail = toolCallDetail(input, cwd);
+  if (detail !== null) return `${name}: ${clip(detail, max)}`;
   const raw = JSON.stringify(input) ?? '';
   return raw && raw !== '{}' ? `${name}: ${clip(raw, max)}` : name;
 }

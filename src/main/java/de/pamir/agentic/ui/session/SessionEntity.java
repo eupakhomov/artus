@@ -93,7 +93,9 @@ public record SessionEntity(
 		/** Phase 26: catalog tool names selected at creation (a snapshot; the servers are baked into mcpConfig). */
 		List<String> tools,
 		/** Phase 26: plugin directories passed to a Claude sidecar's SDK {@code plugins} option. */
-		List<String> pluginDirs
+		List<String> pluginDirs,
+		/** Why a CRASHED session crashed when benign ({@code backend_restart}); null for a real crash or any other state. */
+		String crashReason
 ) {
 
 	/**
@@ -148,7 +150,7 @@ public record SessionEntity(
 				.codeIntel(codeIntel).contextTokens(contextTokens).contextWindow(contextWindow)
 				.slackEnabled(slackEnabled).slackChannel(slackChannel).slackThreadTs(slackThreadTs)
 				.createdAt(createdAt).updatedAt(updatedAt).closedAt(closedAt).hidden(hidden)
-				.tools(tools).pluginDirs(pluginDirs);
+				.tools(tools).pluginDirs(pluginDirs).crashReason(crashReason);
 	}
 
 	/**
@@ -215,6 +217,7 @@ public record SessionEntity(
 		private boolean hidden;
 		private List<String> tools = List.of();
 		private List<String> pluginDirs = List.of();
+		private String crashReason;
 
 		private Builder() {
 		}
@@ -271,6 +274,7 @@ public record SessionEntity(
 		public Builder hidden(boolean v) { this.hidden = v; return this; }
 		public Builder tools(List<String> v) { this.tools = v; return this; }
 		public Builder pluginDirs(List<String> v) { this.pluginDirs = v; return this; }
+		public Builder crashReason(String v) { this.crashReason = v; return this; }
 
 		public SessionEntity build() {
 			return new SessionEntity(id, name, provider, providerConfig, repoPath, servicePath, ecosystemPath, contextDirs,
@@ -278,7 +282,7 @@ public record SessionEntity(
 					allowedTools, disallowedTools, mcpConfig, envVars, skillSources, agentSources, instructions,
 					thinking, effort, maxTurns, fallbackModel, costBudgetUsd, kickoffPrompt, state, kind, sessionType,
 					ticketRef, continuedFromId, parentSessionId, prUrl, prHeadSha, prCheckStatus, prCheckedAt,
-					reflectionEnabled, reflectedSeq, codeIntel, contextTokens, contextWindow, slackEnabled, slackChannel, slackThreadTs, createdAt, updatedAt, closedAt, hidden, tools, pluginDirs);
+					reflectionEnabled, reflectedSeq, codeIntel, contextTokens, contextWindow, slackEnabled, slackChannel, slackThreadTs, createdAt, updatedAt, closedAt, hidden, tools, pluginDirs, crashReason);
 		}
 	}
 }

@@ -6,6 +6,8 @@ describe('activity labels', () => {
     expect(describeToolCall('Bash', { command: 'npm test', description: 'run tests' })).toBe('Bash: npm test');
     expect(describeToolCall('Read', { file_path: '/a/b.ts' })).toBe('Read: /a/b.ts');
     expect(describeToolCall('X', {})).toBe('X');
+    expect(describeToolCall('Read', { file_path: '/wt/abc/src/a.ts' }, 60, '/wt/abc')).toBe('Read: src/a.ts');
+    expect(describeToolCall('Bash', { command: 'cd /wt/abc/ && ls /wt/abc/src' }, 60, '/wt/abc/')).toBe('Bash: cd . && ls src');
     expect(describeToolCall('Bash', { command: 'a'.repeat(100) }, 10)).toBe(`Bash: ${'a'.repeat(10)}…`);
   });
 

@@ -53,6 +53,8 @@ export {
   ZoomOut,
   Scan as FitView,
   Copy as Duplicate,
+  // the header's overflow menu: the occasional per-session actions live behind it
+  Ellipsis as MoreActions,
   Download as DownloadIcon,
   Square as Interrupt,
   Play as Resume,

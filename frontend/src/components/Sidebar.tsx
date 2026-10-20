@@ -3,7 +3,7 @@ import { useStore, type SessionView } from '../store/store';
 import { getWidget } from '../hotkeys/widgetRegistry';
 import { needsFullCard, permissionResponseFor, permissionSummary, toolLabel } from '../permissions';
 import { shortAge, type NeedsYouItem, type SidebarModel, type SidebarRow } from '../sidebarModel';
-import type { SessionSummary } from '../protocol';
+import { dotClass, stateLabel, type SessionSummary } from '../protocol';
 import { Close, ContinuedFrom, HiddenSessions, MinimizeToDock, NeedsYou, PullRequest } from '../icons';
 import { PR_STATUS_LABEL } from './SessionWidget';
 
@@ -90,10 +90,10 @@ export default function Sidebar({
             <button
               key={id}
               className={`sb-rail-dot${focusedId === id ? ' focused' : ''}`}
-              title={`${nameOf(id, v)} — ${(v?.state ?? 'CREATING').toLowerCase()}`}
+              title={`${nameOf(id, v)} — ${stateLabel(v?.state ?? 'CREATING', v?.crashReason)}`}
               onClick={() => onSelect(id)}
             >
-              <span className={`dot ${v?.state ?? 'CREATING'}`} />
+              <span className={dotClass(v?.state ?? 'CREATING', v?.crashReason)} />
             </button>
           );
         })}
@@ -167,9 +167,9 @@ export default function Sidebar({
             <HiddenSessions />Hidden ({hidden.length})
           </button>
           {hiddenOpen && hidden.map((s) => (
-            <div key={s.id} className="sb-row sb-history-row" title={`${s.name} · ${s.branch} — ${s.state.toLowerCase()}, click to put it back on the dashboard`}>
+            <div key={s.id} className="sb-row sb-history-row" title={`${s.name} · ${s.branch} — ${stateLabel(s.state, s.crashReason)}, click to put it back on the dashboard`}>
               <button className="sb-history-main" onClick={() => onUnhide(s.id)}>
-                <span className={`dot ${s.state}`} />
+                <span className={dotClass(s.state, s.crashReason)} />
                 <span className="sb-name">{s.name}</span>
                 <span className="sb-age">{shortAge(s.updatedAt, now)}</span>
                 <span className="sb-cost">${s.costToDate.toFixed(2)}</span>
@@ -184,6 +184,7 @@ export default function Sidebar({
           {history.map((s) => (
             <div key={s.id} className="sb-row sb-history-row" title={`${s.name} · ${s.branch} — closed, click to open`}>
               <button className="sb-history-main" onClick={() => onOpenHistory(s)}>
+                <span className={`dot ${s.state}`} />
                 <span className="sb-name">{s.name}</span>
                 {s.sessionType === 'review' && <span className="chip">review</span>}
                 {s.prUrl && <span className="sb-pr pr-CLOSED"><PullRequest /></span>}
@@ -219,14 +220,15 @@ function SessionRow({
     row.depth === 1 && service ? service : null,
     view?.branch,
     view?.model,
-    state.toLowerCase(),
+    stateLabel(state, view?.crashReason),
     row.minimized ? 'minimized' : null,
   ].filter(Boolean).join(' · ');
   const cls = `sb-row${row.depth === 1 ? ' child' : ''}${focused ? ' focused' : ''}${row.minimized ? ' minimized' : ''}`;
   return (
     <button className={cls} title={title} onClick={() => onSelect(row.id)}>
-      {hint > 0 && hint <= 9 && <span className="sb-hint">{hint}</span>}
-      <span className={`dot ${state}`} />
+      {/* the slot is kept for rows past 9 too, so every dot stays in one column */}
+      {hint > 0 && <span className="sb-hint">{hint <= 9 ? hint : ''}</span>}
+      <span className={dotClass(state, view?.crashReason)} />
       <span className="sb-name">{nameOf(row.id, view)}</span>
       {row.minimized && <MinimizeToDock />}
       {view?.sessionType === 'review' && <span className="chip">review</span>}

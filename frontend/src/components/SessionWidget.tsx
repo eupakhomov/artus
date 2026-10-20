@@ -1,8 +1,8 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { api, ApiError } from '../api/rest';
 import { WsSession } from '../api/ws';
-import { contextUsageTitle } from '../protocol';
+import { contextUsageTitle, dotClass, isInterrupted, stateLabel } from '../protocol';
 import type { ChangeList, Envelope, PermissionMode, PrCheckStatus, SessionEntity } from '../protocol';
 import { type CodeIntelStatus, type LiveTurn, useStore } from '../store/store';
 import { describeActivity, formatDuration } from '../activity';
@@ -10,7 +10,7 @@ import { notify, notificationForEvent } from '../notify';
 import { registerWidget, unregisterWidget } from '../hotkeys/widgetRegistry';
 import {
   ChildOf, Close, ContinuedFrom, DownloadIcon, Duplicate, EcosystemContext, GitPanelIcon,
-  BackgroundTasks, ChangesIcon, HideFromDashboard, Diagram, ExtractSkill, InfoTag, Interrupt, LinkedTicket, LiveActivity, Maximize, Memory, MinimizeToDock, PullRequest, Restore, SystemSession,
+  BackgroundTasks, ChangesIcon, HideFromDashboard, Diagram, ExtractSkill, InfoTag, Interrupt, LinkedTicket, LiveActivity, Maximize, Memory, MinimizeToDock, MoreActions, PullRequest, Restore, Resume, SystemSession,
 } from '../icons';
 import Transcript from './Transcript';
 import CloseDialog from './CloseDialog';
@@ -95,6 +95,8 @@ export default function SessionWidget({
   const [input, setInput] = useState(initialInput ?? '');
   const [closing, setClosing] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<{ top: number; right: number } | null>(null);
+  const showMenu = menuAnchor !== null;
   const [showGit, setShowGit] = useState(false);
   const [showChanges, setShowChanges] = useState(false);
   const [showDiagram, setShowDiagram] = useState(false);
@@ -267,6 +269,7 @@ export default function SessionWidget({
   }, [sessionId, view?.name, entity?.name]);
 
   const state = view?.state ?? 'CREATING';
+  const crashReason = view?.crashReason ?? null;
   const running = state === 'RUNNING' || state === 'WAITING_INPUT';
   const budget = view?.costBudgetUsd ?? entity?.costBudgetUsd ?? null;
   const ctxPercent = view?.contextTokens != null && view?.contextWindow ? Math.round((view.contextTokens / view.contextWindow) * 100) : 0;
@@ -280,10 +283,11 @@ export default function SessionWidget({
   const widgetClass = useMemo(() => {
     let cls = 'widget';
     if (state === 'WAITING_INPUT') cls += ' waiting';
-    else if (state === 'CRASHED' || state === 'FAILED') cls += ' crashed';
+    // a backend restart only interrupted it: no red frame, the amber dot + Resume say enough
+    else if ((state === 'CRASHED' && !isInterrupted(state, crashReason)) || state === 'FAILED') cls += ' crashed';
     if (focusedId === sessionId) cls += ' focused';
     return cls;
-  }, [state, focusedId, sessionId]);
+  }, [state, crashReason, focusedId, sessionId]);
 
   const refreshChanges = useCallback(async () => {
     const seq = ++changesSeq.current;
@@ -358,7 +362,7 @@ export default function SessionWidget({
         }}
       >
         <div className="header-info">
-          <span className={`dot ${state}`} title={state} />
+          <span className={dotClass(state, view.crashReason)} title={stateLabel(state, view.crashReason)} />
           <span
             className="name"
             title={`${view.name ?? entity?.name ?? ''} — double-click to rename`}
@@ -505,10 +509,6 @@ export default function SessionWidget({
             ctx {ctxPercent}%
           </span>
         )}
-        {state === 'CRASHED' && (
-          // a rare recovery action: keeps its label rather than becoming another glyph
-          <button onMouseDown={(e) => e.stopPropagation()} onClick={() => void resume()}>Resume</button>
-        )}
         {canMaximize && (
           <button
             className="icon-btn"
@@ -523,14 +523,6 @@ export default function SessionWidget({
           onClick={onToggleMinimize}
           title="minimize (x)"
         ><MinimizeToDock /></button>
-        {entity?.kind !== 'system' && (
-          <button
-            className="icon-btn"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={onHide}
-            title="hide from dashboard (h) — keeps running; find it under Hidden in the sidebar. It comes back by itself when it needs you"
-          ><HideFromDashboard /></button>
-        )}
         {entity?.kind !== 'system' && (
           <button
             className={`icon-btn${showGit ? ' active' : ''}`}
@@ -565,50 +557,64 @@ export default function SessionWidget({
             {diagramStale && <span className="dot" style={{ background: 'var(--amber)' }} />}
           </button>
         )}
-        {entity?.kind !== 'system' && (
-          <button
-            className="icon-btn"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={() => setDuplicating(true)}
-            title="duplicate session"
-          ><Duplicate /></button>
-        )}
-        {entity?.kind !== 'system' && (
-          <button
-            className={`icon-btn${reflecting ? ' pulse' : ''}`}
-            disabled={reflecting}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={() => {
-              setActionError('');
-              setReflecting(true);
-              api.reflectSession(sessionId)
-                .catch((e) => setActionError(e instanceof ApiError ? e.message : String(e)))
-                .finally(() => setReflecting(false));
-            }}
-            title={reflecting ? 'reflecting — distilling this conversation (can take up to 45s)…' : 'reflect now — distill this conversation into long-term memory'}
-          ><Memory /></button>
-        )}
-        {entity?.kind !== 'system' && (
-          <button
-            className={`icon-btn${extractingSkill ? ' pulse' : ''}`}
-            disabled={extractingSkill}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={() => {
-              setActionError('');
-              setExtractingSkill(true);
-              api.extractSkill(sessionId)
-                .catch((e) => setActionError(e instanceof ApiError ? e.message : String(e)))
-                .finally(() => setExtractingSkill(false));
-            }}
-            title={extractingSkill ? 'extracting — distilling a reusable skill (can take up to 3 min)…' : 'extract skill — turn the procedure this session followed into a reusable skill (opens a proposal to approve)'}
-          ><ExtractSkill /></button>
-        )}
         <button
-          className="icon-btn"
+          // the occasional actions live behind this; it pulses while one of them is in flight
+          // (reflect/extract can take minutes) so the feedback survives the menu closing
+          className={`icon-btn${showMenu ? ' active' : ''}${reflecting || extractingSkill ? ' busy' : ''}`}
           onMouseDown={(e) => e.stopPropagation()}
-          onClick={() => void downloadTranscript()}
-          title="download transcript (Markdown)"
-        ><DownloadIcon /></button>
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setMenuAnchor((cur) => (cur ? null : { top: r.bottom + 4, right: window.innerWidth - r.right }));
+          }}
+          title={reflecting ? 'more actions — reflecting…' : extractingSkill ? 'more actions — extracting a skill…' : 'more actions'}
+        ><MoreActions /></button>
+        {menuAnchor && (
+          <ActionMenu
+            anchor={menuAnchor}
+            onClose={() => setMenuAnchor(null)}
+            items={[
+              ...(entity?.kind !== 'system' ? [
+                {
+                  icon: <HideFromDashboard />,
+                  label: 'Hide from dashboard',
+                  hotkey: 'h',
+                  title: 'keeps running; find it under Hidden in the sidebar. It comes back by itself when it needs you',
+                  onClick: onHide,
+                },
+                { icon: <Duplicate />, label: 'Duplicate session', onClick: () => setDuplicating(true) },
+                {
+                  icon: <Memory />,
+                  label: reflecting ? 'Reflecting…' : 'Reflect now',
+                  title: reflecting ? 'distilling this conversation (can take up to 45s)…' : 'distill this conversation into long-term memory',
+                  disabled: reflecting,
+                  onClick: () => {
+                    setActionError('');
+                    setReflecting(true);
+                    api.reflectSession(sessionId)
+                      .catch((e) => setActionError(e instanceof ApiError ? e.message : String(e)))
+                      .finally(() => setReflecting(false));
+                  },
+                },
+                {
+                  icon: <ExtractSkill />,
+                  label: extractingSkill ? 'Extracting skill…' : 'Extract skill',
+                  title: extractingSkill
+                    ? 'distilling a reusable skill (can take up to 3 min)…'
+                    : 'turn the procedure this session followed into a reusable skill (opens a proposal to approve)',
+                  disabled: extractingSkill,
+                  onClick: () => {
+                    setActionError('');
+                    setExtractingSkill(true);
+                    api.extractSkill(sessionId)
+                      .catch((e) => setActionError(e instanceof ApiError ? e.message : String(e)))
+                      .finally(() => setExtractingSkill(false));
+                  },
+                },
+              ] : []),
+              { icon: <DownloadIcon />, label: 'Download transcript', title: 'Markdown', onClick: () => void downloadTranscript() },
+            ]}
+          />
+        )}
         <button
           className="icon-btn"
           onMouseDown={(e) => e.stopPropagation()}
@@ -640,6 +646,7 @@ export default function SessionWidget({
         )}
         <Transcript
           items={view.transcript}
+          cwd={entity?.worktreePath}
           onPermission={(requestId, response) => send({ type: 'permission_response', requestId, ...response })}
           markCtx={memoryEnabled && entity?.kind !== 'system' ? {
             marks: view.marks,
@@ -704,7 +711,10 @@ export default function SessionWidget({
                 <Interrupt fill="currentColor" />
               </button>
             )}
-            <button className="primary" onClick={submit} disabled={state === 'CRASHED' || state === 'FAILED'}>Send</button>
+            {state === 'CRASHED'
+              // the composer is disabled while crashed, so its button becomes the way back
+              ? <button className="primary with-icon" title="restart the sidecar and continue this conversation" onClick={() => void resume()}><Resume />Resume</button>
+              : <button className="primary" onClick={submit} disabled={state === 'FAILED'}>Send</button>}
           </div>
         </div>
       </div>
@@ -775,6 +785,51 @@ function ChildrenPopover({ anchor, items, onOpen, onClose }: {
           <span className={`dot ${c.state}`} />
           <span className="children-name">{c.name}</span>
           <span className="children-meta">{c.state.toLowerCase().replace('_', ' ')} · ${c.cost}</span>
+        </button>
+      ))}
+    </div>,
+    document.body,
+  );
+}
+
+type ActionMenuItem = { icon: ReactNode; label: string; title?: string; hotkey?: string; disabled?: boolean; onClick: () => void };
+
+/** The header's overflow menu — right-aligned under its button, closes on pick/outside click/Escape. */
+function ActionMenu({ anchor, items, onClose }: {
+  anchor: { top: number; right: number };
+  items: ActionMenuItem[];
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    // it's pinned where its button was, so a page scroll would detach the two (a transcript
+    // scrolling — streaming output — doesn't move the header, and doesn't reach this listener)
+    const onScroll = () => onClose();
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [onClose]);
+  return createPortal(
+    <div ref={ref} className="action-menu" role="menu" style={{ top: anchor.top, right: anchor.right }}>
+      {items.map((it) => (
+        <button
+          key={it.label}
+          role="menuitem"
+          className="action-menu-row"
+          disabled={it.disabled}
+          title={it.title}
+          onClick={() => { onClose(); it.onClick(); }}
+        >
+          {it.icon}
+          <span className="action-menu-label">{it.label}</span>
+          {it.hotkey && <kbd>{it.hotkey}</kbd>}
         </button>
       ))}
     </div>,

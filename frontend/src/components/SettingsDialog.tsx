@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/rest';
 import { getFontSize, getTheme, setFontSize, setTheme, type FontSize, type Theme } from '../prefs';
 import type { AuthStatus, CodeIntel, ProviderView, Settings, SlackStatus } from '../protocol';
@@ -362,11 +362,51 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
 
   const backdropDismiss = useBackdropDismiss(onClose);
 
+  // section index on the left: built from the rendered <h3>s (several sections only exist
+  // once settings/provider data has loaded), the active one tracked from the scroll position
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [sections, setSections] = useState<string[]>([]);
+  const [activeSection, setActiveSection] = useState('');
+  useEffect(() => {
+    const heads = [...(modalRef.current?.querySelectorAll('h3.settings-h') ?? [])].map((h) => h.textContent ?? '');
+    setSections(heads);
+    setActiveSection((cur) => cur || heads[0] || '');
+  }, [settings !== null]);
+  const headingFor = (name: string) =>
+    [...(modalRef.current?.querySelectorAll<HTMLElement>('h3.settings-h') ?? [])].find((h) => h.textContent === name);
+  const onModalScroll = () => {
+    const modal = modalRef.current;
+    if (!modal) return;
+    const top = modal.getBoundingClientRect().top + 60;
+    let current = sections[0] ?? '';
+    for (const name of sections) {
+      const h = headingFor(name);
+      if (h && h.getBoundingClientRect().top <= top) current = name;
+    }
+    // scrolled to the very end: the last short sections can never reach the top
+    if (modal.scrollTop + modal.clientHeight >= modal.scrollHeight - 2) current = sections[sections.length - 1] ?? current;
+    setActiveSection(current);
+  };
+
   return (
     <div className="modal-backdrop" {...backdropDismiss}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal wide settings" ref={modalRef} onScroll={onModalScroll} onClick={(e) => e.stopPropagation()}>
         <h2>Settings</h2>
-        <h3 style={{ margin: '0 0 10px' }}>Appearance</h3>
+        <div className="settings-layout">
+        <nav className="settings-nav">
+          {sections.map((name) => (
+            <button
+              key={name}
+              className={activeSection === name ? 'active' : ''}
+              onClick={() => {
+                setActiveSection(name);
+                headingFor(name)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+              }}
+            >{name}</button>
+          ))}
+        </nav>
+        <div className="settings-body">
+        <h3 className="settings-h">Appearance</h3>
         <div className="form-grid">
           <label>Theme</label>
           <select
@@ -398,7 +438,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
 
         {settings && (
           <>
-            <h3 style={{ margin: '18px 0 10px' }}>Sessions</h3>
+            <h3 className="settings-h">Sessions</h3>
             <div className="form-grid">
               <label>Ecosystem root</label>
               <input
@@ -459,6 +499,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               </label>
 
               <label>Context warning at</label>
+              <span className="with-unit">
               <input
                 type="number"
                 min={30}
@@ -468,9 +509,10 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
                 onBlur={saveContextWarnPercent}
                 title="widget ctx chip turns amber and a compact suggestion appears once a session crosses this percentage of its context window (30-95)"
               /> %
+            </span>
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>Claude</h3>
+            <h3 className="settings-h">Claude</h3>
             <div className="form-grid">
               <label>Live cost pricing</label>
               <textarea
@@ -485,7 +527,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               {claudePricingError && <div className="error-text full" style={{ gridColumn: '2 / -1' }}>{claudePricingError}</div>}
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>Codex</h3>
+            <h3 className="settings-h">Codex</h3>
             <div className="form-grid">
               <label>Pricing</label>
               <textarea
@@ -500,7 +542,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               {codexPricingError && <div className="error-text full" style={{ gridColumn: '2 / -1' }}>{codexPricingError}</div>}
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>MCP servers</h3>
+            <h3 className="settings-h">MCP servers</h3>
             <div className="form-grid">
               <label>Code intelligence</label>
               <select
@@ -563,7 +605,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
 
             <ToolCatalogSettings />
 
-            <h3 style={{ margin: '18px 0 10px' }}>Skill library</h3>
+            <h3 className="settings-h">Skill library</h3>
             <div className="form-grid">
               <label>Skills folder</label>
               <input
@@ -618,7 +660,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               </span>
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>Slack</h3>
+            <h3 className="settings-h">Slack</h3>
             <div className="form-grid">
               <label>Mirror by default</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'normal' }}>
@@ -634,7 +676,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               </div>
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>Memory</h3>
+            <h3 className="settings-h">Memory</h3>
             <div className="form-grid">
               <label>Enabled</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'normal' }}>
@@ -698,7 +740,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               </span>
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>Service discovery</h3>
+            <h3 className="settings-h">Service discovery</h3>
             <div className="form-grid">
               <label>Enabled</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'normal' }}>
@@ -727,7 +769,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               </select>
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>Visualize</h3>
+            <h3 className="settings-h">Visualize</h3>
             <div className="form-grid">
               <label>Diagram tier</label>
               <select value={settings.visualizeModel} onChange={(e) => saveVisualizeModel(e.target.value)}>
@@ -740,7 +782,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               </span>
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>Access</h3>
+            <h3 className="settings-h">Access</h3>
             <div className="form-grid">
               <label>Access token</label>
               <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -762,7 +804,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               </span>
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>PR checks</h3>
+            <h3 className="settings-h">PR checks</h3>
             <div className="form-grid">
               <label>Enabled</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'normal' }}>
@@ -784,7 +826,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               </span>
             </div>
 
-            <h3 style={{ margin: '18px 0 10px' }}>Linear integration</h3>
+            <h3 className="settings-h">Linear integration</h3>
             <div className="form-grid">
               <label>API key</label>
               <span style={{ color: 'var(--muted)', fontSize: 12.5 }}>
@@ -824,6 +866,8 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
             </div>
           </>
         )}
+        </div>
+        </div>
 
         <div className="actions">
           <button onClick={onClose}>Close</button>

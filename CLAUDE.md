@@ -323,6 +323,10 @@ plus `.primary`, `.danger`, `.active`, and `.pulse` for a disabled-while-in-flig
 control. Chips are `.chip` (+ a state modifier like `.mode-plan`, `.pr-SUCCESS`).
 Every icon-only control carries a `title` describing the action, with its hotkey in
 parentheses when it has one: `title="Templates (t)"`.
+The widget header is full: a new *occasional* per-session action goes into its ⋯ menu
+(`ActionMenu` items in `SessionWidget.tsx`), not as another header button — a 2-column grid
+has no room left, and the session name must keep its 120 px. Topbar buttons go into one of
+its `.topbar-sep`-separated groups.
 
 **Type & geometry.** Font sizes are always `calc(Npx * var(--font-scale))`, never a bare
 px — the Settings font-size control scales the whole UI through that variable. Scale:
@@ -361,7 +365,7 @@ the backend's environment):
 `costBudgetUsd` (turns are refused once cumulative cost reaches it; in-flight turns
 finish; raise via the widget's cost chip), `maxTurns` (agentic turns per prompt),
 `thinking` budget and `effort` level, `reflectionEnabled` (opt-in end-of-session memory
-retrospective — see "Long-term memory" below; the widget's reflect (brain) button
+retrospective — see "Long-term memory" below; the widget's ⋯ menu → "Reflect now"
 triggers one manually regardless of this flag).
 
 **Session types** (create dialog/template `sessionType ∈ {development, review}`, default
@@ -586,14 +590,14 @@ effect on the next use with no backend restart.
   immediately; turn off to restore straight auto-apply. The topbar memory dialog
   searches (hybrid dense+sparse) and browses/edits/archives memory across services,
   plus a "Pending" tab (topbar badge count) for approving/discarding proposals; the
-  widget's reflect button triggers an immediate reflection on that session. **Curation**
+  widget's ⋯ menu → "Reflect now" triggers an immediate reflection on that session. **Curation**
   (phase 21, `docs/plan/phase-21-memory-curation.md`; marks and remember-this only while `memory.enabled`, extract-skill always): hover a
   user/assistant block to mark it *important* (pin — starred and kept verbatim in the
   digest even past its 100k cap) or *excluded* (eye-off — its text never reaches the
   reflection model); marks are `block_marked` journal events (`POST /api/sessions/{id}/marks`),
-  so they replay and sync across tabs. Marking after a reflection re-arms the reflect button
-  (a refresh knows the earlier episodes and supersedes a pending proposal); the widget's
-  extract-skill button distils the session's procedure into a pending **skill** proposal
+  so they replay and sync across tabs. Marking after a reflection re-arms "Reflect now"
+  (a refresh knows the earlier episodes and supersedes a pending proposal); the ⋯ menu's
+  "Extract skill" distils the session's procedure into a pending **skill** proposal
   (always approval-gated, editable; approving writes `SKILL.md` into the managed skills root
   and registers it in the library); an important block's "remember this" action turns just
   that block into a small memory proposal. Proposals show the transcript blocks they cite
@@ -605,10 +609,16 @@ delta (never sum `total_cost_usd`). While a turn runs the widget shows a sticky 
 tool count, `~$` estimate from `turn_usage` priced by Settings → Claude → "Live cost pricing", `claude.pricing`).
 The Claude CLI backgrounds Explore subagents by default and opens a turn by itself when a background task settles, so
 a `system_init` arriving while IDLE moves the session to RUNNING; live background tasks show as a strip and block idle
-parking. Sessions can be hidden from the dashboard (`session.hidden`, widget archive button, sidebar "Hidden"; back by
+parking. Sessions can be hidden from the dashboard (`session.hidden`, widget ⋯ menu or `h`, sidebar "Hidden"; back by
 itself on an approval prompt or crash; Settings → Sessions "Hide when parked"). Auto-title is switchable (Settings →
 Sessions) and journals a note when it renames. The dashboard re-lists sessions every 10 s, so backend-created
-sessions (spawned children) appear on their own.
+sessions (spawned children) appear on their own (there is no manual refresh button).
+
+**Interrupted vs crashed**: a session the startup sweep finds live after a backend restart is CRASHED with
+`session.crash_reason = 'backend_restart'` (V25; journaled as `state_changed.reason`, cleared by any other
+transition). The dashboard shows it as *interrupted* — amber dot and note, no red frame — via `protocol.ts`
+`isInterrupted`/`dotClass`; red stays for real crashes (sidecar exit, failed wake). Both resume the same way: on a
+CRASHED session the composer's Send button becomes **Resume**.
 
 **MCP tool search**: every sidecar is spawned with `ENABLE_TOOL_SEARCH=true`
 (`SidecarManager.applySidecarEnvironment`) so MCP tool schemas (Linear alone is ~80 tools) are

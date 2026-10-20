@@ -98,9 +98,14 @@ public class SessionRepository {
 				.param(limit).query(rowMapper).list();
 	}
 
+	/** Any transition clears {@code crash_reason}; only a CRASHED one may set it (see the 3-arg overload). */
 	public void updateState(UUID id, SessionState state) {
-		jdbc.sql("UPDATE session SET state = ?, updated_at = now() WHERE id = ?")
-				.params(state.name(), id).update();
+		updateState(id, state, null);
+	}
+
+	public void updateState(UUID id, SessionState state, String crashReason) {
+		jdbc.sql("UPDATE session SET state = ?, crash_reason = ?, updated_at = now() WHERE id = ?")
+				.params(state.name(), state == SessionState.CRASHED ? crashReason : null, id).update();
 	}
 
 	public void updateProviderSessionId(UUID id, String providerSessionId) {
@@ -335,6 +340,7 @@ public class SessionRepository {
 				rs.getTimestamp("closed_at") == null ? null : rs.getTimestamp("closed_at").toInstant(),
 				rs.getBoolean("hidden"),
 				readStringList(rs.getString("tools")),
-				readStringList(rs.getString("plugin_dirs")));
+				readStringList(rs.getString("plugin_dirs")),
+				rs.getString("crash_reason"));
 	}
 }

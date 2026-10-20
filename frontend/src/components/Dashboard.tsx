@@ -21,7 +21,7 @@ import { useStore } from '../store/store';
 import { notificationsEnabled, notify, toggleNotifications } from '../notify';
 import { useHotkeys } from '../hotkeys/useHotkeys';
 import {
-  Expose, FocusMode, Memory, New, NotifyOff, NotifyOn, QuickSession, Refresh, ServiceDiscovery,
+  Expose, FocusMode, Memory, New, NotifyOff, NotifyOn, QuickSession, ServiceDiscovery,
   SettingsIcon, Shortcuts, SidebarToggle, SkillLibrary, SystemSession, Templates, Usage,
 } from '../icons';
 
@@ -459,33 +459,15 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
           title={`Sidebar: ${fold} — click to toggle (b)`}
           onClick={cycleFold}
         ><SidebarToggle /></button>
+        <button
+          className={`icon-btn${layoutMode === 'focus' ? ' active' : ''}`}
+          title={layoutMode === 'grid' ? 'Focus layout — one session at a time (v)' : 'Focus layout on — back to grid (v)'}
+          onClick={toggleLayoutMode}
+        ><FocusMode /></button>
+        <button className="icon-btn" title="Exposé — all sessions (e)" onClick={() => setShowExpose(true)}><Expose /></button>
         <span className="topbar-spacer" />
-        <NotifyToggle />
-        <button className="icon-btn" title="Refresh session list" onClick={() => void refresh()}><Refresh /></button>
+        {/* grouped: what you work with | the app itself | starting a session */}
         <button className="icon-btn" title="Templates (t)" onClick={() => setShowTemplates(true)}><Templates /></button>
-        <button
-          className={`icon-btn with-badge${showSystem ? ' active' : ''}`}
-          disabled={systemSessions.length === 0}
-          title={
-            systemSessions.length === 0
-              ? 'no system session yet (created by backend tasks like ticket import)'
-              : showSystem ? 'hide system session' : `show system session (${systemState!.toLowerCase()})`
-          }
-          onClick={() => setShowSystem((v) => {
-            const next = !v;
-            localStorage.setItem('artus.showSystem', next ? '1' : '0');
-            return next;
-          })}
-        >
-          <SystemSession />{systemState && <span className={`dot ${systemState}`} />}
-        </button>
-        <button
-          className="icon-btn with-badge"
-          title={staleCount > 0 ? `Usage (u) — ${staleCount} idle session${staleCount > 1 ? 's' : ''} to clean up` : 'Usage (u)'}
-          onClick={() => setShowUsage(true)}
-        >
-          <Usage />{staleCount > 0 && <span className="count-badge">{staleCount}</span>}
-        </button>
         <button
           className="icon-btn with-badge"
           title={discoveryCount > 0 ? `Skill library (l) — ${discoveryCount} new file(s) in synced sources` : 'Skill library (l)'}
@@ -503,14 +485,34 @@ export default function Dashboard({ initialSessions }: { initialSessions: Sessio
         <button className="icon-btn" title="Service discovery" onClick={() => setShowServiceDiscovery(true)}>
           <ServiceDiscovery />
         </button>
-        <button className="icon-btn" title="Keyboard shortcuts (?)" onClick={() => setShowCheatsheet(true)}><Shortcuts /></button>
         <button
-          className={`icon-btn${layoutMode === 'focus' ? ' active' : ''}`}
-          title={layoutMode === 'grid' ? 'Focus layout — one session at a time (v)' : 'Focus layout on — back to grid (v)'}
-          onClick={toggleLayoutMode}
-        ><FocusMode /></button>
-        <button className="icon-btn" title="Exposé — all sessions (e)" onClick={() => setShowExpose(true)}><Expose /></button>
+          className="icon-btn with-badge"
+          title={staleCount > 0 ? `Usage (u) — ${staleCount} idle session${staleCount > 1 ? 's' : ''} to clean up` : 'Usage (u)'}
+          onClick={() => setShowUsage(true)}
+        >
+          <Usage />{staleCount > 0 && <span className="count-badge">{staleCount}</span>}
+        </button>
+        <span className="topbar-sep" />
+        <button
+          className={`icon-btn with-badge${showSystem ? ' active' : ''}`}
+          disabled={systemSessions.length === 0}
+          title={
+            systemSessions.length === 0
+              ? 'no system session yet (created by backend tasks like ticket import)'
+              : showSystem ? 'hide system session' : `show system session (${systemState!.toLowerCase()})`
+          }
+          onClick={() => setShowSystem((v) => {
+            const next = !v;
+            localStorage.setItem('artus.showSystem', next ? '1' : '0');
+            return next;
+          })}
+        >
+          <SystemSession />{systemState && <span className={`dot ${systemState}`} />}
+        </button>
+        <NotifyToggle />
+        <button className="icon-btn" title="Keyboard shortcuts (?)" onClick={() => setShowCheatsheet(true)}><Shortcuts /></button>
         <button className="icon-btn" title="Settings (,)" onClick={() => setShowSettings(true)}><SettingsIcon /></button>
+        <span className="topbar-sep" />
         <button className="icon-btn" title="Quick session — service + branch + prompt (q)" onClick={() => setShowQuickCreate(true)}>
           <QuickSession />
         </button>

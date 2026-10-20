@@ -59,7 +59,8 @@ decision log in `docs/plan/README.md` remains the authority on *why*; this file 
   A second provider = a new adapter binary + a `artus.providers.<id>` entry.
 - **Sessions outlive processes.** `providerSessionId` (persisted from `system_init`)
   makes sidecars disposable: crash → CRASHED + Resume; idle timeout → PARKED with
-  transparent wake; backend restart → sweep marks CRASHED, PID files reap orphans.
+  transparent wake; backend restart → sweep marks CRASHED with `crash_reason =
+  'backend_restart'` (shown as *interrupted*, amber — nothing failed in the session), PID files reap orphans.
 - **Worktrees isolate work.** One worktree+branch per session under `worktree-root`;
   provisioned assets and the PID file are kept out of `git status` via the
   per-worktree `info/exclude`; close resolves dirt explicitly (commit/stash/discard).
