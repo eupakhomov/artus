@@ -453,6 +453,9 @@ function reduce(view: SessionView, e: Envelope): SessionView {
     case 'permission_mode_changed':
       v.permissionMode = p['mode'] as PermissionMode;
       break;
+    case 'models_available':
+      if (v.capabilities) v.capabilities = { ...v.capabilities, models: p['models'] as Capabilities['models'] };
+      break;
     case 'model_changed':
       v.model = p['model'] as string;
       break;

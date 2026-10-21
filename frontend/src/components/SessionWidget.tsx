@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import { createPortal } from 'react-dom';
 import { api, ApiError } from '../api/rest';
 import { WsSession } from '../api/ws';
-import { contextUsageTitle, dotClass, isInterrupted, stateLabel } from '../protocol';
+import { catalogModelFor, contextUsageTitle, dotClass, isInterrupted, stateLabel } from '../protocol';
 import type { ChangeList, Envelope, PermissionMode, PrCheckStatus, SessionEntity } from '../protocol';
 import { type CodeIntelStatus, type LiveTurn, useStore } from '../store/store';
 import { describeActivity, formatDuration } from '../activity';
@@ -225,19 +225,9 @@ export default function SessionWidget({
     send({ type: 'set_permission_mode', mode: next });
   }, [view, send]);
 
-  const cycleModel = useCallback(() => {
-    if (!view) return;
-    // P4 fix: cycle through *this session's own provider* catalog (live capabilities, reported
-    // in its ready event) instead of a hardcoded Claude list — a Codex session (empty catalog,
-    // modelSwitch still true) has nothing to cycle through and is left alone.
-    const models = view.capabilities?.models ?? [];
-    if (models.length === 0) return;
-    // system_init reports a concrete resolved id (e.g. "claude-sonnet-5") even when
-    // launched via an alias, so match by substring rather than exact equality
-    const current = models.findIndex((m) => (view.model ?? '').toLowerCase().includes(m.id));
-    const next = models[(current + 1) % models.length]!;
-    send({ type: 'set_model', model: next.id });
-  }, [view, send]);
+  // Claude's SDK switches model in place (same conversation, next turn uses the new one) and
+  // Codex applies it as a per-turn override, so "handover" is just set_model.
+  const changeModel = useCallback((id: string) => send({ type: 'set_model', model: id }), [send]);
   const canCycleModel = (view?.capabilities?.modelSwitch ?? true) && (view?.capabilities?.models?.length ?? 0) > 0;
 
   const resume = useCallback(async () => {
@@ -387,16 +377,20 @@ export default function SessionWidget({
             {entity?.sessionType === 'review' && (
               <span className="chip" title="review session — commit/push disabled">review</span>
             )}
-            {(view.model ?? entity?.model) && (
-              <span
-                className={`chip${canCycleModel ? ' clickable' : ''}`}
-                title={canCycleModel ? 'click to switch model' : undefined}
-                onClick={cycleModel}
+            {(view.model ?? entity?.model) && (canCycleModel ? (
+              <select
+                className="chip model-select"
+                title="Switch model (applies from the next turn)"
+                value={catalogModelFor(view.capabilities?.models ?? [], view.model ?? entity?.model)?.id ?? ''}
+                onChange={(e) => changeModel(e.target.value)}
                 onMouseDown={(e) => e.stopPropagation()}
               >
-                {view.model ?? entity?.model}
-              </span>
-            )}
+                <option value="" disabled>{view.model ?? entity?.model}</option>
+                {(view.capabilities?.models ?? []).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+            ) : (
+              <span className="chip">{view.model ?? entity?.model}</span>
+            ))}
           </span>
           {infoParts.length > 0 && (
             // collapsed stand-in for the three chips above — shown instead of them (see

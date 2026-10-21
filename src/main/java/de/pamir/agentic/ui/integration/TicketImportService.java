@@ -118,7 +118,8 @@ public class TicketImportService {
 		String spec = settings.current().ticketImportSpec();
 		String guidance = spec.isBlank() ? "" : "Follow these additional guidelines when choosing the branch name "
 				+ "and/or writing the prompt: " + spec.strip() + " ";
-		List<ModelCatalog.ModelInfo> models = ModelCatalog.models(settings.current().defaultProvider());
+		List<ModelCatalog.ModelInfo> models = ModelCatalog.models(settings.current().defaultProvider()).stream()
+				.filter(m -> !"extended".equals(m.tier())).toList();
 		Set<String> validModels = models.stream().map(ModelCatalog.ModelInfo::id).collect(Collectors.toSet());
 		LinearApiClient.Issue issue = fetchIssueDirect(ticketRef);
 		if (issue != null) {

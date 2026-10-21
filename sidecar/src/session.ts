@@ -660,6 +660,26 @@ export async function runSession(config: SidecarConfig): Promise<never> {
   };
 
   const q = query({ prompt: userMessages(), options });
+  // Report what the CLI/gateway actually offers so the backend validates against it, not a static list.
+  void q
+    .supportedModels()
+    .then((models) => {
+      const list = models
+        .filter((m) => m.value !== 'default')
+        .map((m) => ({
+          id: m.value,
+          label: m.displayName,
+          tier: m.value.includes('[1m]')
+            ? ('extended' as const)
+            : m.value.includes('haiku')
+              ? ('cheap' as const)
+              : m.value.includes('opus')
+                ? ('premium' as const)
+                : ('standard' as const),
+        }));
+      if (list.length > 0) writeEvent({ type: 'models_available', models: list });
+    })
+    .catch((e: unknown) => log(`supportedModels failed: ${String(e)}`));
   // updated from system_init (which reports the concrete resolved id, even for an alias like "sonnet")
   const modelState = newTranslateState();
   // Belt-and-suspenders guard for 'compact' — the backend only sends it for an

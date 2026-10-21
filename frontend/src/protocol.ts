@@ -13,7 +13,7 @@ export type SessionState =
 export interface ModelInfo {
   id: string;
   label: string;
-  tier: 'cheap' | 'standard' | 'premium';
+  tier: 'cheap' | 'standard' | 'premium' | 'extended';
 }
 
 export interface Capabilities {
@@ -672,4 +672,15 @@ export interface ToolCandidate {
   origin: string;
   /** `${VAR}` placeholders that replaced literal secret values found in the source */
   redacted: string[];
+}
+
+/** Maps the model id a provider reported ("claude-sonnet-5[1m]") to the catalog entry covering it. */
+export function catalogModelFor(models: ModelInfo[], model: string | null | undefined): ModelInfo | undefined {
+  const m = (model ?? '').toLowerCase();
+  const exact = models.find((c) => c.id.toLowerCase() === m);
+  if (exact) return exact;
+  const extended = m.includes('[1m]');
+  return models
+    .filter((c) => c.id.endsWith('[1m]') === extended && m.includes(c.id.replace('[1m]', '').toLowerCase()))
+    .sort((a, b) => b.id.length - a.id.length)[0];
 }

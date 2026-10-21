@@ -82,7 +82,7 @@ export type ThinkingSetting = 'off' | 'adaptive' | number;
 export interface ModelInfo {
   id: string;
   label: string;
-  tier: 'cheap' | 'standard' | 'premium';
+  tier: 'cheap' | 'standard' | 'premium' | 'extended';
 }
 
 export interface Capabilities {
@@ -200,6 +200,12 @@ export interface PermissionModeChangedEvent {
 export interface ModelChangedEvent {
   type: 'model_changed';
   model: string;
+}
+
+/** The provider's live model list (e.g. the SDK's supportedModels()); replaces the static catalog. */
+export interface ModelsAvailableEvent {
+  type: 'models_available';
+  models: ModelInfo[];
 }
 
 export interface TurnCompleteEvent {
@@ -345,6 +351,7 @@ export type Event =
   | ThinkingProgressEvent
   | PermissionModeChangedEvent
   | ModelChangedEvent
+  | ModelsAvailableEvent
   | TurnCompleteEvent
   | ContextUsageEvent
   | ContextCompactedEvent
