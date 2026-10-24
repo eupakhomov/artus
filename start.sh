@@ -30,45 +30,6 @@ esac
 
 log() { printf '%s\n' "$*"; }
 
-stop_running() {
-  if [ -f "$PID_FILE" ]; then
-    local pid
-    pid="$(cat "$PID_FILE")"
-    if kill -0 "$pid" 2>/dev/null; then
-      log "Stopping running backend (pid $pid)..."
-      kill "$pid"
-      for _ in $(seq 1 30); do
-        kill -0 "$pid" 2>/dev/null || break
-        sleep 1
-      done
-      if kill -0 "$pid" 2>/dev/null; then
-        log "Backend did not stop gracefully within 30s, sending SIGKILL..."
-        kill -9 "$pid" 2>/dev/null || true
-      fi
-    fi
-    rm -f "$PID_FILE"
-  fi
-
-  # Fallback: anything still listening on $PORT (stale/missing pid file, or
-  # a backend started outside this script).
-  local port_pid=""
-  if command -v lsof >/dev/null 2>&1; then
-    port_pid="$(lsof -ti tcp:"$PORT" 2>/dev/null || true)"
-  elif command -v ss >/dev/null 2>&1; then
-    port_pid="$(ss -tlnp 2>/dev/null | grep ":$PORT " | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2 || true)"
-  fi
-  if [ -n "$port_pid" ]; then
-    log "Killing process still listening on :$PORT (pid $port_pid)..."
-    kill "$port_pid" 2>/dev/null || true
-    sleep 2
-    kill -9 "$port_pid" 2>/dev/null || true
-  fi
-
-  # Orphaned sidecar processes, if any survive the backend shutdown.
-  # (bracket in the pattern keeps this pkill from matching its own command line)
-  pkill -f "dist/index[.]js --cwd" 2>/dev/null || true
-}
-
 ensure_db() {
   if command -v docker >/dev/null 2>&1; then
     log "Ensuring Postgres is up (docker compose)..."
@@ -130,6 +91,6 @@ start_app() {
   exit 1
 }
 
-stop_running
+"$ROOT_DIR/stop.sh"
 ensure_db
 start_app

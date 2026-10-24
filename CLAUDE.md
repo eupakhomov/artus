@@ -155,7 +155,9 @@ echo "UI: http://localhost:8080  token: $(cat /tmp/artus.token)"
 ### Stop / kill
 
 ```bash
-kill "$(cat /tmp/artus.pid)"          # graceful: @PreDestroy shuts sidecars down
+./stop.sh                              # SIGTERM (@PreDestroy shuts sidecars down), SIGKILL after 10 s
+# what it does by hand:
+kill "$(cat /tmp/artus.pid)"
 # fallback when the pid file is stale — kill whatever listens on 8080:
 kill "$(ss -tlnp | grep 8080 | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)"
 # orphaned sidecars, if any survive:

@@ -105,7 +105,7 @@ Day to day:
 | `./install.sh` | build sidecars, frontend and backend (stop the backend first) |
 | `./install.sh --backend-only` | rebuild the backend jar only (fast) |
 | `./update.sh` | `git pull --ff-only` + `./install.sh` |
-| `kill "$(cat /tmp/artus.pid)"` | stop (graceful; shuts sessions down) |
+| `./stop.sh` | stop (graceful; shuts sessions down, force-kills after 10 s) |
 | `cat /tmp/artus.token` | show the current token |
 
 Logs: `/tmp/artus.log` (raw stdout), `logs/artus.log` (application),
@@ -359,7 +359,7 @@ already has — `~/.claude.json` servers, installed Claude plugins, Codex plugin
 ## 9. Updating
 
 ```bash
-kill "$(cat /tmp/artus.pid)"   # a live JVM holds the jar; install.sh refuses to run over it
+./stop.sh   # a live JVM holds the jar; install.sh refuses to run over it
 ./update.sh                         # git pull --ff-only, then install.sh (sidecars, frontend, backend)
 ./start.sh                          # DB migrates on boot
 ```

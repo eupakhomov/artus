@@ -33,7 +33,7 @@ log() { printf '%s\n' "$*"; }
 
 # A live JVM holds the jar open and the spring-boot repackage then fails half-written.
 if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-  echo "Backend is running (pid $(cat "$PID_FILE")) — stop it first (kill \$(cat $PID_FILE)) or use ./start.sh after installing elsewhere." >&2
+  echo "Backend is running (pid $(cat "$PID_FILE")) — stop it first (./stop.sh) or use ./start.sh after installing elsewhere." >&2
   exit 1
 fi
 
