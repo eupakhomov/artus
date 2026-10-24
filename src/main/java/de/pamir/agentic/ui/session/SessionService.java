@@ -521,6 +521,11 @@ public class SessionService {
 			}
 			case "permission_request" -> transition(id, SessionState.WAITING_INPUT);
 			case "permission_mode_changed" -> sessions.updatePermissionMode(id, event.path("mode").asText());
+			case "models_available" -> ModelCatalog.updateLive(sessions.get(id).provider(),
+					java.util.stream.StreamSupport.stream(event.path("models").spliterator(), false)
+							.map(m -> new ModelCatalog.ModelInfo(m.path("id").asText(), m.path("label").asText(),
+									m.path("tier").asText("standard")))
+							.toList());
 			case "model_changed" -> sessions.updateModel(id, event.path("model").asText());
 			case "context_usage" -> sessions.updateContextUsage(id, event.path("tokens").asInt(), event.path("window").asInt());
 			case "assistant_message" -> systemSessionService.onAssistantMessage(id, event.get("content"));

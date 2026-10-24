@@ -231,6 +231,7 @@ code, pre { font-family: "JetBrains Mono", Consolas, monospace; font-size: calc(
 .chip.pulse { animation: pulse 1.2s infinite; }
 .chip.code-intel-failed { color: var(--red); border-color: var(--red); }
 .chip.clickable { cursor: pointer; }
+select.chip.model-select { cursor: pointer; appearance: none; background: transparent; color: inherit; font: inherit; padding: 0 6px; max-width: 160px; }
 .chip.selected { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
 .chip-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 

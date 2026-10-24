@@ -217,7 +217,7 @@ public class SessionConfigFactory {
 				.provider(provider).providerConfig(config.get("providerConfig"))
 				.repoPath(repo).servicePath(resolution.servicePath()).ecosystemPath(ecosystemPath).contextDirs(contextDirs)
 				.branch(options.branch()).baseBranch(options.baseBranch()).worktreePath(worktree.toString())
-				.model(nullableText(config, "model")).permissionMode(permissionMode)
+				.model(resolveModel(provider, nullableText(config, "model"))).permissionMode(permissionMode)
 				.allowedTools(allowedTools).disallowedTools(disallowedTools)
 				.mcpConfig(mcpConfig).envVars(config.get("envVars"))
 				.skillSources(arrayOrEmpty(config, "skillSources")).agentSources(arrayOrEmpty(config, "agentSources"))
@@ -768,11 +768,23 @@ public class SessionConfigFactory {
 		return joined.isBlank() ? null : joined;
 	}
 
+	/** Validates a requested model against the provider's catalog (aliases of resolved ids accepted). */
+	private static String resolveModel(String provider, String model) {
+		if (model == null || model.isBlank()) {
+			return null;
+		}
+		return ModelCatalog.normalize(provider, model).orElseThrow(() -> new IllegalArgumentException(
+				"unknown model '" + model + "' for provider '" + provider + "' (available: "
+						+ ModelCatalog.models(provider).stream().map(ModelCatalog.ModelInfo::id).toList() + ")"));
+	}
+
 	/** Copies a session's tunable config (not its identity: name/branch/repo/provider) into an overrides object. */
 	ObjectNode configOverridesFrom(SessionEntity source) {
 		ObjectNode overrides = mapper.createObjectNode();
+		// the stored model is the id the provider *reported* ("claude-opus-4-6"), which may no longer
+		// exist; carry the catalog alias instead, and nothing if it maps to none
 		if (source.model() != null) {
-			overrides.put("model", source.model());
+			ModelCatalog.normalize(source.provider(), source.model()).ifPresent(m -> overrides.put("model", m));
 		}
 		overrides.put("permissionMode", source.permissionMode());
 		if (!source.allowedTools().isEmpty()) {
