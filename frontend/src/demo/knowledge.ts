@@ -1,11 +1,11 @@
 import type {
   LibraryAsset, LibraryAssetContent, LibrarySearchHit, LibrarySource, MemoryDoc, MemoryDocDetail, MemoryEpisode, MemoryLinkRef,
-  MemoryProposal, MemorySearchHit,
+  MemoryProposal, MemorySearchHit, Template,
 } from '../protocol';
-import type { DemoLibraryFile, DemoMemoryFile } from './types';
+import type { DemoLibraryFile, DemoMemoryFile, DemoTemplatesFile } from './types';
 
-// phase 24 / website W0.2: the memory vault and skill library the demo's dialogs browse. Hand-made (frontend/demo/memory.json,
-// library.json), not recorded; ages are relative so the data always reads "recent". Read-only: every write stays a 501.
+// phase 24 / website W0.2: the memory vault, skill library and session templates the demo's dialogs browse. Hand-made
+// (frontend/demo/memory.json, library.json, templates.json), not recorded; ages are relative so the data always reads "recent". Read-only: every write stays a 501.
 
 const DAY = 86_400_000;
 const MIN = 60_000;
@@ -22,6 +22,7 @@ export interface DemoKnowledge {
   libraryAssetContent: (id: string) => LibraryAssetContent | null;
   librarySources: () => LibrarySource[];
   librarySearch: (q: string, k?: number) => LibrarySearchHit[];
+  templates: () => Template[];
 }
 
 /** Whitespace-separated terms, all of which must occur (case-insensitive) in the haystack. */
@@ -38,7 +39,9 @@ function score(q: string, haystack: string): number {
   return terms.length ? terms.filter((t) => h.includes(t)).length / terms.length : 0;
 }
 
-export function buildKnowledge(memory: DemoMemoryFile, library: DemoLibraryFile, now: number = Date.now()): DemoKnowledge {
+export function buildKnowledge(
+  memory: DemoMemoryFile, library: DemoLibraryFile, templates: DemoTemplatesFile = { templates: [] }, now: number = Date.now(),
+): DemoKnowledge {
   const docs: (MemoryDoc & { content: string })[] = memory.docs.map(({ ageDays, ...d }) => ({
     ...d,
     createdAt: iso(now, ageDays * DAY),
@@ -126,15 +129,24 @@ export function buildKnowledge(memory: DemoMemoryFile, library: DemoLibraryFile,
       .filter((a) => a.status === 'ACTIVE')
       .map((a): LibrarySearchHit => ({ asset: plainAsset(a), score: score(q, assetText(a)) }))
       .filter((h) => h.score > 0).sort((a, b) => b.score - a.score).slice(0, k),
+    // Resolved like TemplateRepository's join: name, location and status come from the library entry.
+    templates: () => templates.templates.map(({ assetIds, ...t }) => ({
+      ...t,
+      assets: assetIds.flatMap((id) => {
+        const a = assets.find((x) => x.id === id);
+        return a ? [{ id: a.id, kind: a.kind, name: a.name, location: a.location, status: a.status }] : [];
+      }),
+    })),
   };
 }
 
 const memoryModules = import.meta.glob('../../demo/memory.json', { eager: true, import: 'default' }) as Record<string, DemoMemoryFile>;
 const libraryModules = import.meta.glob('../../demo/library.json', { eager: true, import: 'default' }) as Record<string, DemoLibraryFile>;
+const templateModules = import.meta.glob('../../demo/templates.json', { eager: true, import: 'default' }) as Record<string, DemoTemplatesFile>;
 
 let cached: DemoKnowledge | null = null;
-/** The bundled memory vault and library (built once; ages relative to the first call). */
+/** The bundled memory vault, library and templates (built once; ages relative to the first call). */
 export function demoKnowledge(): DemoKnowledge {
-  cached ??= buildKnowledge(Object.values(memoryModules)[0]!, Object.values(libraryModules)[0]!);
+  cached ??= buildKnowledge(Object.values(memoryModules)[0]!, Object.values(libraryModules)[0]!, Object.values(templateModules)[0]);
   return cached;
 }

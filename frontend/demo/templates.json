@@ -1,0 +1,41 @@
+{
+  "templates": [
+    {
+      "id": "00000000-0000-4000-8000-00000000d001",
+      "name": "Bug fix",
+      "description": "Reproduce with a failing test, fix, commit",
+      "config": {
+        "provider": "claude",
+        "model": "sonnet",
+        "permissionMode": "acceptEdits",
+        "baseBranch": "main",
+        "instructions": "Reproduce the bug with a failing test before changing any code. Keep the fix minimal, and run the full test suite before you finish."
+      },
+      "assetIds": ["00000000-0000-4000-8000-00000000f002", "00000000-0000-4000-8000-00000000f005"]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000d002",
+      "name": "Review",
+      "description": "Review a pull request and post the findings",
+      "config": {
+        "provider": "claude",
+        "model": "opus",
+        "sessionType": "review",
+        "instructions": "Focus on correctness and edge cases. Submit the findings as one review with inline comments."
+      },
+      "assetIds": ["00000000-0000-4000-8000-00000000f004"]
+    },
+    {
+      "id": "00000000-0000-4000-8000-00000000d003",
+      "name": "Release",
+      "description": "Changelog and version bump for the next tag",
+      "config": {
+        "provider": "claude",
+        "model": "sonnet",
+        "permissionMode": "acceptEdits",
+        "baseBranch": "main"
+      },
+      "assetIds": ["00000000-0000-4000-8000-00000000f003", "00000000-0000-4000-8000-00000000f006"]
+    }
+  ]
+}

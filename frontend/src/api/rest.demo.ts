@@ -127,7 +127,6 @@ const implemented: Partial<Api> = {
   slackStatus: () => ok<SlackStatus>({ enabled: false, connected: false }),
   listProviders: () => ok(PROVIDERS),
   lastSessionConfig: () => ok({}),
-  listTemplates: () => ok([]),
   services: () => ok({ ecosystemRoot: '', defaultRepoPath: '', services: [] }),
   ticketImportEnabled: () => ok({ enabled: false, warm: false, busy: false }),
   usage: () => ok([]),
@@ -149,6 +148,7 @@ const implemented: Partial<Api> = {
   },
   librarySearch: (q, k) => ok(demoKnowledge().librarySearch(q, k)),
   librarySources: () => ok(demoKnowledge().librarySources()),
+  listTemplates: () => ok(demoKnowledge().templates()),
   serviceDiscoveryServices: () => ok([]),
 };
 

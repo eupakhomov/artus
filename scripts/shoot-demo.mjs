@@ -15,7 +15,8 @@
  * Options: --base <url> (default http://localhost:4173/)  --out <dir> (default docs/images)
  *          --video-dir <dir> (default ./demo-media, outside git — upload as a release asset)  --only <name,name>
  *          --themes <dark,light> (default both)
- * Names for --only: dashboard, permission-card, git-panel, history, review-card, changes, visualize, memory, memory-pending, library.
+ * Names for --only: dashboard, permission-card, git-panel, history, review-card, changes, visualize, memory, memory-pending, library,
+ *   templates.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, renameSync, readdirSync, rmSync } from 'node:fs';
@@ -139,6 +140,14 @@ async function shots(browser, theme) {
     await page.locator('.modal .stale-row').first().waitFor({ timeout: 15_000 });
     await sleep(800);
     await page.screenshot({ path: file('demo-library') });
+    await closeDialog(page);
+  }
+  // Template manager with the "Bug fix" template open: its settings and the library skills and agents it attaches.
+  if (want('templates')) {
+    await page.locator('button[title^="Templates"]').click();
+    await page.locator('.modal tr:has-text("Bug fix") button:has-text("Edit")').click();
+    await sleep(800);
+    await page.screenshot({ path: file('demo-templates') });
     await closeDialog(page);
   }
   await ctx.close();

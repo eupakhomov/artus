@@ -98,6 +98,18 @@ describe('memory and library demo data', () => {
     expect((await api.librarySearch('commit')).map((h) => h.asset.name)).toContain('write-commit-message');
   });
 
+  it('serves templates whose skills and agents resolve to library entries', async () => {
+    const templates = await api.listTemplates();
+    expect(templates.map((t) => t.name)).toEqual(['Bug fix', 'Review', 'Release']);
+    const library = await api.libraryAssets({});
+    for (const t of templates) {
+      for (const a of t.assets) expect(library.find((l) => l.id === a.id)?.name, `${t.name} → ${a.id}`).toBe(a.name);
+    }
+    expect(templates[0]!.assets.map((a) => a.kind).sort()).toEqual(['agent', 'skill']);
+    expect(templates[2]!.assets.some((a) => a.status === 'ARCHIVED')).toBe(true);
+    await expect(api.createTemplate({ name: 'x', description: '', config: {}, skillAssetIds: [], agentAssetIds: [] })).rejects.toMatchObject({ status: 501 });
+  });
+
   it('keeps every write a 501', async () => {
     await expect(api.memoryDiscardProposal('x')).rejects.toMatchObject({ status: 501 });
     await expect(api.libraryDeleteAsset('x')).rejects.toMatchObject({ status: 501 });

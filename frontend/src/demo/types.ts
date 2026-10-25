@@ -58,6 +58,11 @@ export interface DemoMemoryFile {
   episodes: { id: string; sessionId: string; sessionName: string; servicePath: string; ageDays: number; summary: string }[];
 }
 
+/** frontend/demo/templates.json: hand-made session templates; `assetIds` are library.json asset ids (live references, as in V8). */
+export interface DemoTemplatesFile {
+  templates: { id: string; name: string; description: string; config: Record<string, unknown>; assetIds: string[] }[];
+}
+
 /** frontend/demo/library.json: the hand-made skill & agent library. */
 export interface DemoLibraryFile {
   sources: {
