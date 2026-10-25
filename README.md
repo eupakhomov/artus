@@ -45,7 +45,13 @@ auth, your own machine's `claude`/`codex`/`gh` credentials.
   per-turn cost estimated from an editable price table)
 - Permission modes per session: ask, auto-accept edits, plan (with plan-approval
   cards), bypass; mode switchable at runtime from the widget
-- Templates, quick-session dialog (service + branch + prompt), session duplication,
+- Templates: a template brings its own skills, agents and MCP servers (plus provider,
+  model, permission mode, base branch and instructions), so a session gets only what
+  its task needs and spends no context on skills it will never call. Library entries
+  are live references: an edited skill reaches the next session, an archived one is
+  skipped with a transcript warning. Claude sessions load the repository's own
+  settings, not the user's global `~/.claude`
+- Quick-session dialog (service + branch + prompt), session duplication,
   continuation/handoff briefs, cost budgets, context-usage chips with one-click
   compaction, transcript export
 
