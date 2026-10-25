@@ -31,6 +31,16 @@
       "id": "opus",
       "label": "opus",
       "tier": "premium"
+    },
+    {
+      "id": "sonnet[1m]",
+      "label": "sonnet (1M context)",
+      "tier": "extended"
+    },
+    {
+      "id": "opus[1m]",
+      "label": "opus (1M context)",
+      "tier": "extended"
     }
   ],
   "unsupportedSessionFields": [],
