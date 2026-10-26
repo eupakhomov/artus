@@ -287,7 +287,7 @@ public class SystemSessionService {
 
 	/** Find-or-create the worker's system session; caller must hold the worker's lock. */
 	private SessionEntity getOrCreateSystemSession(SystemWorker worker) {
-		return sessions.findSystemSession(worker.name).map(s -> {
+		return sessions.findSystemSession(worker.name).map(this::syncLinearAccess).map(s -> {
 			return switch (s.state()) {
 				case PARKED -> {
 					sessionService.wake(s);
@@ -297,6 +297,32 @@ public class SystemSessionService {
 				default -> s;
 			};
 		}).orElseGet(() -> createSystemSession(worker));
+	}
+
+	/**
+	 * System sessions are persisted and reused, so the Linear MCP entry baked in at creation goes stale
+	 * when Linear is configured (API key, OAuth toggle) after the session was first created. Re-derives
+	 * it from the current configuration and, if it changed, persists it and rewrites the per-session
+	 * MCP file before the sidecar is (re)spawned. Only a PARKED/idle session is touched — a live
+	 * sidecar already read its config.
+	 */
+	private SessionEntity syncLinearAccess(SessionEntity s) {
+		if (s.state() != SessionState.PARKED && s.state() != SessionState.CRASHED) {
+			return s;
+		}
+		JsonNode wanted = configFactory.linearMcpServer();
+		List<String> allowed = wanted != null ? List.of("mcp__linear") : List.of();
+		boolean sameConfig = java.util.Objects.equals(
+				wanted == null ? null : wanted.toString(),
+				s.mcpConfig() == null || s.mcpConfig().isNull() ? null : s.mcpConfig().toString());
+		if (sameConfig && allowed.equals(s.allowedTools())) {
+			return s;
+		}
+		log.info("system session {}: refreshing Linear MCP access (configured={})", s.name(), wanted != null);
+		sessions.updateMcpAccess(s.id(), allowed, wanted);
+		SessionEntity fresh = sessions.get(s.id());
+		sessionService.writeMcpConfig(fresh);
+		return fresh;
 	}
 
 	private SessionEntity createSystemSession(SystemWorker worker) {

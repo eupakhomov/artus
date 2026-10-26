@@ -58,7 +58,7 @@ public class SystemTurnClient {
 		try {
 			return mapper.readTree(stripFences(raw));
 		} catch (RuntimeException e) {
-			throw new IllegalStateException("could not parse system turn response as JSON: " + truncate(raw, 300));
+			throw new IllegalStateException("could not parse system turn response as JSON: " + truncate(raw, 4000));
 		}
 	}
 
