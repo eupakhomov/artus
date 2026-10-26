@@ -87,6 +87,13 @@ final class FakeSessionRepository extends SessionRepository {
 	}
 
 	@Override
+	public void updateMcpAccess(UUID id, List<String> allowedTools, List<String> disallowedTools,
+			tools.jackson.databind.JsonNode mcpConfig) {
+		byId.computeIfPresent(id, (k, e) -> e.toBuilder().allowedTools(allowedTools)
+				.disallowedTools(disallowedTools).mcpConfig(mcpConfig).build());
+	}
+
+	@Override
 	public void updateModel(UUID id, String model) {
 		byId.computeIfPresent(id, (k, e) -> e.toBuilder().model(model).build());
 	}

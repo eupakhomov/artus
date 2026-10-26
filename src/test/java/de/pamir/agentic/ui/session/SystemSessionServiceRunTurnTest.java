@@ -168,6 +168,13 @@ class SystemSessionServiceRunTurnTest {
 	 * actually finishes and releases, not just until the first caller's own wait returns.
 	 */
 	@Test
+	void systemTurnsBlockToolsThatWouldNeedAnUnanswerablePermissionPrompt() {
+		assertThat(SystemSessionService.systemDisallowedTools("claude"))
+				.contains("Bash", "Edit", "Write", "Task", "Agent");
+		assertThat(SystemSessionService.systemDisallowedTools("codex")).isEmpty();
+	}
+
+	@Test
 	void onlyOneSystemTurnRunsAtATimeAcrossBackgroundReleases() throws InterruptedException {
 		AtomicReference<String> firstResult = new AtomicReference<>();
 		Thread first = Thread.ofVirtual().start(() -> firstResult.set(

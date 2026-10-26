@@ -315,14 +315,28 @@ public class SystemSessionService {
 		boolean sameConfig = java.util.Objects.equals(
 				wanted == null ? null : wanted.toString(),
 				s.mcpConfig() == null || s.mcpConfig().isNull() ? null : s.mcpConfig().toString());
-		if (sameConfig && allowed.equals(s.allowedTools())) {
+		List<String> disallowed = systemDisallowedTools(s.provider());
+		if (sameConfig && allowed.equals(s.allowedTools()) && disallowed.equals(s.disallowedTools())) {
 			return s;
 		}
 		log.info("system session {}: refreshing Linear MCP access (configured={})", s.name(), wanted != null);
-		sessions.updateMcpAccess(s.id(), allowed, wanted);
+		sessions.updateMcpAccess(s.id(), allowed, disallowed, wanted);
 		SessionEntity fresh = sessions.get(s.id());
 		sessionService.writeMcpConfig(fresh);
 		return fresh;
+	}
+
+	/**
+	 * Tools a system turn must never call. Nobody can answer a permission prompt for a backend-initiated
+	 * turn, so a Bash/Edit/Write call (e.g. the model probing a CLI mentioned in the user's CLAUDE.md)
+	 * would block until the turn times out. Blocked up front, the model gets an immediate tool error
+	 * and falls back to the pre-approved MCP tools. Task/Agent: see {@link #createSystemSession}.
+	 * Codex rejects disallowedTools outright.
+	 */
+	static List<String> systemDisallowedTools(String provider) {
+		return "claude".equals(provider)
+				? List.of("Task", "Agent", "Bash", "Edit", "Write", "NotebookEdit", "WebFetch", "WebSearch")
+				: List.of();
 	}
 
 	private SessionEntity createSystemSession(SystemWorker worker) {
@@ -343,7 +357,7 @@ public class SystemSessionService {
 		// A turn must end with the answer itself. Left enabled, the model may delegate to a background
 		// subagent ("I've launched an agent… waiting") and end the turn with a status line, which
 		// SystemTurnClient then fails to parse as JSON. (Codex rejects disallowedTools outright.)
-		List<String> disallowedTools = "claude".equals(provider) ? List.of("Task", "Agent") : List.of();
+		List<String> disallowedTools = systemDisallowedTools(provider);
 		String model = ModelCatalog.byTier(provider, "cheap").orElse(null);
 		SessionEntity entity = SessionEntity.builder()
 				.id(id).name(worker.name).provider(provider)

@@ -128,9 +128,10 @@ public class SessionRepository {
 				.params(model, id).update();
 	}
 
-	public void updateMcpAccess(UUID id, List<String> allowedTools, JsonNode mcpConfig) {
-		jdbc.sql("UPDATE session SET allowed_tools = ?::jsonb, mcp_config = ?::jsonb, updated_at = now() WHERE id = ?")
-				.params(json(allowedTools), json(mcpConfig), id).update();
+	public void updateMcpAccess(UUID id, List<String> allowedTools, List<String> disallowedTools, JsonNode mcpConfig) {
+		jdbc.sql("UPDATE session SET allowed_tools = ?::jsonb, disallowed_tools = ?::jsonb, mcp_config = ?::jsonb,"
+				+ " updated_at = now() WHERE id = ?")
+				.params(json(allowedTools), json(disallowedTools), json(mcpConfig), id).update();
 	}
 
 	public void updateName(UUID id, String name) {
