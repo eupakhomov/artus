@@ -1,7 +1,9 @@
 package de.pamir.agentic.ui.ws;
 
 import de.pamir.agentic.ui.config.AuthTokenService;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -24,6 +26,18 @@ public class WebSocketConfig implements WebSocketConfigurer {
 	public WebSocketConfig(SessionWebSocketHandler handler, AuthTokenService auth) {
 		this.handler = handler;
 		this.auth = auth;
+	}
+
+	/**
+	 * Tomcat's default text-message limit is 8 KB; a longer client frame closes the socket (1009) and the
+	 * dashboard silently reconnects, losing the message. Pasted logs/specs easily exceed that, so allow 16 MB.
+	 */
+	@Bean
+	public ServletServerContainerFactoryBean webSocketContainer() {
+		var container = new ServletServerContainerFactoryBean();
+		container.setMaxTextMessageBufferSize(16 * 1024 * 1024);
+		container.setMaxBinaryMessageBufferSize(16 * 1024 * 1024);
+		return container;
 	}
 
 	@Override

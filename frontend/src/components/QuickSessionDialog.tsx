@@ -171,9 +171,8 @@ export default function QuickSessionDialog({
     }
   };
 
-  // review sessions never auto-fire a kickoff prompt (it lands as an unsent draft either way),
-  // so it's optional there — only a development quick-session requires one
-  const ready = !!servicePath && !!branchName.trim() && (sessionType === 'review' || !!prompt.trim());
+  // the prompt only ever lands as an unsent draft in the new session's composer, so it's optional
+  const ready = !!servicePath && !!branchName.trim();
   const backdropDismiss = useBackdropDismiss(() => { if (!busy && !importBusy) onCancel(); });
 
   return (
@@ -295,7 +294,7 @@ export default function QuickSessionDialog({
             placeholder={
               sessionType === 'review'
                 ? 'what to focus the review on — optional'
-                : ticketImportEnabled ? 'optional — filled in automatically by ticket import' : undefined
+                : ticketImportEnabled ? 'optional — filled in automatically by ticket import' : 'optional — lands as a draft in the session'
             }
           />
         </div>

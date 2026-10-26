@@ -172,7 +172,7 @@ export default function SessionWidget({
     return () => ws.stop();
   }, [sessionId, apply, setWsStatus, seed]);
 
-  const send = useCallback((cmd: Record<string, unknown>) => wsRef.current?.send(cmd), []);
+  const send = useCallback((cmd: Record<string, unknown>) => wsRef.current?.send(cmd) ?? false, []);
 
   useEffect(() => {
     api.getSettings().then((s) => {
@@ -213,8 +213,8 @@ export default function SessionWidget({
   const submit = useCallback(() => {
     const text = input.trim();
     if (!text) return;
-    send({ type: 'user_message', text });
-    setInput('');
+    // keep the text in the composer if the socket is down, instead of losing it
+    if (send({ type: 'user_message', text })) setInput('');
   }, [input, send]);
 
   const cycleMode = useCallback(() => {

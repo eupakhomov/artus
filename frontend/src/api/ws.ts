@@ -58,10 +58,13 @@ export class WsSession {
     ws.onerror = () => ws.close();
   }
 
-  send(command: Record<string, unknown>): void {
+  /** false when the socket isn't open, so callers can keep what they tried to send */
+  send(command: Record<string, unknown>): boolean {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(command));
+      return true;
     }
+    return false;
   }
 
   stop(): void {
